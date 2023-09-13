@@ -1,6 +1,6 @@
 {
   "name": "@panth977/node-backend",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -8,6 +8,9 @@
     "build": "tsc",
     "prepublish": "npm run build",
     "publish": "npm publish",
+    "publish-patch": "npm version patch && npm run publish",
+    "publish-minor": "npm version minor && npm run publish",
+    "publish-major": "npm version major && npm run publish",
     "build-types": "tsc --declaration --outDir ./typings"
   },
   "keywords": [],

@@ -58,8 +58,8 @@ export default class Middleware<
         QuerySchema & _QuerySchema,
         Attachment,
         ResponseHeaders
-    > {
-        middleware;
+    >;
+    addPreRequisite() {
         return this as never;
     }
 
