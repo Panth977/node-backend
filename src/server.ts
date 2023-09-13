@@ -1,7 +1,7 @@
 import type Route from './route';
 import type Middleware from './middleware';
 import HttpsResponse from './response';
-import type { Application, Response, Request } from 'express';
+import type { Application, Response } from 'express';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
 import { RequestSymbol, ResponseSymbol } from './params';
@@ -29,6 +29,7 @@ export default class Server<
     addRoute<
         Method extends (typeof Route)['__general']['__method'],
         Path extends (typeof Route)['__general']['__path'],
+        ParamsSchema extends Record<string, z.ZodType>,
         Attachments extends Record<string, unknown>,
         HeadersSchema extends (typeof Route)['__general']['__headersSchema'],
         QuerySchema extends (typeof Route)['__general']['__querySchema'],
@@ -37,7 +38,7 @@ export default class Server<
         ResponseHeaders extends Record<string, string | number | readonly string[]>,
     >(
         collection: string,
-        route: Route<Method, Path, Attachments, HeadersSchema, QuerySchema, BodySchema, ResponseData, ResponseHeaders>
+        route: Route<Method, Path, ParamsSchema, Attachments, HeadersSchema, QuerySchema, BodySchema, ResponseData, ResponseHeaders>
     ): Server<Info & { [id in (typeof route)['__id']]: { request: (typeof route)['__request']; response: (typeof route)['__response'] } }> {
         (this.routes[collection] ??= []).push(route as never);
         return this as never;
@@ -50,6 +51,12 @@ export default class Server<
             return new HttpsResponse('internal', 'Something went wrong', null);
         }
     ) {
+        function parse<T, R>(val: T, getSchema: (val: T) => z.ZodType<R>, data: R) {
+            if (!schema_memo.has(val)) schema_memo.set(val, getSchema(val));
+            const result = (schema_memo.get(val) as z.ZodType<R>).safeParse(data);
+            if (!result.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', result.error);
+            return result.data;
+        }
         function getMiddlewareSchema(middleware: (typeof Middleware)['__general']) {
             return z.object({
                 headers: z.object(middleware.headerSchema),
@@ -63,15 +70,10 @@ export default class Server<
                 body: route.bodySchema,
             });
         }
-        const schema_memo = new Map<unknown, z.ZodType>();
-        function parse(val: (typeof Middleware)['__general'], request: Request): ReturnType<typeof getMiddlewareSchema>['_output'];
-        function parse(val: (typeof Route)['__general'], request: Request): ReturnType<typeof getRouteSchema>['_output'];
-        function parse(val: Record<never, unknown> | { bodySchema?: unknown }, request: Request): unknown {
-            if (!schema_memo.has(val)) schema_memo.set(val, 'bodySchema' in val ? getRouteSchema(val as never) : getMiddlewareSchema(val as never));
-            const result = (schema_memo.get(val) as z.ZodType).safeParse(request);
-            if (!result.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', result.error);
-            return result.data;
+        function getParamsSchema(paramsSchema: (typeof Route)['__general']['__paramsSchema']) {
+            return z.object(paramsSchema);
         }
+        const schema_memo = new Map<unknown, z.ZodType>();
         function addResponseHeaders(headers: Record<string, string | number | readonly string[]>, response: Response) {
             for (const key in headers) {
                 if (Object.prototype.hasOwnProperty.call(headers, key)) {
@@ -91,20 +93,20 @@ export default class Server<
                             headers: {},
                             query: {},
                             body: null,
-                            params: request.params,
+                            params: parse(route.paramsSchema, getParamsSchema, request.params),
                             [RequestSymbol]: request,
                             [ResponseSymbol]: response,
                         };
                         const attachments = {};
                         for (const middleware of route.middleware) {
-                            const data = parse(middleware, request);
+                            const data = parse(middleware, getMiddlewareSchema, request);
                             Object.assign(payload.headers, data.headers);
                             Object.assign(payload.query, data.query);
                             const result = await middleware.implementation(payload, attachments, route);
                             addResponseHeaders(result.ResponseHeaders, response);
                             Object.assign(attachments, { [middleware.id]: result.Attachment });
                         }
-                        const data = parse(route, request);
+                        const data = parse(route, getRouteSchema, request);
                         Object.assign(payload.headers, data.headers);
                         Object.assign(payload.query, data.query);
                         payload.body = data.body;
