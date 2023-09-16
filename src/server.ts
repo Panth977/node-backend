@@ -18,7 +18,16 @@ export default class Server<
     readonly version: string;
     readonly title: string;
     readonly description?: string;
+    private allowedHeaders = new Set(['X-Requested-With', 'Access-Control-Allow-Origin', 'Content-Type']);
+    private allowedMethods = new Set<string>();
     private routes: { [ClassName in string]: (typeof Route)['__general'][] } = {};
+
+    get AllowedHeaders() {
+        return [...this.allowedHeaders];
+    }
+    get AllowedMethods() {
+        return [...this.allowedMethods].map((x) => x.toUpperCase());
+    }
 
     constructor(version: string, title: string, description?: string) {
         this.version = version;
@@ -41,16 +50,29 @@ export default class Server<
         route: Route<Method, Path, ParamsSchema, Attachments, HeadersSchema, QuerySchema, BodySchema, ResponseData, ResponseHeaders>
     ): Server<Info & { [id in (typeof route)['__id']]: { request: (typeof route)['__request']; response: (typeof route)['__response'] } }> {
         (this.routes[collection] ??= []).push(route as never);
+        this.allowedMethods.add(route.method);
+        for (const middleware of route.middleware) {
+            for (const key in middleware.headerSchema) {
+                this.allowedHeaders.add(key);
+            }
+        }
+        for (const key in route.headerSchema) {
+            this.allowedHeaders.add(key);
+        }
         return this as never;
     }
 
-    serve(
-        app: Application,
-        onUnknownError = function (error: unknown): (typeof HttpsResponse)['__general'] {
+    serve(app: Application, onUnknownError?: (error: unknown) => (typeof HttpsResponse)['__general']) {
+        function createErrorResponse(error: unknown) {
+            try {
+                if (error instanceof HttpsResponse) return error;
+                if (onUnknownError) return onUnknownError(error);
+            } catch (_) {
+                error = _;
+            }
             console.log(error);
             return new HttpsResponse('internal', 'Something went wrong', null);
         }
-    ) {
         function parse<T, R>(val: T, getSchema: (val: T) => z.ZodType<R>, data: R) {
             if (!schema_memo.has(val)) schema_memo.set(val, getSchema(val));
             const result = (schema_memo.get(val) as z.ZodType<R>).safeParse(data);
@@ -85,6 +107,7 @@ export default class Server<
             response.status(responseData.httpErrorCode.status);
             response.send(responseData.toJSON());
         }
+
         for (const collection in this.routes) {
             for (const route of this.routes[collection]) {
                 app[route.method](route.path, async function (request, response) {
@@ -114,7 +137,7 @@ export default class Server<
                         addResponseHeaders(result.ResponseHeaders, response);
                         setResponse(result.ResponseData, response);
                     } catch (error) {
-                        setResponse(error instanceof HttpsResponse ? error : onUnknownError(error), response);
+                        setResponse(createErrorResponse(error), response);
                     }
                 });
             }
