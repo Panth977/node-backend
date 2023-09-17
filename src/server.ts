@@ -97,6 +97,12 @@ export default class Server<
         }
         const schema_memo = new Map<unknown, z.ZodType>();
         function addResponseHeaders(headers: Record<string, string | number | readonly string[]>, response: Response) {
+            let exposedHeaders = response.getHeader('Access-Control-Expose-Headers') ?? new Set<string>();
+            if (typeof exposedHeaders === 'number') exposedHeaders = exposedHeaders.toString();
+            if (typeof exposedHeaders === 'string') exposedHeaders = exposedHeaders.split(',').map((x) => x.trim());
+            exposedHeaders = new Set([...exposedHeaders, ...Object.keys(headers)]);
+            response.setHeader('Access-Control-Expose-Headers', [...exposedHeaders]);
+
             for (const key in headers) {
                 if (Object.prototype.hasOwnProperty.call(headers, key)) {
                     response.setHeader(key, headers[key]);
