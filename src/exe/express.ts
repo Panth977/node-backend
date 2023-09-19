@@ -9,7 +9,7 @@ export function getExpressVars(attachments: Record<string, unknown>): { request:
     return x;
 }
 
-export default function (app: Application, server: (typeof Server)['__general'], onError?: (error: unknown) => (typeof HttpsResponse)['__general']) {
+function exe(app: Application, server: (typeof Server)['__general'], onError?: (error: unknown) => (typeof HttpsResponse)['__general']) {
     function createErrorResponse(error: unknown) {
         try {
             if (error instanceof HttpsResponse) return error;
@@ -58,3 +58,5 @@ export default function (app: Application, server: (typeof Server)['__general'],
         }
     }
 }
+
+export default Object.assign(exe, { getExpressVars });
