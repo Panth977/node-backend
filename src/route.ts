@@ -12,10 +12,7 @@ export default class Route<
     HeadersSchema extends Record<string, z.ZodType> = Record<never, never>,
     QuerySchema extends Record<string, z.ZodType> = Record<never, never>,
     BodySchema extends z.ZodType = z.ZodNever,
-    ImplementationReturn extends { message?: string; headers?: Record<string, unknown>; data: unknown } & Record<
-        string | number | symbol,
-        unknown
-    > = never,
+    ImplementationReturn extends { message?: string; headers?: Record<string, unknown>; data?: unknown } = never,
     ResponseData extends z.ZodType = z.ZodNever,
     ResponseHeaders extends Record<string, z.ZodType> = Record<never, never>,
 > {
@@ -82,7 +79,7 @@ export default class Route<
         Record<string, z.ZodType>,
         Record<string, z.ZodType>,
         z.ZodType,
-        { headers?: Record<string, unknown>; data: unknown } & Record<string | number | symbol, unknown>,
+        { headers?: Record<string, unknown>; data: unknown },
         z.ZodType,
         Record<string, z.ZodType>
     >;
@@ -112,7 +109,7 @@ export default class Route<
     }
 
     setImplementation<
-        ImplementationReturn extends { message?: string; headers?: Record<string, unknown>; data: unknown } & Record<
+        ImplementationReturn extends { message?: string; headers?: Record<string, unknown>; data?: unknown } & Record<
             string | number | symbol,
             unknown
         >,
