@@ -86,12 +86,14 @@ export default class Route<
 
     addMiddleware<
         _ID extends string,
+        _RequireAttachments extends Record<string, unknown>,
         _HeadersSchema extends Record<string, z.ZodType>,
         _QuerySchema extends Record<string, z.ZodType>,
         _Attachment extends Record<string, unknown>,
         _ResponseHeaders extends Record<string, z.ZodType>,
     >(
-        middleware: Middleware<_ID, Attachments, _HeadersSchema, _QuerySchema, _Attachment, _ResponseHeaders>
+        middleware: Middleware<_ID, _RequireAttachments, _HeadersSchema, _QuerySchema, _Attachment, _ResponseHeaders>,
+        ...bug: Attachments extends _RequireAttachments ? [] : [never]
     ): Route<
         Method,
         Path,
@@ -103,8 +105,9 @@ export default class Route<
         ImplementationReturn,
         ResponseData,
         ResponseHeaders & _ResponseHeaders
-    > {
-        this.middleware.push(middleware as never);
+    >;
+    addMiddleware(...middleware: never) {
+        this.middleware.push(middleware[0]);
         return this as never;
     }
 

@@ -56,14 +56,15 @@ export default class Middleware<
     }
     addPreRequisite<
         _ID extends string,
+        _RequireAttachments extends Record<string, unknown>,
         _HeadersSchema extends Record<string, z.ZodType>,
         _QuerySchema extends Record<string, z.ZodType>,
         _Attachment extends Record<string | number | symbol, unknown>,
     >(
-        middleware: () => Middleware<_ID, RequireAttachments, _HeadersSchema, _QuerySchema, _Attachment, Record<string, z.ZodType>>
+        middleware: () => Middleware<_ID, _RequireAttachments, _HeadersSchema, _QuerySchema, _Attachment, Record<string, z.ZodType>>
     ): Middleware<
         ID,
-        RequireAttachments & { [k in _ID]: _Attachment },
+        RequireAttachments & { [k in _ID]: _Attachment } & _RequireAttachments,
         HeadersSchema & _HeadersSchema,
         QuerySchema & _QuerySchema,
         ImplementationReturn,
