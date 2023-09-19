@@ -59,4 +59,4 @@ function exe(app: Application, server: (typeof Server)['__general'], onError?: (
     }
 }
 
-export default Object.assign(exe, { getExpressVars });
+export default exe;
