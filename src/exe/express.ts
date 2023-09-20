@@ -45,10 +45,10 @@ function exe(app: Application, server: (typeof Server)['__general'], onError?: (
                     const [payload, attachments] = route.init(request);
                     Object.assign(attachments, { [express]: { request, response } });
                     for (const middleware of route.middleware) {
-                        const result = await middleware.execute(request, payload, attachments, route);
+                        const result = await middleware.execute(payload, attachments, route);
                         addResponseHeaders(response, result.headers);
                     }
-                    const result = await route.execute(request, payload, attachments);
+                    const result = await route.execute(payload, attachments);
                     addResponseHeaders(response, result.headers);
                     setResponseData(response, result.data);
                 } catch (error) {

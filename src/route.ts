@@ -205,46 +205,41 @@ export default class Route<
         return this as never;
     }
 
-    init(request: { params: Record<string, unknown> }) {
-        const { paramsSchema } = this;
-        const payload = {
-            headers: {},
-            body: null,
-            params: {},
-            query: {},
-        } as { headers: Record<string, unknown>; query: Record<string, unknown>; body: unknown; params: Record<string, unknown> };
+    private reqParser?: z.ZodType<{
+        params: Record<string, unknown>;
+        headers: Record<string, unknown>;
+        query: Record<string, unknown>;
+        body: unknown;
+    }>;
+    init(request: { params: Record<string, unknown>; headers: Record<string, unknown>; query: Record<string, unknown>; body: unknown }) {
+        const { paramsSchema, headerSchema, querySchema, bodySchema, middleware } = this;
         const attachments = {} as Record<string, unknown>;
-        const parsedResult = z.object({ params: z.object(paramsSchema) }).safeParse(request);
+        const parsedResult = (this.reqParser ??= z.object({
+            params: z.object(paramsSchema),
+            headers: z.object(Object.assign({}, ...middleware.map(({ headerSchema }) => headerSchema), headerSchema)),
+            query: z.object(Object.assign({}, ...middleware.map(({ querySchema }) => querySchema), querySchema)),
+            body: bodySchema,
+        }) as never).safeParse(request);
         if (!parsedResult.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
-        Object.assign(payload.params, parsedResult.data.params ?? {});
-        return [payload, attachments] as const;
+        return [parsedResult.data, attachments] as const;
     }
 
+    private resParser?: z.ZodType<{
+        message?: string;
+        data?: unknown;
+        headers?: Record<string, unknown>;
+    }>;
     async execute(
-        request: { headers: Record<string, unknown>; query: Record<string, unknown>; body: unknown },
         payload: { headers: Record<string, unknown>; query: Record<string, unknown>; body: unknown; params: Record<string, unknown> },
         attachments: Record<string, unknown>
     ): Promise<{ headers: Record<string, unknown>; data: HttpsResponse<'ok', unknown> }> {
-        const { headerSchema, querySchema, bodySchema, implementation, responseHeadersSchema, responseDataSchema } = this;
-        const parsedResult = z
-            .object({
-                headers: z.object(headerSchema),
-                query: z.object(querySchema),
-                body: bodySchema,
-            })
-            .safeParse(request);
-        if (!parsedResult.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
-        Object.assign(payload.headers, parsedResult.data.headers ?? {});
-        Object.assign(payload.query, parsedResult.data.query ?? {});
-        Object.assign(payload, { body: parsedResult.data.body });
+        const { implementation, responseHeadersSchema, responseDataSchema } = this;
         const result = await implementation(payload as never, attachments as never, this);
-        const parsedHeaders = z
-            .object({
-                headers: z.object(responseHeadersSchema).optional(),
-                message: z.string().optional(),
-                data: responseDataSchema,
-            })
-            .safeParse(result);
+        const parsedHeaders = (this.resParser ??= z.object({
+            headers: z.object(responseHeadersSchema).optional(),
+            message: z.string().optional(),
+            data: responseDataSchema,
+        })).safeParse(result);
         if (!parsedHeaders.success) throw new Error(parsedHeaders.error.toString());
         return {
             headers: parsedHeaders.data.headers ?? {},

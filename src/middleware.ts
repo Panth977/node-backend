@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type Route from './route';
-import HttpsResponse from './response';
 
 export default class Middleware<
     ID extends string,
@@ -104,20 +103,18 @@ export default class Middleware<
         return this as never;
     }
 
+    private resParser?: z.ZodType<{ headers?: Record<string, unknown> }>;
     async execute(
-        request: { headers: Record<string, unknown>; query: Record<string, unknown> },
         payload: { headers: Record<string, unknown>; query: Record<string, unknown> },
         attachments: Record<string, unknown>,
         route: (typeof Route)['__general']
     ): Promise<{ headers: Record<string, unknown> }> {
-        const { headerSchema, querySchema, implementation, responseHeadersSchema, id } = this;
-        const parsedResult = z.object({ headers: z.object(headerSchema), query: z.object(querySchema) }).safeParse(request);
-        if (!parsedResult.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
-        Object.assign(payload.headers, parsedResult.data.headers ?? {});
-        Object.assign(payload.query, parsedResult.data.query ?? {});
+        const { implementation, responseHeadersSchema, id } = this;
         const result = await implementation(payload as never, attachments as never, route);
         Object.assign(attachments, { [id]: result });
-        const parsedHeaders = z.object({ headers: z.object(responseHeadersSchema).optional() }).safeParse(result);
+        const parsedHeaders = (this.resParser ??= z.object({
+            headers: z.object(responseHeadersSchema).optional(),
+        })).safeParse(result);
         if (!parsedHeaders.success) throw new Error(parsedHeaders.error.toString());
         return {
             headers: parsedHeaders.data.headers ?? {},
