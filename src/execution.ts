@@ -1,69 +1,67 @@
 import { z } from 'zod';
-import { GeneralType, Types, schema } from './helper';
-import Route from './route';
+import RController from './route_controller';
 import HttpsResponse from './response';
 import Server from './server';
+import { InferInput } from './schema';
+import { ZodInputRecord } from './helper';
 
 const requestParser = Symbol();
 function getRequestParser(
-    route: (typeof Route)[GeneralType]
-): z.ZodType<{ params: Record<string, unknown>; headers: Record<string, unknown>; query: Record<string, unknown>; body: unknown }> {
-    if (requestParser in route === false) {
-        const { bodySchema, headerSchema, paramsSchema, querySchema } = route[schema];
-        Object.assign(route, {
+    rController: RController
+): z.ZodType<{ [k in 'header' | 'query' | 'params']: Record<string, unknown> } & { body: unknown }> {
+    if (requestParser in rController === false) {
+        Object.assign(rController, {
             [requestParser]: z.object({
-                params: z.object(paramsSchema),
-                headers: z.object(headerSchema),
-                query: z.object(querySchema),
-                body: bodySchema,
+                params: z.object(rController.info.params),
+                headers: z.object(rController.request.header),
+                query: z.object(rController.request.query),
+                body: rController.request.body,
             }),
         });
     }
-    return (route as never as { [requestParser]: unknown })[requestParser] as never;
+    return (rController as never as { [requestParser]: unknown })[requestParser] as never;
 }
 const responseParser = Symbol();
-function getResponseParser(route: (typeof Route)[GeneralType]): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
-    if (responseParser in route === false) {
-        const { responseDataSchema, responseHeadersSchema } = route[schema];
-        Object.assign(route, {
+function getResponseParser(rController: RController): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
+    if (responseParser in rController === false) {
+        Object.assign(rController, {
             [responseParser]: z.object({
-                headers: z.object(responseHeadersSchema),
-                data: responseDataSchema,
+                headers: z.object(rController.response.header),
+                data: rController.response.body,
                 message: z.string(),
             }),
         });
     }
-    return (route as never as { [responseParser]: unknown })[responseParser] as never;
+    return (rController as never as { [responseParser]: unknown })[responseParser] as never;
 }
 
-export function setup(
-    route: (typeof Route)[GeneralType],
-    request: (typeof Route)[GeneralType][Types]['Request']
-): [(typeof Route)[GeneralType][Types]['Payload'], (typeof Route)[GeneralType][Types]['Attachments']] {
-    const attachments = {} as Record<string, unknown>;
-    const parsedResult = getRequestParser(route).safeParse(request);
-    if (!parsedResult.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
-    return [parsedResult.data, attachments];
+export function prepare(
+    rController: RController,
+    request: InferInput<RController['request']> & { params: ZodInputRecord<RController['info']['params']> }
+) {
+    const attachments = {} as RController['requirements'];
+    const parsedResult = getRequestParser(rController).safeParse(request);
+    if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
+    const { params, ...payload } = parsedResult.data;
+    return [payload, attachments, { route: rController.info, params }] as const;
 }
 
 export async function execute(
-    route: (typeof Route)[GeneralType],
-    payload: { headers: Record<string, unknown>; query: Record<string, unknown>; body: unknown; params: Record<string, unknown> },
-    attachments: Record<string, unknown>,
-    onUnknownError: (error: unknown) => (typeof HttpsResponse)[GeneralType]
-): Promise<{ headers: Record<string, unknown>; data: (typeof HttpsResponse)[GeneralType] }> {
+    rController: RController,
+    [payload, attachments, { route, params }]: ReturnType<typeof prepare>,
+    frameworkArg: unknown,
+    onUnknownError: (error: unknown) => HttpsResponse
+): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {
     try {
-        const { implementation } = route[schema];
         const responseHeaders = {};
-        for (const middleware of route.middleware) {
-            const { implementation } = middleware[schema];
-            const result = await implementation(payload as never, attachments as never, route);
-            Object.assign(attachments, { [middleware.id]: result });
-            Object.assign(responseHeaders, result.headers ?? {});
+        for (const mController of rController.mController) {
+            const result = await mController.implementation(payload, attachments, { route, params, frameworkArg });
+            Object.assign(attachments, { [mController['info']['id']]: result });
+            Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
         }
-        const result = await implementation(payload, attachments, route);
-        Object.assign(responseHeaders, result.headers ?? {});
-        const parsedObj = getResponseParser(route).safeParse({
+        const result = await rController.implementation(payload, attachments, { route, params, frameworkArg });
+        Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
+        const parsedObj = getResponseParser(rController).safeParse({
             headers: responseHeaders,
             message: result.message ?? 'Successful execution',
             data: result.data ?? null,
@@ -71,15 +69,15 @@ export async function execute(
         if (!parsedObj.success) throw new Error(parsedObj.error.toString());
         return {
             headers: parsedObj.data.headers,
-            data: new HttpsResponse('ok', parsedObj.data.message ?? 'Successful execution', parsedObj.data.data),
+            data: HttpsResponse.build('ok', parsedObj.data.message ?? 'Successful execution', parsedObj.data.data),
         };
     } catch (error) {
         return { headers: {}, data: error instanceof HttpsResponse ? error : onUnknownError(error) };
     }
 }
 
-export function getAllRoutes(server: (typeof Server)[GeneralType]): (typeof Route)[GeneralType][] {
-    const routes: (typeof Route)[GeneralType][] = [];
+export function getAllRoutes(server: Server): RController[] {
+    const routes: RController[] = [];
     for (const collection in server.routes) {
         routes.push(...server.routes[collection]);
     }
