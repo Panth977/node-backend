@@ -51,34 +51,30 @@ export default class Middleware<
         };
     };
 
-    declare static [general]: Middleware<
-        string,
-        Record<string, unknown>,
-        Record<string, z.ZodType>,
-        Record<string, z.ZodType>,
-        Record<string, z.ZodType> | Record<never, never>,
-        ReturnHeaders<Record<string, z.ZodType>> & Record<string | number | symbol, unknown>
-    >;
-    declare static [types]: (typeof Middleware)[GeneralType][Types];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    declare static [general]: Middleware<any, any, any, any, any, any>;
+    // declare static [general]: Middleware<
+    //     string,
+    //     Record<string, unknown>,
+    //     Record<string, z.ZodType>,
+    //     Record<string, z.ZodType>,
+    //     Record<string, z.ZodType> | Record<never, never>,
+    //     ReturnHeaders<Record<string, z.ZodType>> & Record<string | number | symbol, unknown>
+    // >;
+    // declare static [types]: (typeof Middleware)[GeneralType][Types];
     constructor(id: ID) {
         this.id = id;
         this.headerSchema = {} as never;
         this.querySchema = {} as never;
         this.responseHeadersSchema = {} as never;
     }
-    addPreRequisite<
-        _ID extends (typeof Middleware)[Types]['ID'],
-        _RequireAttachments extends (typeof Middleware)[Types]['RequireAttachments'],
-        _HeadersSchema extends (typeof Middleware)[Types]['HeadersSchema'],
-        _QuerySchema extends (typeof Middleware)[Types]['QuerySchema'],
-        _ImplementationReturn extends (typeof Middleware)[Types]['ImplementationReturn'],
-    >(
-        middleware: () => Middleware<_ID, _RequireAttachments, _HeadersSchema, _QuerySchema, Record<string, z.ZodType>, _ImplementationReturn>
+    addPreRequisite<M extends (typeof Middleware)[GeneralType]>(
+        middleware: () => M
     ): Middleware<
         ID,
-        RequireAttachments & { [k in _ID]: _ImplementationReturn } & _RequireAttachments,
-        HeadersSchema & _HeadersSchema,
-        QuerySchema & _QuerySchema,
+        RequireAttachments & { [k in M[Types]['ID']]: M[Types]['ImplementationReturn'] } & M[Types]['RequireAttachments'],
+        HeadersSchema & M[Types]['HeadersSchema'],
+        QuerySchema & M[Types]['QuerySchema'],
         ResponseHeaders,
         ImplementationReturn
     >;

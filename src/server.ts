@@ -1,13 +1,13 @@
 import type Route from './route';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
-import { GeneralType, Types, foldArrayToMap, general, mapMapValues, schema } from './helper';
+import { GeneralType, Types, foldArrayToMap, general, mapMapValues, schema, types } from './helper';
 
 export default class Server<
     Info extends {
-        [id in (typeof Route)[Types]['ID']]: {
-            request: (typeof Route)[Types]['Request'];
-            response: (typeof Route)[Types]['Response'];
+        [id in (typeof Route)[GeneralType][Types]['ID']]: {
+            request: (typeof Route)[GeneralType][Types]['Request'];
+            response: (typeof Route)[GeneralType][Types]['Response'];
         };
     } = Record<never, never>,
 > {
@@ -30,40 +30,21 @@ export default class Server<
         this.title = title;
         this.description = description;
     }
-    declare static [general]: Server<
-        Record<(typeof Route)[Types]['ID'], { request: (typeof Route)[Types]['Request']; response: (typeof Route)[Types]['Response'] }>
-    >;
 
-    addRoute<
-        Method extends (typeof Route)[Types]['Method'],
-        Path extends (typeof Route)[Types]['Path'],
-        ParamsSchema extends (typeof Route)[Types]['ParamsSchema'],
-        Attachments extends (typeof Route)[Types]['Attachments'],
-        HeadersSchema extends (typeof Route)[Types]['HeadersSchema'],
-        QuerySchema extends (typeof Route)[Types]['QuerySchema'],
-        BodySchema extends (typeof Route)[Types]['BodySchema'],
-        ResponseData extends (typeof Route)[Types]['ResponseData'],
-        ResponseHeaders extends (typeof Route)[Types]['ResponseHeaders'],
-        MiddlewaresResponseHeaders extends (typeof Route)[Types]['MiddlewaresResponseHeaders'],
-    >(
+    declare [types]: {
+        Info: Info;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    declare static [general]: Server<any>;
+
+    addRoute<R extends (typeof Route)[GeneralType]>(
         collection: string,
-        route: Route<
-            Method,
-            Path,
-            ParamsSchema,
-            Attachments,
-            HeadersSchema,
-            QuerySchema,
-            BodySchema,
-            ResponseData,
-            ResponseHeaders,
-            MiddlewaresResponseHeaders
-        >
+        route: R
     ): Server<
         Info & {
-            [id in (typeof route)[Types]['ID']]: {
-                request: (typeof route)[Types]['Request'];
-                response: (typeof route)[Types]['Response'];
+            [id in R[Types]['ID']]: {
+                request: R[Types]['Request'];
+                response: R[Types]['Response'];
             };
         }
     > {

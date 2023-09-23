@@ -38,8 +38,8 @@ function getResponseParser(route: (typeof Route)[GeneralType]): z.ZodType<{ head
 
 export function setup(
     route: (typeof Route)[GeneralType],
-    request: (typeof Route)[Types]['Request']
-): [(typeof Route)[Types]['Payload'], (typeof Route)[Types]['Attachments']] {
+    request: (typeof Route)[GeneralType][Types]['Request']
+): [(typeof Route)[GeneralType][Types]['Payload'], (typeof Route)[GeneralType][Types]['Attachments']] {
     const attachments = {} as Record<string, unknown>;
     const parsedResult = getRequestParser(route).safeParse(request);
     if (!parsedResult.success) throw new HttpsResponse('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);

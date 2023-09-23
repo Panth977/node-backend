@@ -3,6 +3,7 @@ import HttpsResponse from '../response';
 import type Server from '../server';
 import { GeneralType } from '../helper';
 import { execute, getAllRoutes, setup } from '../execution';
+import type Route from '../route';
 
 const express = Symbol('express');
 
@@ -31,6 +32,11 @@ function setResponseData(response: Response, responseData: (typeof HttpsResponse
     response.status(responseData.httpErrorCode.status);
     response.send(responseData.toJSON());
 }
+const AllowedMethods = new Set(['all', 'get', 'post', 'put', 'delete', 'patch', 'options', 'head'] as const);
+function getMethod(route: (typeof Route)[GeneralType]): 'all' | 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head' {
+    if (AllowedMethods.has(route.method)) return route.method;
+    throw new Error('Unknown method found');
+}
 
 function exe(app: Application, server: (typeof Server)[GeneralType]) {
     const AllowedMethods = server.AllowedMethods.join(',');
@@ -42,7 +48,7 @@ function exe(app: Application, server: (typeof Server)[GeneralType]) {
         next();
     });
     for (const route of getAllRoutes(server)) {
-        app[route.method](route.path, async function (request, response) {
+        app[getMethod(route)](route.path, async function (request, response) {
             const [payload, attachments] = setup(route, request);
             Object.assign(attachments, { [express]: { request, response } });
             const result = await execute(route, payload, attachments, createErrorResponse);

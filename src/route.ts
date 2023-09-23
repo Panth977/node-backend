@@ -3,9 +3,8 @@ import type Middleware from './middleware';
 import { type ReturnHeaders, type ReturnData, type types, type Types, type general, type GeneralType, schema } from './helper';
 import HttpsResponse from './response';
 
-type TMethod = 'post' | 'get' | 'put' | 'delete' | 'patch' | 'head' | 'options' | 'connect' | 'trace';
 export default class Route<
-    Method extends TMethod,
+    Method extends string,
     Path extends string,
     ParamsSchema extends Record<string, z.ZodType> = Record<never, never>,
     Attachments extends Record<string, unknown> = Record<never, never>,
@@ -81,19 +80,21 @@ export default class Route<
             data: ReturnType<HttpsResponse<'ok', ResponseData['_output']>['toJSON']>;
         };
     };
-    declare static [general]: Route<
-        TMethod,
-        string,
-        Record<string, z.ZodType>,
-        Record<string, unknown>,
-        Record<string, z.ZodType>,
-        Record<string, z.ZodType>,
-        z.ZodType,
-        z.ZodType,
-        Record<string, z.ZodType> | Record<never, never>,
-        Record<string, z.ZodType> | Record<never, never>
-    >;
-    declare static [types]: (typeof Route)[GeneralType][Types];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    declare static [general]: Route<any, any, any, any, any, any, any, any, any, any>;
+    // declare static [general]: Route<
+    //     TMethod,
+    //     string,
+    //     Record<string, z.ZodType>,
+    //     Record<string, unknown>,
+    //     Record<string, z.ZodType>,
+    //     Record<string, z.ZodType>,
+    //     z.ZodType,
+    //     z.ZodType,
+    //     Record<string, z.ZodType> | Record<never, never>,
+    //     Record<string, z.ZodType> | Record<never, never>
+    // >;
+    // declare static [types]: (typeof Route)[GeneralType][Types];
     constructor(method: Method, path: Path, description?: string) {
         this.headerSchema = {} as never;
         this.querySchema = {} as never;
@@ -107,27 +108,20 @@ export default class Route<
         this.responseDataSchema = z.null() as never;
     }
 
-    addMiddleware<
-        _ID extends (typeof Middleware)[Types]['ID'],
-        _RequireAttachments extends (typeof Middleware)[Types]['RequireAttachments'],
-        _HeadersSchema extends (typeof Middleware)[Types]['HeadersSchema'],
-        _QuerySchema extends (typeof Middleware)[Types]['QuerySchema'],
-        _ResponseHeaders extends (typeof Middleware)[Types]['ResponseHeaders'],
-        _ImplementationReturn extends ReturnHeaders<_ResponseHeaders> & Record<string, unknown>,
-    >(
-        middleware: Middleware<_ID, _RequireAttachments, _HeadersSchema, _QuerySchema, _ResponseHeaders, _ImplementationReturn>,
-        ...bug: Attachments extends _RequireAttachments ? [] : [never]
+    addMiddleware<M extends (typeof Middleware)[GeneralType]>(
+        middleware: M,
+        ...bug: Attachments extends M[Types]['RequireAttachments'] ? [] : [never]
     ): Route<
         Method,
         Path,
         ParamsSchema,
-        Attachments & { [k in _ID]: _ImplementationReturn },
-        HeadersSchema & _HeadersSchema,
-        QuerySchema & _QuerySchema,
+        Attachments & { [k in M[Types]['ID']]: M[Types]['ImplementationReturn'] },
+        HeadersSchema & M[Types]['HeadersSchema'],
+        QuerySchema & M[Types]['QuerySchema'],
         BodySchema,
         ResponseData,
         ResponseHeaders,
-        MiddlewaresResponseHeaders & _ResponseHeaders
+        MiddlewaresResponseHeaders & M[Types]['ResponseHeaders']
     >;
     addMiddleware(...[middleware]: [(typeof Middleware)[GeneralType], ...unknown[]]) {
         const schemas = middleware[schema];
