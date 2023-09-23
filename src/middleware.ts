@@ -53,15 +53,7 @@ export default class Middleware<
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     declare static [general]: Middleware<any, any, any, any, any, any>;
-    // declare static [general]: Middleware<
-    //     string,
-    //     Record<string, unknown>,
-    //     Record<string, z.ZodType>,
-    //     Record<string, z.ZodType>,
-    //     Record<string, z.ZodType> | Record<never, never>,
-    //     ReturnHeaders<Record<string, z.ZodType>> & Record<string | number | symbol, unknown>
-    // >;
-    // declare static [types]: (typeof Middleware)[GeneralType][Types];
+
     constructor(id: ID) {
         this.id = id;
         this.headerSchema = {} as never;

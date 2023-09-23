@@ -77,24 +77,12 @@ export default class Route<
             headers: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_output'] } & {
                 [k in keyof MiddlewaresResponseHeaders]: MiddlewaresResponseHeaders[k]['_output'];
             };
-            data: ReturnType<HttpsResponse<'ok', ResponseData['_output']>['toJSON']>;
+            data: HttpsResponse<'ok', ResponseData['_output']>[Types]['AsJson'];
         };
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     declare static [general]: Route<any, any, any, any, any, any, any, any, any, any>;
-    // declare static [general]: Route<
-    //     TMethod,
-    //     string,
-    //     Record<string, z.ZodType>,
-    //     Record<string, unknown>,
-    //     Record<string, z.ZodType>,
-    //     Record<string, z.ZodType>,
-    //     z.ZodType,
-    //     z.ZodType,
-    //     Record<string, z.ZodType> | Record<never, never>,
-    //     Record<string, z.ZodType> | Record<never, never>
-    // >;
-    // declare static [types]: (typeof Route)[GeneralType][Types];
+
     constructor(method: Method, path: Path, description?: string) {
         this.headerSchema = {} as never;
         this.querySchema = {} as never;

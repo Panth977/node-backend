@@ -1,4 +1,4 @@
-import { general } from './helper';
+import { Types, general, types } from './helper';
 
 const CodeMap = {
     ok: { canonicalName: 'OK', status: 200 },
@@ -33,9 +33,16 @@ export default class HttpsResponse<Code extends keyof typeof CodeMap, Data = nul
         this.data = data ?? (null as never);
         this.httpErrorCode = CodeMap[code];
     }
-    declare static [general]: HttpsResponse<keyof typeof CodeMap, unknown>;
 
-    toJSON(): { data: Data; message: string; status: (typeof CodeMap)[Code]['canonicalName'] } {
+    declare [types]: {
+        Code: Code;
+        Data: Data;
+        AsJson: { data: Data; message: string; status: (typeof CodeMap)[Code]['canonicalName'] };
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    declare static [general]: HttpsResponse<any, any>;
+
+    toJSON(): this[Types]['AsJson'] {
         return { data: this.data, message: this.message, status: this.httpErrorCode.canonicalName };
     }
 }
