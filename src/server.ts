@@ -1,13 +1,13 @@
 import type Route from './route';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
-import { foldArrayToMap, mapMapValues } from './helper';
+import { GeneralType, Types, foldArrayToMap, general, mapMapValues, schema } from './helper';
 
 export default class Server<
     Info extends {
-        [id in (typeof Route)['__general']['__id']]: {
-            request: (typeof Route)['__general']['__request'];
-            response: (typeof Route)['__general']['__response'];
+        [id in (typeof Route)[Types]['ID']]: {
+            request: (typeof Route)[Types]['Request'];
+            response: (typeof Route)[Types]['Response'];
         };
     } = Record<never, never>,
 > {
@@ -16,7 +16,7 @@ export default class Server<
     readonly description?: string;
     private allowedHeaders = new Set(['X-Requested-With', 'Access-Control-Allow-Origin', 'Content-Type']);
     private allowedMethods = new Set<string>();
-    readonly routes: { [ClassName in string]: (typeof Route)['__general'][] } = {};
+    readonly routes: { [ClassName in string]: (typeof Route)[GeneralType][] } = {};
 
     get AllowedHeaders() {
         return [...this.allowedHeaders];
@@ -30,24 +30,21 @@ export default class Server<
         this.title = title;
         this.description = description;
     }
-    declare static __general: Server<
-        Record<
-            (typeof Route)['__general']['__id'],
-            { request: (typeof Route)['__general']['__request']; response: (typeof Route)['__general']['__response'] }
-        >
+    declare static [general]: Server<
+        Record<(typeof Route)[Types]['ID'], { request: (typeof Route)[Types]['Request']; response: (typeof Route)[Types]['Response'] }>
     >;
 
     addRoute<
-        Method extends (typeof Route)['__general']['__method'],
-        Path extends (typeof Route)['__general']['__path'],
-        ParamsSchema extends Record<string, z.ZodType>,
-        Attachments extends Record<string, unknown>,
-        HeadersSchema extends (typeof Route)['__general']['__headersSchema'],
-        QuerySchema extends (typeof Route)['__general']['__querySchema'],
-        BodySchema extends (typeof Route)['__general']['__bodySchema'],
-        ImplementationReturn extends (typeof Route)['__general']['__implementationReturn'],
-        ResponseData extends (typeof Route)['__general']['__responseData'],
-        ResponseHeaders extends (typeof Route)['__general']['__responseHeaders'],
+        Method extends (typeof Route)[Types]['Method'],
+        Path extends (typeof Route)[Types]['Path'],
+        ParamsSchema extends (typeof Route)[Types]['ParamsSchema'],
+        Attachments extends (typeof Route)[Types]['Attachments'],
+        HeadersSchema extends (typeof Route)[Types]['HeadersSchema'],
+        QuerySchema extends (typeof Route)[Types]['QuerySchema'],
+        BodySchema extends (typeof Route)[Types]['BodySchema'],
+        ResponseData extends (typeof Route)[Types]['ResponseData'],
+        ResponseHeaders extends (typeof Route)[Types]['ResponseHeaders'],
+        MiddlewaresResponseHeaders extends (typeof Route)[Types]['MiddlewaresResponseHeaders'],
     >(
         collection: string,
         route: Route<
@@ -58,19 +55,21 @@ export default class Server<
             HeadersSchema,
             QuerySchema,
             BodySchema,
-            ImplementationReturn,
             ResponseData,
-            ResponseHeaders
+            ResponseHeaders,
+            MiddlewaresResponseHeaders
         >
-    ): Server<Info & { [id in (typeof route)['__id']]: { request: (typeof route)['__request']; response: (typeof route)['__response'] } }> {
+    ): Server<
+        Info & {
+            [id in (typeof route)[Types]['ID']]: {
+                request: (typeof route)[Types]['Request'];
+                response: (typeof route)[Types]['Response'];
+            };
+        }
+    > {
         (this.routes[collection] ??= []).push(route as never);
         this.allowedMethods.add(route.method);
-        for (const middleware of route.middleware) {
-            for (const key in middleware.headerSchema) {
-                this.allowedHeaders.add(key);
-            }
-        }
-        for (const key in route.headerSchema) {
+        for (const key in route[schema].headerSchema) {
             this.allowedHeaders.add(key);
         }
         return this as never;
@@ -80,40 +79,33 @@ export default class Server<
         return {
             info: { version: this.version, title: this.title, description: this.description },
             routes: mapMapValues(this.routes, function (routes) {
-                return foldArrayToMap(
-                    routes,
-                    'ref',
-                    ({ headerSchema, querySchema, bodySchema, description, path, method, middleware, responseHeadersSchema, responseDataSchema }) => {
-                        return {
-                            description,
-                            method,
-                            path,
-                            request: zodToJsonSchema(
-                                z.object({
-                                    headers: z.object(Object.assign({}, ...middleware.map(({ headerSchema }) => headerSchema), headerSchema)),
-                                    query: z.object(Object.assign({}, ...middleware.map(({ querySchema }) => querySchema), querySchema)),
-                                    body: bodySchema,
-                                })
-                            ),
-                            response: zodToJsonSchema(
-                                z.object({
-                                    headers: z.object(
-                                        Object.assign(
-                                            {},
-                                            ...middleware.map(({ responseHeadersSchema }) => responseHeadersSchema),
-                                            responseHeadersSchema
-                                        )
-                                    ),
-                                    data: z.object({
-                                        data: responseDataSchema,
-                                        message: z.string(),
-                                        status: z.literal('ok'),
-                                    }),
-                                })
-                            ),
-                        };
-                    }
-                );
+                return foldArrayToMap(routes, 'ref', (route) => {
+                    const { description, path, method } = route;
+                    const { bodySchema, headerSchema, paramsSchema, querySchema, responseDataSchema, responseHeadersSchema } = route[schema];
+                    return {
+                        description,
+                        method,
+                        path,
+                        request: zodToJsonSchema(
+                            z.object({
+                                params: z.object(paramsSchema),
+                                headers: z.object(headerSchema),
+                                query: z.object(querySchema),
+                                body: bodySchema,
+                            })
+                        ),
+                        response: zodToJsonSchema(
+                            z.object({
+                                headers: z.object(responseHeadersSchema),
+                                data: z.object({
+                                    data: responseDataSchema,
+                                    message: z.string(),
+                                    status: z.literal('ok'),
+                                }),
+                            })
+                        ),
+                    };
+                });
             }),
         };
     }

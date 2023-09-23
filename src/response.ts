@@ -1,3 +1,5 @@
+import { general } from './helper';
+
 const CodeMap = {
     ok: { canonicalName: 'OK', status: 200 },
     cancelled: { canonicalName: 'CANCELLED', status: 499 },
@@ -31,7 +33,7 @@ export default class HttpsResponse<Code extends keyof typeof CodeMap, Data = nul
         this.data = data ?? (null as never);
         this.httpErrorCode = CodeMap[code];
     }
-    declare static __general: HttpsResponse<keyof typeof CodeMap, unknown>;
+    declare static [general]: HttpsResponse<keyof typeof CodeMap, unknown>;
 
     toJSON(): { data: Data; message: string; status: (typeof CodeMap)[Code]['canonicalName'] } {
         return { data: this.data, message: this.message, status: this.httpErrorCode.canonicalName };
