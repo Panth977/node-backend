@@ -56,7 +56,7 @@ export default class Middleware<
         Record<string, unknown>,
         Record<string, z.ZodType>,
         Record<string, z.ZodType>,
-        Record<string, z.ZodType>,
+        Record<string, z.ZodType> | Record<never, never>,
         ReturnHeaders<Record<string, z.ZodType>> & Record<string | number | symbol, unknown>
     >;
     declare static [types]: (typeof Middleware)[GeneralType][Types];

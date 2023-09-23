@@ -90,8 +90,8 @@ export default class Route<
         Record<string, z.ZodType>,
         z.ZodType,
         z.ZodType,
-        Record<string, z.ZodType>,
-        Record<string, z.ZodType>
+        Record<string, z.ZodType> | Record<never, never>,
+        Record<string, z.ZodType> | Record<never, never>
     >;
     declare static [types]: (typeof Route)[GeneralType][Types];
     constructor(method: Method, path: Path, description?: string) {
