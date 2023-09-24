@@ -35,7 +35,7 @@ export default class MiddlewareController<
     readonly implementationReturn: ImplementationReturn;
     readonly implementation: InferImplementation<Info, Request, Requirements, ImplementationReturn>;
 
-    private constructor(
+    protected constructor(
         info: Info,
         requirements: Requirements,
         request: Request,

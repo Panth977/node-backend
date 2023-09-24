@@ -24,7 +24,7 @@ export default class HttpsResponse<Code extends keyof typeof CodeMap = keyof typ
     readonly code: Code;
     readonly data: Data;
     readonly httpErrorCode: (typeof CodeMap)[Code];
-    private constructor(code: Code, message: string, data?: Data) {
+    protected constructor(code: Code, message: string, data?: Data) {
         super(message);
         if (code in CodeMap === false) {
             throw new Error(`Unknown error code: ${code}.`);

@@ -1,9 +1,9 @@
-export default class Middleware<ID extends string | symbol = string, FrameworkArg = unknown> {
+export default class Middleware<ID extends string | symbol = string | symbol, FrameworkArg = unknown> {
     readonly id: ID;
     readonly frameworkArg: FrameworkArg;
     readonly features: Record<string, string>;
 
-    private constructor(id: ID, frameworkArg: FrameworkArg, features: Record<string, string>) {
+    protected constructor(id: ID, frameworkArg: FrameworkArg, features: Record<string, string>) {
         this.id = id;
         this.frameworkArg = frameworkArg;
         this.features = features;
@@ -14,6 +14,7 @@ export default class Middleware<ID extends string | symbol = string, FrameworkAr
     }
 
     addFeatures(features: Record<string, string>) {
-        return new Middleware(this.id, this.frameworkArg, Object.assign({}, this.features ?? {}, features));
+        Object.assign(this.features, features);
+        return this;
     }
 }

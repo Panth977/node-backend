@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { never } from './helper';
+import Middleware from './middleware';
 
 export default class Route<
     Method extends string = string,
@@ -15,12 +16,13 @@ export default class Route<
     readonly configs: Configs;
     readonly frameworkArg: FrameworkArg;
     readonly tags: string[];
+    private middlewareAdded = new Set<string | symbol>();
 
     get ref(): `${Method}.${Path}` {
         return `${this.method}.${this.path}`;
     }
 
-    private constructor(
+    protected constructor(
         method: Method,
         path: Path,
         params: Params,
@@ -42,27 +44,20 @@ export default class Route<
         return new Route(method, path, {}, never, description, arg, []);
     }
 
-    addConfigs<Configs>(configs: Configs) {
-        return new Route(this.method, this.path, this.params, configs, this.description, this.frameworkArg, this.tags);
+    setDescription(description: string) {
+        (this.description as string) = description;
+        return this;
     }
 
-    addParams<Params extends Record<string, z.ZodType>>(params: Params) {
-        return new Route(
-            this.method,
-            this.path,
-            Object.assign({}, this.params, params),
-            this.configs,
-            this.description,
-            this.frameworkArg,
-            this.tags
-        );
+    setTags(...tags: string[]) {
+        this.tags.push(...tags);
+        return this;
     }
 
-    addDescription(description: string) {
-        return new Route(this.method, this.path, this.params, this.configs, description, this.frameworkArg, this.tags);
-    }
-
-    addTags(...tags: string[]) {
-        return new Route(this.method, this.path, this.params, this.configs, this.description, this.frameworkArg, [...this.tags, ...tags]);
+    middlewareCheck(middleware: Middleware) {
+        if (this.middlewareAdded.has(middleware.id)) {
+            throw new Error('Middleware of same ID was encountered again!');
+        }
+        this.middlewareAdded.add(middleware.id);
     }
 }

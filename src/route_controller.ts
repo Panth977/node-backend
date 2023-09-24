@@ -38,7 +38,7 @@ export default class RController<
     readonly middleware: MiddlewareController[];
     readonly implementationResponse: ImplementationResponse;
 
-    private constructor(
+    protected constructor(
         info: Info,
         requirements: Requirements,
         request: Request,
@@ -82,6 +82,7 @@ export default class RController<
         ImplementationResponse
     >;
     addMiddleware(...[mController]: [MiddlewareController, ...unknown[]]) {
+        this.info.middlewareCheck(mController.info);
         return new RController(
             this.info,
             this.requirements,

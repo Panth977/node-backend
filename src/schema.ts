@@ -14,7 +14,7 @@ export default class Schema<
     readonly query: Query;
     readonly body: Body;
 
-    private constructor(header: Header, query: Query, body: Body) {
+    protected constructor(header: Header, query: Query, body: Body) {
         this.header = header;
         this.query = query;
         this.body = body;

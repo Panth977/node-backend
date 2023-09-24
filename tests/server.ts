@@ -2,6 +2,7 @@ import { Server, HttpsResponse, execute, prepare } from '../src';
 import type { Application, Response } from 'express';
 import { c1, c2 } from './route_controller';
 import { z } from 'zod';
+import { ExpressRoute } from './setup';
 
 const server = new Server('1.0.0', 'Test Company', '').addRoute(c1).addRoute(c2);
 
@@ -25,7 +26,6 @@ function setResponseData(response: Response, responseData: HttpsResponse) {
     response.status(responseData.httpErrorCode.status);
     response.send(responseData.toJSON());
 }
-const AllowedMethodsParser = z.enum(['all', 'get', 'post', 'put', 'delete', 'patch', 'options', 'head']);
 
 function shouldLog(configs: unknown) {
     return z.object({ log: z.literal(true) }).safeParse(configs).success;
@@ -42,7 +42,8 @@ function exe(app: Application) {
     });
     for (const route of server.routes) {
         const log = shouldLog(route.info.configs); 
-        app[AllowedMethodsParser.parse(route)](route.info.path, async function (request, response) {
+        const routeInfo = ExpressRoute.getExpressRoute(route.info);
+        app[routeInfo.method](routeInfo.path, async function (request, response) {
             if (log) console.log('Developer asked me to be logged', request.url);
             const [payload, attachments, context] = prepare(route, {
                 body: request.body,
