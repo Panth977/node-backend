@@ -3,8 +3,8 @@ import { Setup, Schema } from '../src';
 import { ExpressMiddleware } from './setup';
 export const m1 = Setup(ExpressMiddleware('i1'))
     .addRequest(Schema().addHeader({ token: z.string() }))
-    .addImplementation(async function (p, a, c) {
-        c.frameworkArg.res.on('finish', function () {
+    .addImplementation(async function (p, a, f) {
+        f.res.on('finish', function () {
             console.log('Completed');
         });
         p.header.token;

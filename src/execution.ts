@@ -40,17 +40,17 @@ export function prepare(route: RController, request: InferInput<RController['req
 
 export async function execute(
     route: RController,
-    { params, ...payload }: ReturnType<typeof prepare>,
+    payload: ReturnType<typeof prepare>,
     frameworkArg: unknown
 ): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {
     const attachments = {};
     const responseHeaders = {};
     for (const middleware of route.middleware) {
-        const result = await middleware.implementation(payload, attachments, { route: route.info, params, frameworkArg });
+        const result = await middleware.implementation(payload, attachments, frameworkArg, route.info);
         Object.assign(attachments, { [middleware.info.id]: result });
         Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
     }
-    const result = await route.implementation(payload, attachments, { route: route.info, params, frameworkArg });
+    const result = await route.implementation(payload, attachments, frameworkArg, route.info);
     Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
     const parsedObj = getResponseParser(route).safeParse({
         headers: responseHeaders,

@@ -10,13 +10,10 @@ export type InferImplementation<
     Requirements extends Record<string | symbol, unknown>,
     Response extends Schema,
 > = (
-    payload: InferOutput<Request>,
+    payload: InferOutput<Request> & { params: ZodOutputRecord<Info['params']> },
     attachments: Requirements,
-    route: {
-        route: Route;
-        frameworkArg: Info['frameworkArg'];
-        params: ZodOutputRecord<Info['params']>;
-    }
+    frameworkArg: Info['frameworkArg'],
+    route: Route
 ) => Promise<ReturnHeaders<Response['header']> & ReturnData<Response['body']> & { message?: string }>;
 type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders extends never
     ? unknown

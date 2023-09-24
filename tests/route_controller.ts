@@ -6,11 +6,11 @@ import { m, m1, m2 } from './middleware_controller';
 export const c1 = Setup(r1)
     .addRequest(Schema().addHeader({ token: z.string() }))
     .addResponse(Schema())
-    .setImplementation(async function (p, a, c) {
+    .setImplementation(async function (p, a, f) {
         p.header.token;
         a;
-        c.params.user_id;
-        c.frameworkArg.req;
+        p.params.user_id;
+        f.req;
         return { message: 'S' };
     });
 export const c2 = Setup(r2)
@@ -19,11 +19,12 @@ export const c2 = Setup(r2)
     .addMiddleware(m1)
     .addMiddleware(m2)
     .addMiddleware(m)
-    .setImplementation(async function (p, a, c) {
+    .setImplementation(async function (p, a, f, r) {
         p.header.token;
         a.i.aa;
         a.i2();
-        c.frameworkArg.req;
+        f.req;
+        r.configs;
         return { message: 'S' };
     });
 c2.response.header.x
