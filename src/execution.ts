@@ -41,30 +41,25 @@ export function prepare(route: RController, request: InferInput<RController['req
 export async function execute(
     route: RController,
     { params, ...payload }: ReturnType<typeof prepare>,
-    frameworkArg: unknown,
-    onUnknownError: (error: unknown) => HttpsResponse
+    frameworkArg: unknown
 ): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {
-    try {
-        const attachments = {};
-        const responseHeaders = {};
-        for (const mController of route.middleware) {
-            const result = await mController.implementation(payload, attachments, { route: route.info, params, frameworkArg });
-            Object.assign(attachments, { [mController['info']['id']]: result });
-            Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
-        }
-        const result = await route.implementation(payload, attachments, { route: route.info, params, frameworkArg });
+    const attachments = {};
+    const responseHeaders = {};
+    for (const middleware of route.middleware) {
+        const result = await middleware.implementation(payload, attachments, { route: route.info, params, frameworkArg });
+        Object.assign(attachments, { [middleware.info.id]: result });
         Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
-        const parsedObj = getResponseParser(route).safeParse({
-            headers: responseHeaders,
-            message: result.message ?? 'Successful execution',
-            data: result.data ?? null,
-        });
-        if (!parsedObj.success) throw new Error(parsedObj.error.toString());
-        return {
-            headers: parsedObj.data.headers,
-            data: HttpsResponse.build('ok', parsedObj.data.message ?? 'Successful execution', parsedObj.data.data),
-        };
-    } catch (error) {
-        return { headers: {}, data: error instanceof HttpsResponse ? error : onUnknownError(error) };
     }
+    const result = await route.implementation(payload, attachments, { route: route.info, params, frameworkArg });
+    Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
+    const parsedObj = getResponseParser(route).safeParse({
+        headers: responseHeaders,
+        message: result.message ?? 'Successful execution',
+        data: result.data ?? null,
+    });
+    if (!parsedObj.success) throw new Error(parsedObj.error.toString());
+    return {
+        headers: parsedObj.data.headers,
+        data: HttpsResponse.build('ok', parsedObj.data.message ?? 'Successful execution', parsedObj.data.data),
+    };
 }

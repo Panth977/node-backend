@@ -45,16 +45,20 @@ function exe(app: Application) {
         const log = shouldLog(route.info.configs); 
         const routeInfo = ExpressRoute.getExpressRoute(route.info);
         app[routeInfo.method](routeInfo.path, async function (request, response) {
-            if (log) console.log('Developer asked me to be logged', request.url);
-            const args = prepare(route, {
-                body: request.body,
-                header: request.headers,
-                params: request.params,
-                query: request.query,
-            });
-            const result = await execute(route, args, { req: request, res: response }, createErrorResponse);
-            setResponseHeaders(response, result.headers);
-            setResponseData(response, result.data);
+            try {
+                if (log) console.log('Developer asked me to be logged', request.url);
+                const args = prepare(route, {
+                    body: request.body,
+                    header: request.headers,
+                    params: request.params,
+                    query: request.query,
+                });
+                const result = await execute(route, args, { req: request, res: response });
+                setResponseHeaders(response, result.headers);
+                setResponseData(response, result.data);
+            } catch (error) {
+                setResponseData(response, createErrorResponse(error));
+            }
         });
     }
 }
