@@ -18,6 +18,7 @@ export type Route = _Route;
 export type Middleware = _Middleware;
 export type RouteController = _RouteController;
 export type MiddlewareController = _MiddlewareController;
+export type Server = _Server;
 
 type DefSchema = ReturnType<typeof _Schema.build>;
 
