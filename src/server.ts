@@ -1,4 +1,4 @@
-import type RController from './route_controller';
+import type RouteController from './route_controller';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
 import Schema, { InferInput, InferOutput } from './schema';
@@ -10,15 +10,15 @@ export default class Server<
     Structure extends {
         [id in Route['ref']]: {
             route: Route['configs'];
-            request: InferInput<RController['request']>;
-            response: AsResponse<InferOutput<RController['response']>>;
+            request: InferInput<RouteController['request']>;
+            response: AsResponse<InferOutput<RouteController['response']>>;
         };
     } = Record<
-        RController['info']['ref'],
+        RouteController['info']['ref'],
         {
             route: Route['configs'];
-            request: InferInput<RController['request']>;
-            response: AsResponse<InferOutput<RController['response']>>;
+            request: InferInput<RouteController['request']>;
+            response: AsResponse<InferOutput<RouteController['response']>>;
         }
     >,
 > {
@@ -28,7 +28,7 @@ export default class Server<
 
     private allowedHeaders = new Set(['X-Requested-With', 'Access-Control-Allow-Origin', 'Content-Type']);
     private allowedMethods = new Set<string>();
-    readonly routes: RController[] = [];
+    readonly routes: RouteController[] = [];
 
     get AllowedHeaders() {
         return [...this.allowedHeaders];
@@ -44,12 +44,12 @@ export default class Server<
     }
 
     addRoute<
-        Info extends RController['info'],
-        Requirements extends RController['requirements'],
-        Request extends RController['request'],
-        Response extends RController['response'],
+        Info extends RouteController['info'],
+        Requirements extends RouteController['requirements'],
+        Request extends RouteController['request'],
+        Response extends RouteController['response'],
     >(
-        route: RController<Info, Requirements, Request, Response>
+        route: RouteController<Info, Requirements, Request, Response>
     ): Server<
         Structure & {
             [k in Info['ref']]: {

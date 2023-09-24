@@ -50,11 +50,11 @@ export default class MiddlewareController<
         return new MiddlewareController(info, {}, Schema.build(), Schema.build(), never);
     }
 
-    addRequest<R extends Schema>(request: R) {
-        return new MiddlewareController(this.info, {}, request, this.response, never);
+    addRequest<R extends Schema>(builder: (current: Request) => R) {
+        return new MiddlewareController(this.info, {}, builder(this.request), this.response, never);
     }
-    addResponse<R extends Schema>(response: R) {
-        return new MiddlewareController(this.info, {}, this.request, response, never);
+    addResponse<R extends Schema>(builder: (current: Response) => R) {
+        return new MiddlewareController(this.info, {}, this.request, builder(this.response), never);
     }
     addPreRequisite<
         _Info extends MiddlewareController['info'],

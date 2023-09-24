@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import RController from './route_controller';
+import RouteController from './route_controller';
 import HttpsResponse from './response';
 import { InferInput } from './schema';
 import { ZodInputRecord } from './helper';
 
 const requestParser = Symbol();
-function getRequestParser(route: RController): z.ZodType<{ [k in 'header' | 'query' | 'params']: Record<string, unknown> } & { body: unknown }> {
+function getRequestParser(route: RouteController): z.ZodType<{ [k in 'header' | 'query' | 'params']: Record<string, unknown> } & { body: unknown }> {
     if (requestParser in route === false) {
         Object.assign(route, {
             [requestParser]: z.object({
@@ -19,7 +19,7 @@ function getRequestParser(route: RController): z.ZodType<{ [k in 'header' | 'que
     return (route as never as { [requestParser]: unknown })[requestParser] as never;
 }
 const responseParser = Symbol();
-function getResponseParser(route: RController): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
+function getResponseParser(route: RouteController): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
     if (responseParser in route === false) {
         Object.assign(route, {
             [responseParser]: z.object({
@@ -32,14 +32,17 @@ function getResponseParser(route: RController): z.ZodType<{ headers: Record<stri
     return (route as never as { [responseParser]: unknown })[responseParser] as never;
 }
 
-export function prepare(route: RController, request: InferInput<RController['request']> & { params: ZodInputRecord<RController['info']['params']> }) {
+export function prepare(
+    route: RouteController,
+    request: InferInput<RouteController['request']> & { params: ZodInputRecord<RouteController['info']['params']> }
+) {
     const parsedResult = getRequestParser(route).safeParse(request);
     if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
     return parsedResult.data;
 }
 
 export async function execute(
-    route: RController,
+    route: RouteController,
     payload: ReturnType<typeof prepare>,
     frameworkArg: unknown
 ): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {

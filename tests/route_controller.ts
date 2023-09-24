@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Schema, Setup } from '../src';
+import { Setup } from '../src';
 import { r1, r2 } from './route';
 import { m, m1, m2 } from './middleware_controller';
 
 export const c1 = Setup(r1)
-    .addRequest(Schema().addHeader({ token: z.string() }))
-    .addResponse(Schema())
+    .addRequest((s) => s.addHeader({ token: z.string() }))
+    .addResponse((s) => s)
     .setImplementation(async function (p, a, f) {
         p.header.token;
         a;
@@ -14,8 +14,8 @@ export const c1 = Setup(r1)
         return { message: 'S' };
     });
 export const c2 = Setup(r2)
-    .addRequest(Schema().addHeader({ token: z.string() }))
-    .addResponse(Schema())
+    .addRequest((s) => s.addHeader({ token: z.string() }))
+    .addResponse((s) => s)
     .addMiddleware(m1)
     .addMiddleware(m2)
     .addMiddleware(m)

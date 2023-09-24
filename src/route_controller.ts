@@ -20,7 +20,7 @@ type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHea
     : { header: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_input'] } };
 type ReturnData<ResponseData extends Schema['body']> = ResponseData extends z.ZodNull ? unknown : { data: ResponseData['_input'] };
 
-export default class RController<
+export default class RouteController<
     Info extends Route = Route,
     Requirements extends Record<string | symbol, unknown> = Record<string | symbol, unknown>,
     Request extends Schema = Schema,
@@ -53,14 +53,14 @@ export default class RController<
         this.implementationResponse = implementationResponse;
     }
     static build<Info extends Route>(info: Info) {
-        return new RController(info, {}, Schema.build(), Schema.build(), never, [], Schema.build());
+        return new RouteController(info, {}, Schema.build(), Schema.build(), never, [], Schema.build());
     }
 
-    addRequest<R extends Schema>(request: R) {
-        return new RController(this.info, this.requirements, request, this.response, never, never, this.implementationResponse);
+    addRequest<R extends Schema>(builder: (current: Request) => R) {
+        return new RouteController(this.info, this.requirements, builder(this.request), this.response, never, never, this.implementationResponse);
     }
-    addResponse<R extends Schema>(response: R) {
-        return new RController(this.info, this.requirements, this.request, response, never, never, response);
+    addResponse<R extends Schema>(builder: (current: Response) => R) {
+        return new RouteController(this.info, this.requirements, this.request, builder(this.response), never, never, builder(this.response));
     }
     addMiddleware<
         _Info extends MiddlewareController['info'],
@@ -71,7 +71,7 @@ export default class RController<
     >(
         mController: MiddlewareController<_Info, _Requirements, _Request, _Response, _ImplementationReturn>,
         ...bug: Requirements extends _Requirements ? [] : [never]
-    ): RController<
+    ): RouteController<
         Info,
         Requirements & { [k in _Info['id']]: _ImplementationReturn },
         MergeSchemas<Request, _Request>,
@@ -80,7 +80,7 @@ export default class RController<
     >;
     addMiddleware(...[mController]: [MiddlewareController, ...unknown[]]) {
         this.info.middlewareCheck(mController.info);
-        return new RController(
+        return new RouteController(
             this.info,
             this.requirements,
             this.request.merge(mController.request),
@@ -92,7 +92,7 @@ export default class RController<
     }
 
     setImplementation(implementation: InferImplementation<Info, Request, Requirements, ImplementationResponse>) {
-        return new RController(
+        return new RouteController(
             this.info,
             this.requirements,
             this.request,

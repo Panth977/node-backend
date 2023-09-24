@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { Setup, Schema } from '../src';
+import { Setup } from '../src';
 import { ExpressMiddleware } from './setup';
 export const m1 = Setup(ExpressMiddleware('i1'))
-    .addRequest(Schema().addHeader({ token: z.string() }))
+    .addRequest((s) => s.addHeader({ token: z.string() }))
     .addImplementation(async function (p, a, f) {
         f.res.on('finish', function () {
             console.log('Completed');
@@ -11,8 +11,8 @@ export const m1 = Setup(ExpressMiddleware('i1'))
         return '';
     });
 export const m2 = Setup(ExpressMiddleware('i2'))
-    .addRequest(Schema().addHeader({ ddd: z.string() }))
-    .addResponse(Schema().addHeader({ x: z.string() }))
+    .addRequest((s) => s.addHeader({ ddd: z.string() }))
+    .addResponse((s) => s.addHeader({ x: z.string() }))
     .addImplementation(async function (p) {
         p.header.ddd;
         return Object.assign({ 44: '', header: { x: '' } }, function () {
@@ -20,8 +20,8 @@ export const m2 = Setup(ExpressMiddleware('i2'))
         });
     });
 export const m = Setup(ExpressMiddleware('i'))
-    .addRequest(Schema())
-    .addResponse(Schema())
+    .addRequest((s) => s)
+    .addResponse((s) => s)
     .addPreRequisite(() => m1)
     .addPreRequisite(() => m2)
     .addImplementation(async function (p, a) {
