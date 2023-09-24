@@ -37,7 +37,7 @@ export function prepare(
     request: InferInput<RouteController['request']> & { params: ZodInputRecord<RouteController['info']['params']> }
 ) {
     const parsedResult = getRequestParser(route).safeParse(request);
-    if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
+    if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error.errors);
     return parsedResult.data;
 }
 
