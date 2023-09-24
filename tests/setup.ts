@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Route, Middleware } from '../src';
+import { classes, Route, Middleware } from '../src';
 import { Request, Response } from 'express';
 import { RouteParameters } from 'express-serve-static-core';
 
@@ -9,7 +9,7 @@ type FrameworkArg = { req: Request; res: Response };
 
 const never = void 0 as never;
 
-class ExpressDefMiddleware<ID extends string | symbol = string | symbol> extends Middleware<ID, FrameworkArg> {
+class ExpressDefMiddleware<ID extends string | symbol = string | symbol> extends classes.Middleware<ID, FrameworkArg> {
     protected constructor(id: ID) {
         super(id, never, {});
     }
@@ -28,7 +28,7 @@ class ExpressDefRoute<
     Method extends ExpressAllowedPath = ExpressAllowedPath,
     Path extends string = string,
     Params extends Record<string, z.ZodType> = Record<string, z.ZodType>,
-> extends Route<Method, Path, Params, Configs, FrameworkArg> {
+> extends classes.Route<Method, Path, Params, Configs, FrameworkArg> {
     protected constructor(method: Method, path: Path, params: Params, configs: Configs, description: string | undefined, tags: string[]) {
         super(method, path, params, configs, description, never, tags);
     }

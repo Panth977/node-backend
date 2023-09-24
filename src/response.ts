@@ -23,15 +23,13 @@ export type ResponseData<R extends HttpsResponse> = { data: R['data']; message: 
 export default class HttpsResponse<Code extends keyof typeof CodeMap = keyof typeof CodeMap, Data = unknown> extends Error {
     readonly code: Code;
     readonly data: Data;
-    readonly httpErrorCode: (typeof CodeMap)[Code];
+    readonly httpCode: (typeof CodeMap)[Code];
     protected constructor(code: Code, message: string, data?: Data) {
         super(message);
-        if (code in CodeMap === false) {
-            throw new Error(`Unknown error code: ${code}.`);
-        }
+        if (code in CodeMap === false) throw new Error(`Unknown error code: ${code}.`);
         this.code = code;
         this.data = data ?? (null as never);
-        this.httpErrorCode = CodeMap[code];
+        this.httpCode = CodeMap[code];
     }
     static build<Code extends keyof typeof CodeMap>(code: Code, message: string): HttpsResponse<Code, null>;
     static build<Code extends keyof typeof CodeMap, Data>(code: Code, message: string, data: Data): HttpsResponse<Code, Data>;
@@ -40,6 +38,6 @@ export default class HttpsResponse<Code extends keyof typeof CodeMap = keyof typ
     }
 
     toJSON(): ResponseData<this> {
-        return { data: this.data, message: this.message, status: this.httpErrorCode.canonicalName };
+        return { data: this.data, message: this.message, status: this.httpCode.canonicalName };
     }
 }

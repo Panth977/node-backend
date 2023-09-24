@@ -9,9 +9,20 @@ import _Route from './route';
 export * from './execution';
 export const Schema = _Schema.build;
 export const HttpsResponse = _HttpsResponse.build;
-export const Route = _Route;
-export const Middleware = _Middleware;
+export const Route = _Route.build;
+export const Middleware = _Middleware.build;
 export const Server = _Server;
+
+export const classes = {
+    HttpsResponse: _HttpsResponse,
+    Middleware: _Middleware,
+    MiddlewareController: _MiddlewareController,
+    Route: _Route,
+    RouteController: _RouteController,
+    Schema: _Schema,
+    Server: _Server,
+};
+
 export type Schema = _Schema;
 export type HttpsResponse = _HttpsResponse;
 export type Route = _Route;

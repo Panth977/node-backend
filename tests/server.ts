@@ -1,4 +1,4 @@
-import { Server, HttpsResponse, execute, prepare } from '../src';
+import { Server, HttpsResponse, execute, prepare, classes } from '../src';
 import type { Application, Response } from 'express';
 import { c1, c2 } from './route_controller';
 import { z } from 'zod';
@@ -7,8 +7,9 @@ import { ExpressRoute } from './setup';
 const server = new Server('1.0.0', 'Test Company', '').addRoute(c1).addRoute(c2);
 
 function createErrorResponse(error: unknown) {
+    if (error instanceof classes.HttpsResponse) return error;
     console.log(error);
-    return HttpsResponse('internal', 'Something went wrong', null);
+    return HttpsResponse('internal', 'Something went wrong');
 }
 function setResponseHeaders(response: Response, headers: Record<string, unknown>) {
     let exposedHeaders = response.getHeader('Access-Control-Expose-Headers') ?? new Set<string>();
@@ -23,7 +24,7 @@ function setResponseHeaders(response: Response, headers: Record<string, unknown>
     }
 }
 function setResponseData(response: Response, responseData: HttpsResponse) {
-    response.status(responseData.httpErrorCode.status);
+    response.status(responseData.httpCode.status);
     response.send(responseData.toJSON());
 }
 
