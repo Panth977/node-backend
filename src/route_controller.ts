@@ -4,7 +4,12 @@ import Route from './route';
 import Schema, { InferOutput, MergeSchemas } from './schema';
 import { ZodOutputRecord, never } from './helper';
 
-export type InferImplementation<Info extends Route, Request extends Schema, Requirements extends Record<string, unknown>, Response extends Schema> = (
+export type InferImplementation<
+    Info extends Route,
+    Request extends Schema,
+    Requirements extends Record<string | symbol, unknown>,
+    Response extends Schema,
+> = (
     payload: InferOutput<Request>,
     attachments: Requirements,
     route: {
@@ -16,11 +21,11 @@ export type InferImplementation<Info extends Route, Request extends Schema, Requ
 type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders extends never
     ? unknown
     : { header: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_input'] } };
-type ReturnData<ResponseData extends Schema['body']> = ResponseData extends z.ZodUnknown ? unknown : { data: ResponseData['_input'] };
+type ReturnData<ResponseData extends Schema['body']> = ResponseData extends z.ZodNull ? unknown : { data: ResponseData['_input'] };
 
 export default class RController<
     Info extends Route = Route,
-    Requirements extends Record<string, unknown> = Record<string, unknown>,
+    Requirements extends Record<string | symbol, unknown> = Record<string | symbol, unknown>,
     Request extends Schema = Schema,
     Response extends Schema = Schema,
     ImplementationResponse extends Schema = Schema,
@@ -30,7 +35,7 @@ export default class RController<
     readonly request: Request;
     readonly response: Response;
     readonly implementation: InferImplementation<Info, Request, Requirements, ImplementationResponse>;
-    readonly mController: MiddlewareController[];
+    readonly middleware: MiddlewareController[];
     readonly implementationResponse: ImplementationResponse;
 
     private constructor(
@@ -47,7 +52,7 @@ export default class RController<
         this.request = request;
         this.response = response;
         this.implementation = implementation;
-        this.mController = mController;
+        this.middleware = mController;
         this.implementationResponse = implementationResponse;
     }
     static build<Info extends Route>(info: Info) {
@@ -83,7 +88,7 @@ export default class RController<
             this.request.merge(mController.request),
             this.response.merge(mController.response),
             never,
-            [...this.mController, mController],
+            [...this.middleware, mController],
             this.implementationResponse
         );
     }
@@ -95,7 +100,7 @@ export default class RController<
             this.request,
             this.response,
             implementation,
-            this.mController,
+            this.middleware,
             this.implementationResponse
         );
     }

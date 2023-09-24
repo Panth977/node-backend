@@ -3,7 +3,7 @@ import type { Application, Response } from 'express';
 import { c1, c2 } from './route_controller';
 import { z } from 'zod';
 
-const server = new Server('1.0.0', 'Test Company', '').addRoute('user', c1).addRoute('user', c2);
+const server = new Server('1.0.0', 'Test Company', '').addRoute(c1).addRoute(c2);
 
 function createErrorResponse(error: unknown) {
     console.log(error);

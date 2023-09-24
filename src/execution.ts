@@ -54,7 +54,7 @@ export async function execute(
 ): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {
     try {
         const responseHeaders = {};
-        for (const mController of rController.mController) {
+        for (const mController of rController.middleware) {
             const result = await mController.implementation(payload, attachments, { route, params, frameworkArg });
             Object.assign(attachments, { [mController['info']['id']]: result });
             Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});

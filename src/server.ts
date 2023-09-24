@@ -1,7 +1,6 @@
 import type RController from './route_controller';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
-import { foldArrayToMap, mapMapValues } from './helper';
 import Schema, { InferInput, InferOutput } from './schema';
 import HttpsResponse, { ResponseData } from './response';
 import Route from './route';
@@ -29,7 +28,7 @@ export default class Server<
 
     private allowedHeaders = new Set(['X-Requested-With', 'Access-Control-Allow-Origin', 'Content-Type']);
     private allowedMethods = new Set<string>();
-    readonly routes: { [ClassName in string]: RController[] } = {};
+    readonly routes: RController[] = [];
 
     get AllowedHeaders() {
         return [...this.allowedHeaders];
@@ -50,8 +49,7 @@ export default class Server<
         Request extends RController['request'],
         Response extends RController['response'],
     >(
-        collection: string,
-        rController: RController<Info, Requirements, Request, Response>
+        route: RController<Info, Requirements, Request, Response>
     ): Server<
         Structure & {
             [k in Info['ref']]: {
@@ -61,9 +59,9 @@ export default class Server<
             };
         }
     > {
-        (this.routes[collection] ??= []).push(rController as never);
-        this.allowedMethods.add(rController.info.method);
-        for (const key in rController.request.header) {
+        this.routes.push(route as never);
+        this.allowedMethods.add(route.info.method);
+        for (const key in route.request.header) {
             this.allowedHeaders.add(key);
         }
         return this as never;
@@ -74,37 +72,33 @@ export default class Server<
         const okStatusParser = z.literal('ok', { description: 'Success Response Status code' });
         return {
             info: { version: this.version, title: this.title, description: this.description },
-            routes: mapMapValues(this.routes, function (routes) {
-                return foldArrayToMap(
-                    routes,
-                    (rController) => rController.info.ref,
-                    (rController) => {
-                        return {
-                            route: {
-                                description: rController.info.description,
-                                method: rController.info.method,
-                                path: rController.info.path,
-                                configs: rController.info.configs,
-                            },
-                            request: {
-                                params: zodToJsonSchema(z.object(rController.info.params)),
-                                header: zodToJsonSchema(z.object(rController.request.header)),
-                                query: zodToJsonSchema(z.object(rController.request.query)),
-                                body: zodToJsonSchema(rController.request.body),
-                            },
-                            response: {
-                                header: zodToJsonSchema(z.object(rController.response.header)),
-                                body: zodToJsonSchema(
-                                    z.object({
-                                        data: rController.response.body,
-                                        message: messageParser,
-                                        status: okStatusParser,
-                                    })
-                                ),
-                            },
-                        };
-                    }
-                );
+            routes: this.routes.map(function (route) {
+                return {
+                    method: route.info.method,
+                    path: route.info.path,
+                    about: {
+                        description: route.info.description,
+                        configs: route.info.configs,
+                        tags: route.info.tags,
+                        features: Object.assign({}, ...route.middleware.map((x) => x.info.features)),
+                    },
+                    request: {
+                        params: zodToJsonSchema(z.object(route.info.params)),
+                        header: zodToJsonSchema(z.object(route.request.header)),
+                        query: zodToJsonSchema(z.object(route.request.query)),
+                        body: zodToJsonSchema(route.request.body),
+                    },
+                    response: {
+                        header: zodToJsonSchema(z.object(route.response.header)),
+                        body: zodToJsonSchema(
+                            z.object({
+                                data: route.response.body,
+                                message: messageParser,
+                                status: okStatusParser,
+                            })
+                        ),
+                    },
+                };
             }),
         };
     }

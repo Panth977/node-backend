@@ -3,7 +3,12 @@ import Schema, { InferOutput, MergeSchemas } from './schema';
 import Route from './route';
 import Middleware from './middleware';
 
-type InferImplementation<Info extends Middleware, Request extends Schema, Requirements extends Record<string, unknown>, ImplementationReturn> = (
+type InferImplementation<
+    Info extends Middleware,
+    Request extends Schema,
+    Requirements extends Record<string | symbol, unknown>,
+    ImplementationReturn,
+> = (
     payload: InferOutput<Request>,
     attachments: Requirements,
     route: {
@@ -18,7 +23,7 @@ type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHea
 
 export default class MiddlewareController<
     Info extends Middleware = Middleware,
-    Requirements extends Record<string, unknown> = Record<string, unknown>,
+    Requirements extends Record<string | symbol, unknown> = Record<string | symbol, unknown>,
     Request extends Schema = Schema,
     Response extends Schema = Schema,
     ImplementationReturn = unknown,
