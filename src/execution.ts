@@ -5,62 +5,56 @@ import { InferInput } from './schema';
 import { ZodInputRecord } from './helper';
 
 const requestParser = Symbol();
-function getRequestParser(
-    rController: RController
-): z.ZodType<{ [k in 'header' | 'query' | 'params']: Record<string, unknown> } & { body: unknown }> {
-    if (requestParser in rController === false) {
-        Object.assign(rController, {
+function getRequestParser(route: RController): z.ZodType<{ [k in 'header' | 'query' | 'params']: Record<string, unknown> } & { body: unknown }> {
+    if (requestParser in route === false) {
+        Object.assign(route, {
             [requestParser]: z.object({
-                params: z.object(rController.info.params),
-                headers: z.object(rController.request.header),
-                query: z.object(rController.request.query),
-                body: rController.request.body,
+                params: z.object(route.info.params),
+                headers: z.object(route.request.header),
+                query: z.object(route.request.query),
+                body: route.request.body,
             }),
         });
     }
-    return (rController as never as { [requestParser]: unknown })[requestParser] as never;
+    return (route as never as { [requestParser]: unknown })[requestParser] as never;
 }
 const responseParser = Symbol();
-function getResponseParser(rController: RController): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
-    if (responseParser in rController === false) {
-        Object.assign(rController, {
+function getResponseParser(route: RController): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
+    if (responseParser in route === false) {
+        Object.assign(route, {
             [responseParser]: z.object({
-                headers: z.object(rController.response.header),
-                data: rController.response.body,
+                headers: z.object(route.response.header),
+                data: route.response.body,
                 message: z.string(),
             }),
         });
     }
-    return (rController as never as { [responseParser]: unknown })[responseParser] as never;
+    return (route as never as { [responseParser]: unknown })[responseParser] as never;
 }
 
-export function prepare(
-    rController: RController,
-    request: InferInput<RController['request']> & { params: ZodInputRecord<RController['info']['params']> }
-) {
-    const attachments = {} as RController['requirements'];
-    const parsedResult = getRequestParser(rController).safeParse(request);
+export function prepare(route: RController, request: InferInput<RController['request']> & { params: ZodInputRecord<RController['info']['params']> }) {
+    const parsedResult = getRequestParser(route).safeParse(request);
     if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error);
-    const { params, ...payload } = parsedResult.data;
-    return [payload, attachments, { route: rController.info, params }] as const;
+    return parsedResult.data;
 }
 
 export async function execute(
-    rController: RController,
-    [payload, attachments, { route, params }]: ReturnType<typeof prepare>,
+    route: RController,
+    { params, ...payload }: ReturnType<typeof prepare>,
     frameworkArg: unknown,
     onUnknownError: (error: unknown) => HttpsResponse
 ): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {
     try {
+        const attachments = {};
         const responseHeaders = {};
-        for (const mController of rController.middleware) {
-            const result = await mController.implementation(payload, attachments, { route, params, frameworkArg });
+        for (const mController of route.middleware) {
+            const result = await mController.implementation(payload, attachments, { route: route.info, params, frameworkArg });
             Object.assign(attachments, { [mController['info']['id']]: result });
             Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
         }
-        const result = await rController.implementation(payload, attachments, { route, params, frameworkArg });
+        const result = await route.implementation(payload, attachments, { route: route.info, params, frameworkArg });
         Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
-        const parsedObj = getResponseParser(rController).safeParse({
+        const parsedObj = getResponseParser(route).safeParse({
             headers: responseHeaders,
             message: result.message ?? 'Successful execution',
             data: result.data ?? null,
