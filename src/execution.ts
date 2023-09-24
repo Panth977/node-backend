@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import RController from './route_controller';
 import HttpsResponse from './response';
-import Server from './server';
 import { InferInput } from './schema';
 import { ZodInputRecord } from './helper';
 
@@ -74,12 +73,4 @@ export async function execute(
     } catch (error) {
         return { headers: {}, data: error instanceof HttpsResponse ? error : onUnknownError(error) };
     }
-}
-
-export function getAllRoutes(server: Server): RController[] {
-    const routes: RController[] = [];
-    for (const collection in server.routes) {
-        routes.push(...server.routes[collection]);
-    }
-    return routes;
 }

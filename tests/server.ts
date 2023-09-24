@@ -1,4 +1,4 @@
-import { Server, HttpsResponse, execute, getAllRoutes, prepare } from '../src';
+import { Server, HttpsResponse, execute, prepare } from '../src';
 import type { Application, Response } from 'express';
 import { c1, c2 } from './route_controller';
 import { z } from 'zod';
@@ -40,7 +40,7 @@ function exe(app: Application) {
         res.header('Access-Control-Allow-Headers', AllowedHeaders);
         next();
     });
-    for (const route of getAllRoutes(server)) {
+    for (const route of server.routes) {
         const log = shouldLog(route.info.configs); 
         app[AllowedMethodsParser.parse(route)](route.info.path, async function (request, response) {
             if (log) console.log('Developer asked me to be logged', request.url);
