@@ -1,4 +1,4 @@
-import type RouteController from './route_controller';
+import RouteController from './route_controller';
 import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
 import Schema, { InferInput, InferOutput } from './schema';
@@ -13,14 +13,7 @@ export default class Server<
             request: InferInput<RouteController['request']>;
             response: AsResponse<InferOutput<RouteController['response']>>;
         };
-    } = Record<
-        RouteController['info']['ref'],
-        {
-            route: Route['configs'];
-            request: InferInput<RouteController['request']>;
-            response: AsResponse<InferOutput<RouteController['response']>>;
-        }
-    >,
+    } = Record<never, never>,
 > {
     readonly version: string;
     readonly title: string;
@@ -43,27 +36,22 @@ export default class Server<
         this.description = description;
     }
 
-    addRoute<
-        Info extends RouteController['info'],
-        Requirements extends RouteController['requirements'],
-        Request extends RouteController['request'],
-        Response extends RouteController['response'],
-    >(
-        route: RouteController<Info, Requirements, Request, Response>
-    ): Server<
-        Structure & {
-            [k in Info['ref']]: {
-                route: Route['configs'];
-                request: InferInput<Request>;
-                response: AsResponse<InferOutput<Response>>;
-            };
-        }
-    > {
-        this.routes.push(route as never);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    addRoute<R>(route: R): R extends RouteController<any, any, any, any, any>
+        ? Server<
+              Structure & {
+                  [k in R['info']['ref']]: {
+                      route: Route['configs'];
+                      request: InferInput<R['request']>;
+                      response: AsResponse<InferOutput<R['response']>>;
+                  };
+              }
+          >
+        : this {
+        if (typeof route !== 'object' || !(route instanceof RouteController)) return this as never;
+        this.routes.push(route);
         this.allowedMethods.add(route.info.method);
-        for (const key in route.request.header) {
-            this.allowedHeaders.add(key);
-        }
+        for (const key in route.request.header) this.allowedHeaders.add(key);
         return this as never;
     }
 

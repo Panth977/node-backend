@@ -4,7 +4,7 @@ import { c1, c2 } from './route_controller';
 import { z } from 'zod';
 import { ExpressRoute } from './setup';
 
-const server = new Server('1.0.0', 'Test Company', '').addRoute(c1).addRoute(c2);
+const server = new Server('1.0.0', 'Test Company', '').addRoute(c1).addRoute(9).addRoute(c2);
 
 function createErrorResponse(error: unknown) {
     if (error instanceof classes.HttpsResponse) return error;
