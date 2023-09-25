@@ -16,6 +16,7 @@ export default class Route<
     readonly configs: Configs;
     readonly frameworkArg: FrameworkArg;
     readonly tags: string[];
+    readonly features: Record<string, string> = {};
     private middlewareAdded = new Set<string | symbol>();
 
     get ref(): `${Method}.${Path}` {
@@ -58,6 +59,12 @@ export default class Route<
         if (this.middlewareAdded.has(middleware.id)) {
             throw new Error('Middleware of same ID was encountered again!');
         }
+        Object.assign(this.features, middleware.features);
         this.middlewareAdded.add(middleware.id);
+    }
+
+    addFeatures(features: Record<string, string>) {
+        Object.assign(this.features, features);
+        return this;
     }
 }

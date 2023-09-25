@@ -9,7 +9,6 @@ type AsResponse<R extends InferOutput<Schema>> = { header: R['header']; body: Re
 export default class Server<
     Structure extends {
         [id in Route['ref']]: {
-            route: Route['configs'];
             request: InferInput<RouteController['request']>;
             response: AsResponse<InferOutput<RouteController['response']>>;
         };
@@ -41,7 +40,6 @@ export default class Server<
         ? Server<
               Structure & {
                   [k in R['info']['ref']]: {
-                      route: Route['configs'];
                       request: InferInput<R['request']>;
                       response: AsResponse<InferOutput<R['response']>>;
                   };
@@ -66,9 +64,8 @@ export default class Server<
                     path: route.info.path,
                     about: {
                         description: route.info.description,
-                        configs: route.info.configs,
                         tags: route.info.tags,
-                        features: Object.assign({}, ...route.middleware.map((x) => x.info.features)),
+                        features: route.info.features,
                     },
                     request: {
                         params: zodToJsonSchema(z.object(route.info.params)),
