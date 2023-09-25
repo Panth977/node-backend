@@ -54,11 +54,11 @@ export async function execute(
         Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
     }
     const result = await route.implementation(payload, attachments, frameworkArg, route.info);
-    Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});
+    Object.assign(responseHeaders, result?.header ?? {});
     const parsedObj = getResponseParser(route).safeParse({
         headers: responseHeaders,
-        message: result.message ?? 'Successful execution',
-        data: result.data ?? null,
+        message: result?.message ?? 'Successful execution',
+        data: result?.data ?? null,
     });
     if (!parsedObj.success) throw new Error(parsedObj.error.toString());
     return {

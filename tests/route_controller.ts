@@ -11,11 +11,10 @@ export const c1 = Setup(r1)
         a;
         p.params.user_id;
         f.req;
-        return { message: 'S' };
     });
 export const c2 = Setup(r2)
     .addRequest((s) => s.addHeader({ token: z.string() }))
-    .addResponse((s) => s)
+    .addResponse((s) => s.addBody(z.string()))
     .addMiddleware(m1)
     .addMiddleware(m2)
     .addMiddleware(m)
@@ -25,6 +24,5 @@ export const c2 = Setup(r2)
         a.i2();
         f.req;
         r.configs;
-        return { message: 'S' };
+        return { message: 'S', data: '' };
     });
-c2.response.header.x

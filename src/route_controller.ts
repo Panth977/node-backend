@@ -14,7 +14,8 @@ export type InferImplementation<
     attachments: Requirements,
     frameworkArg: Info['frameworkArg'],
     route: Route
-) => Promise<ReturnHeaders<Response['header']> & ReturnData<Response['body']> & { message?: string }>;
+) => Promise<AllowVoid<ReturnHeaders<Response['header']> & ReturnData<Response['body']> & { message?: string }>>;
+type AllowVoid<T extends Record<string, unknown>> = 'header' extends keyof T ? T : 'data' extends keyof T ? T : T | void;
 type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders extends never
     ? unknown
     : { header: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_input'] } };
