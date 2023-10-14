@@ -36,7 +36,7 @@ export function prepare(
     route: RouteController,
     request: InferInput<RouteController['request']> & { params: ZodInputRecord<RouteController['info']['params']> }
 ) {
-    const parsedResult = getRequestParser(route).safeParse(request);
+    const parsedResult = getRequestParser(route).safeParse(request, { path: ['request'] });
     if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error.errors);
     return parsedResult.data;
 }
@@ -55,11 +55,14 @@ export async function execute(
     }
     const result = await route.implementation(payload, attachments, frameworkArg, route.info);
     Object.assign(responseHeaders, result?.header ?? {});
-    const parsedObj = getResponseParser(route).safeParse({
-        headers: responseHeaders,
-        message: result?.message ?? 'Successful execution',
-        data: result?.data ?? null,
-    });
+    const parsedObj = getResponseParser(route).safeParse(
+        {
+            headers: responseHeaders,
+            message: result?.message ?? 'Successful execution',
+            data: result?.data ?? null,
+        },
+        { path: ['response'] }
+    );
     if (!parsedObj.success) throw new Error(parsedObj.error.toString());
     return {
         headers: parsedObj.data.headers,
