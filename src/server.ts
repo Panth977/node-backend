@@ -5,6 +5,10 @@ import Schema, { InferInput, InferOutput } from './schema';
 import HttpsResponse, { ResponseData } from './response';
 import Route from './route';
 
+function zodToSchema(zod: z.ZodType): unknown {
+    return zodToJsonSchema(zod);
+}
+
 type AsResponse<R extends InferOutput<Schema>> = { header: R['header']; body: ResponseData<HttpsResponse<'ok', R['body']>> };
 export default class Server<
     Structure extends {
@@ -68,14 +72,14 @@ export default class Server<
                         features: route.info.features,
                     },
                     request: {
-                        params: zodToJsonSchema(z.object(route.info.params)),
-                        header: zodToJsonSchema(z.object(route.request.header)),
-                        query: zodToJsonSchema(z.object(route.request.query)),
-                        body: zodToJsonSchema(route.request.body),
+                        params: zodToSchema(z.object(route.info.params)),
+                        header: zodToSchema(z.object(route.request.header)),
+                        query: zodToSchema(z.object(route.request.query)),
+                        body: zodToSchema(route.request.body),
                     },
                     response: {
-                        header: zodToJsonSchema(z.object(route.response.header)),
-                        body: zodToJsonSchema(
+                        header: zodToSchema(z.object(route.response.header)),
+                        body: zodToSchema(
                             z.object({
                                 data: route.response.body,
                                 message: messageParser,
