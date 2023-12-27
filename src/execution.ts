@@ -10,7 +10,7 @@ function getRequestParser(route: RouteController): z.ZodType<{ [k in 'header' | 
         Object.assign(route, {
             [requestParser]: z.object({
                 params: z.object(route.info.params),
-                headers: z.object(route.request.header),
+                header: z.object(route.request.header),
                 query: z.object(route.request.query),
                 body: route.request.body,
             }),
@@ -19,11 +19,11 @@ function getRequestParser(route: RouteController): z.ZodType<{ [k in 'header' | 
     return (route as never as { [requestParser]: unknown })[requestParser] as never;
 }
 const responseParser = Symbol();
-function getResponseParser(route: RouteController): z.ZodType<{ headers: Record<string, unknown>; data: unknown; message: string }> {
+function getResponseParser(route: RouteController): z.ZodType<{ header: Record<string, unknown>; data: unknown; message: string }> {
     if (responseParser in route === false) {
         Object.assign(route, {
             [responseParser]: z.object({
-                headers: z.object(route.response.header),
+                header: z.object(route.response.header),
                 data: route.response.body,
                 message: z.string(),
             }),
@@ -45,7 +45,7 @@ export async function execute(
     route: RouteController,
     payload: ReturnType<typeof prepare>,
     frameworkArg: unknown
-): Promise<{ headers: Record<string, unknown>; data: HttpsResponse }> {
+): Promise<{ header: Record<string, unknown>; data: HttpsResponse }> {
     const attachments = {};
     const responseHeaders = {};
     for (const middleware of route.middleware) {
@@ -57,7 +57,7 @@ export async function execute(
     Object.assign(responseHeaders, result?.header ?? {});
     const parsedObj = getResponseParser(route).safeParse(
         {
-            headers: responseHeaders,
+            header: responseHeaders,
             message: result?.message ?? 'Successful execution',
             data: result?.data ?? null,
         },
@@ -65,7 +65,7 @@ export async function execute(
     );
     if (!parsedObj.success) throw new Error(parsedObj.error.toString());
     return {
-        headers: parsedObj.data.headers,
+        header: parsedObj.data.header,
         data: HttpsResponse.build('ok', parsedObj.data.message ?? 'Successful execution', parsedObj.data.data),
     };
 }
