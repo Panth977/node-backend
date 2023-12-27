@@ -19,7 +19,7 @@ type AllowVoid<T extends Record<string, unknown>> = 'header' extends keyof T ? T
 type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders extends never
     ? unknown
     : { header: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_input'] } };
-type ReturnData<ResponseData extends Schema['body']> = ResponseData extends z.ZodNull ? unknown : { data: ResponseData['_input'] };
+type ReturnData<ResponseData extends Schema['body']> = ResponseData extends z.ZodUnknown ? unknown : { data: ResponseData['_input'] };
 
 export default class RouteController<
     Info extends Route = Route,

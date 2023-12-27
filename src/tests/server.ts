@@ -54,7 +54,7 @@ function exe(app: Application) {
                     query: request.query,
                 });
                 const result = await execute(route, payload, { req: request, res: response });
-                setResponseHeaders(response, result.headers);
+                setResponseHeaders(response, result.header);
                 setResponseData(response, result.data);
             } catch (error) {
                 setResponseData(response, createErrorResponse(error));

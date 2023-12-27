@@ -20,7 +20,7 @@ export default class Schema<
         this.body = body;
     }
     static build() {
-        return new Schema({}, {}, z.any());
+        return new Schema({}, {}, z.unknown());
     }
 
     addHeader<Header extends Record<string, z.ZodType>>(header: Header) {
