@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { Setup } from '../src';
 import { r1, r2 } from './route';
 import { m, m1, m2 } from './middleware_controller';
 
-export const c1 = Setup(r1)
+export const c1 = r1
     .addRequest((s) => s.addHeader({ token: z.string() }))
     .addResponse((s) => s)
     .setImplementation(async function (p, a, f) {
@@ -12,7 +11,7 @@ export const c1 = Setup(r1)
         p.params.user_id;
         f.req;
     });
-export const c2 = Setup(r2)
+export const c2 = r2
     .addRequest((s) => s.addHeader({ token: z.string() }))
     .addResponse((s) => s.addBody(z.string()))
     .addMiddleware(m1)

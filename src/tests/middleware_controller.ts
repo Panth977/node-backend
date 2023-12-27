@@ -1,7 +1,6 @@
 import { z } from 'zod';
-import { Setup } from '../src';
 import { ExpressMiddleware } from './setup';
-export const m1 = Setup(ExpressMiddleware('i1'))
+export const m1 = ExpressMiddleware('i1', {})
     .addRequest((s) => s.addHeader({ token: z.string() }))
     .addImplementation(async function (p, a, f) {
         f.res.on('finish', function () {
@@ -10,7 +9,7 @@ export const m1 = Setup(ExpressMiddleware('i1'))
         p.header.token;
         return '';
     });
-export const m2 = Setup(ExpressMiddleware('i2'))
+export const m2 = ExpressMiddleware('i2', {})
     .addRequest((s) => s.addHeader({ ddd: z.string() }))
     .addResponse((s) => s.addHeader({ x: z.string() }))
     .addImplementation(async function (p) {
@@ -19,7 +18,7 @@ export const m2 = Setup(ExpressMiddleware('i2'))
             //
         });
     });
-export const m = Setup(ExpressMiddleware('i'))
+export const m = ExpressMiddleware('i', {})
     .addRequest((s) => s)
     .addResponse((s) => s)
     .addPreRequisite(() => m1)

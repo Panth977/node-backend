@@ -58,10 +58,10 @@ export default class RouteController<
     }
 
     addRequest<R extends Schema>(builder: (current: Request) => R) {
-        return new RouteController(this.info, this.requirements, builder(this.request), this.response, never, never, this.implementationResponse);
+        return new RouteController(this.info, this.requirements, builder(this.request), this.response, never, [], this.implementationResponse);
     }
     addResponse<R extends Schema>(builder: (current: Response) => R) {
-        return new RouteController(this.info, this.requirements, this.request, builder(this.response), never, never, builder(this.response));
+        return new RouteController(this.info, this.requirements, this.request, builder(this.response), never, [], builder(this.response));
     }
     addMiddleware<
         _Info extends MiddlewareController['info'],

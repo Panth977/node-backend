@@ -1,8 +1,8 @@
-import { Server, HttpsResponse, execute, prepare, classes } from '../src';
+import { Server, HttpsResponse, execute, prepare, classes } from '..';
 import type { Application, Response } from 'express';
 import { c1, c2 } from './route_controller';
 import { z } from 'zod';
-import { ExpressRoute } from './setup';
+import { ExpressDefRoute } from './setup';
 
 const server = new Server('1.0.0', 'Test Company', '').addRoute(c1).addRoute(9).addRoute(c2);
 
@@ -42,8 +42,8 @@ function exe(app: Application) {
         next();
     });
     for (const route of server.routes) {
-        const log = shouldLog(route.info.configs); 
-        const routeInfo = ExpressRoute.getExpressRoute(route.info);
+        const log = shouldLog(route.info.configs);
+        const routeInfo = ExpressDefRoute.getExpressRoute(route.info);
         app[routeInfo.method](routeInfo.path, async function (request, response) {
             try {
                 if (log) console.log('Developer asked me to be logged', request.url);

@@ -21,7 +21,6 @@ module.exports = {
     ignorePatterns: [
         '/lib/**/*', // Ignore built files.
         '*.d.ts',
-        'tests/**/*',
     ],
     plugins: ['@typescript-eslint', 'import', 'prettier'],
     rules: {
