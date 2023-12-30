@@ -60,6 +60,7 @@ export default class Server<
             const reqParser = getRequestParser(route);
             const resParser = getResponseParser(route);
             (paths[route.info.path] ??= {})[route.info.method] = {
+                description: route.info.description,
                 requestParams: { path: reqParser.shape.params, header: reqParser.shape.header, query: reqParser.shape.query },
                 requestBody: {
                     content: {

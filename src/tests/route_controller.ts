@@ -4,16 +4,19 @@ import { m, m1, m2 } from './middleware_controller';
 
 const zToken = z
     .string()
-    .openapi({ description: 'is Token', ref: 'token', example: '1234567890' })
-    .transform((x) => x.trim());
+    .optional()
+    .default('')
+    .transform((x) => x.trim())
+    .openapi({ description: 'is Token', ref: 'token', example: '1234567890', type: 'string' });
 export const c1 = r1
     .addRequest((s) => s.addHeader({ token: zToken }))
-    .addResponse((s) => s)
+    .addResponse((s) => s.addBody(z.object({ token: zToken })))
     .setImplementation(async function (p, a, f) {
         p.header.token;
         a;
         p.params.user_id;
         f.req;
+        return { data: {} };
     });
 export const c2 = r2
     .addRequest((s) => s.addHeader({ token: zToken }))
