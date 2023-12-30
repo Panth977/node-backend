@@ -62,6 +62,7 @@ export default class Server<
             (paths[route.info.path] ??= {})[route.info.method] = {
                 description: route.info.description,
                 requestParams: { path: reqParser.shape.params, header: reqParser.shape.header, query: reqParser.shape.query },
+                tags: route.info.tags,
                 requestBody:
                     reqParser.shape.body instanceof z.ZodUnknown
                         ? undefined
