@@ -2,8 +2,10 @@ import { z } from 'zod';
 import { never } from './helper';
 import Middleware from './middleware';
 
+type AllowedMethodsMethods = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace';
+
 export default class Route<
-    Method extends string = string,
+    Method extends AllowedMethodsMethods = AllowedMethodsMethods,
     Path extends string = string,
     Params extends Record<string, z.ZodType> = Record<string, z.ZodType>,
     Configs = unknown,
@@ -41,7 +43,12 @@ export default class Route<
         this.tags = tags;
     }
 
-    static build<FrameworkArg, Method extends string, Path extends string>(arg: FrameworkArg, method: Method, path: Path, description?: string) {
+    static build<FrameworkArg, Method extends AllowedMethodsMethods, Path extends string>(
+        arg: FrameworkArg,
+        method: Method,
+        path: Path,
+        description?: string
+    ) {
         return new Route(method, path, {}, never, description, arg, []);
     }
 

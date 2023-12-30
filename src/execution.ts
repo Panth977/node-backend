@@ -5,7 +5,9 @@ import { InferInput } from './schema';
 import { ZodInputRecord } from './helper';
 
 const requestParser = Symbol();
-function getRequestParser(route: RouteController): z.ZodType<{ [k in 'header' | 'query' | 'params']: Record<string, unknown> } & { body: unknown }> {
+export function getRequestParser(
+    route: RouteController
+): z.ZodObject<{ [k in 'header' | 'query' | 'params']: z.ZodObject<Record<string, z.ZodType<unknown>>> } & { body: z.ZodType<unknown> }> {
     if (requestParser in route === false) {
         Object.assign(route, {
             [requestParser]: z.object({
@@ -19,7 +21,9 @@ function getRequestParser(route: RouteController): z.ZodType<{ [k in 'header' | 
     return (route as never as { [requestParser]: unknown })[requestParser] as never;
 }
 const responseParser = Symbol();
-function getResponseParser(route: RouteController): z.ZodType<{ header: Record<string, unknown>; data: unknown; message: string }> {
+export function getResponseParser(
+    route: RouteController
+): z.ZodObject<{ header: z.ZodObject<Record<string, z.ZodType<unknown>>>; data: z.ZodType<unknown>; message: z.ZodString }> {
     if (responseParser in route === false) {
         Object.assign(route, {
             [responseParser]: z.object({
@@ -38,7 +42,7 @@ export function prepare(
 ) {
     const parsedResult = getRequestParser(route).safeParse(request, { path: ['request'] });
     if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error.errors);
-    return parsedResult.data;
+    return parsedResult.data as typeof parsedResult.data & Record<'body', unknown>;
 }
 
 export async function execute(
@@ -49,6 +53,10 @@ export async function execute(
     const attachments = {};
     const responseHeaders = {};
     for (const middleware of route.middleware) {
+        payload.body;
+        payload.header;
+        payload.params;
+        payload.query;
         const result = await middleware.implementation(payload, attachments, frameworkArg, route.info);
         Object.assign(attachments, { [middleware.info.id]: result });
         Object.assign(responseHeaders, (result as null | { header?: Record<string, unknown> })?.header ?? {});

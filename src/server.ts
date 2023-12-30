@@ -1,13 +1,10 @@
 import RouteController from './route_controller';
-import zodToJsonSchema from 'zod-to-json-schema';
 import { z } from 'zod';
 import Schema, { InferInput, InferOutput } from './schema';
 import HttpsResponse, { ResponseData } from './response';
 import Route from './route';
-
-function zodToSchema(zod: z.ZodType): unknown {
-    return zodToJsonSchema(zod);
-}
+import { ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
+import { getRequestParser, getResponseParser } from './execution';
 
 type AsResponse<R extends InferOutput<Schema>> = { header: R['header']; body: ResponseData<HttpsResponse<'ok', R['body']>> };
 export default class Server<
@@ -57,38 +54,41 @@ export default class Server<
         return this as never;
     }
 
-    toJson() {
-        const messageParser = z.string({ description: 'Custom Server sent message, for Client' });
-        const okStatusParser = z.literal('ok', { description: 'Success Response Status code' });
-        return {
-            info: { version: this.version, title: this.title, description: this.description },
-            routes: this.routes.map(function (route) {
-                return {
-                    method: route.info.method,
-                    path: route.info.path,
-                    about: {
-                        description: route.info.description,
-                        tags: route.info.tags,
-                        features: route.info.features,
+    openApiJson() {
+        const paths: ZodOpenApiPathsObject = {};
+        for (const route of this.routes) {
+            const reqParser = getRequestParser(route);
+            const resParser = getResponseParser(route);
+            (paths[route.info.path] ??= {})[route.info.method] = {
+                requestParams: { path: reqParser.shape.params, header: reqParser.shape.header, query: reqParser.shape.query },
+                requestBody: {
+                    content: {
+                        'application/json': {
+                            schema: reqParser.shape.body,
+                        },
                     },
-                    request: {
-                        params: zodToSchema(z.object(route.info.params)),
-                        header: zodToSchema(z.object(route.request.header)),
-                        query: zodToSchema(z.object(route.request.query)),
-                        body: zodToSchema(route.request.body),
+                },
+                responses: {
+                    200: {
+                        headers: resParser.shape.header,
+                        content: {
+                            'application/json': {
+                                schema: z.object({
+                                    data: resParser.shape.data,
+                                    message: resParser.shape.message,
+                                    status: z.string(),
+                                }),
+                            },
+                        },
                     },
-                    response: {
-                        header: zodToSchema(z.object(route.response.header)),
-                        body: zodToSchema(
-                            z.object({
-                                data: route.response.body,
-                                message: messageParser,
-                                status: okStatusParser,
-                            })
-                        ),
-                    },
-                };
-            }),
-        };
+                },
+            };
+        }
+        const documentation = createDocument({
+            info: { title: this.title, version: this.version, description: this.description },
+            openapi: '3.1.0',
+            paths: paths,
+        });
+        return documentation;
     }
 }
