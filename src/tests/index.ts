@@ -4,4 +4,4 @@ initZodForDocumentation();
 console.log('init done');
 import './route_controller';
 import { server } from './server';
-console.log(JSON.stringify(server.toJson()));
+console.log(JSON.stringify(server.openApiJson()));
