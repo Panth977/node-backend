@@ -7,7 +7,7 @@ const zToken = z
     .optional()
     .default('')
     .transform((x) => x.trim())
-    .openapi({ description: 'is Token', ref: 'token', example: '1234567890', type: 'string' });
+    .openapi({ description: 'is Token', ref: 'token', examples: ['1234567890'], type: 'string' });
 export const c1 = r1
     .addRequest((s) => s.addHeader({ token: zToken }))
     .addResponse((s) => s.addBody(z.object({ token: zToken })))

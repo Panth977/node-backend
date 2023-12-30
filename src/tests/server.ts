@@ -44,7 +44,7 @@ function exe(app: Application) {
     for (const route of server.routes) {
         const log = shouldLog(route.info.configs);
         const routeInfo = ExpressDefRoute.getExpressRoute(route.info);
-        app[routeInfo.method](routeInfo.path, async function (request, response) {
+        app[routeInfo.method](routeInfo.expressPath, async function (request, response) {
             try {
                 if (log) console.log('Developer asked me to be logged', request.url);
                 const payload = prepare(route, {

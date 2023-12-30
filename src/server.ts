@@ -62,15 +62,19 @@ export default class Server<
             (paths[route.info.path] ??= {})[route.info.method] = {
                 description: route.info.description,
                 requestParams: { path: reqParser.shape.params, header: reqParser.shape.header, query: reqParser.shape.query },
-                requestBody: {
-                    content: {
-                        'application/json': {
-                            schema: reqParser.shape.body,
-                        },
-                    },
-                },
+                requestBody:
+                    reqParser.shape.body instanceof z.ZodUnknown
+                        ? undefined
+                        : {
+                              content: {
+                                  'application/json': {
+                                      schema: reqParser.shape.body,
+                                  },
+                              },
+                          },
                 responses: {
                     200: {
+                        description: 'Success Response',
                         headers: resParser.shape.header,
                         content: {
                             'application/json': {

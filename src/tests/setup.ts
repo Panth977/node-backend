@@ -24,9 +24,9 @@ export class ExpressDefMiddleware<ID extends string | symbol = string | symbol> 
 export const ExpressMiddleware = ExpressDefMiddleware.buildExpress;
 
 /* Route */
-type GetPossibleParams<T extends string> = T extends `${string}/:${infer P}/${infer R}`
+type GetPossibleParams<T extends string> = T extends `${string}/{${infer P}}/${infer R}`
     ? P | GetPossibleParams<`/${R}`>
-    : T extends `${string}/:${infer P}`
+    : T extends `${string}/{${infer P}}`
     ? P
     : never;
 type PossibleTags = 'Read' | 'Health' | 'Organization' | 'Product' | 'Organization Relations' | 'Config & Setup' | 'Entries' | 'Inventory & Reports';
@@ -37,13 +37,18 @@ export class ExpressDefRoute<Method extends ExpressAllowedMethod = ExpressAllowe
     Configs,
     FrameworkArg
 > {
+    expressPath: string;
     protected constructor(method: Method, path: Path, configs: Configs, description: string | undefined, tags: string[]) {
         const params: Record<string, z.ZodString> = {};
-        const vars = path.split('/').filter((x) => x.startsWith(':'));
+        const vars = path.split('/').filter((x) => x.startsWith('{') && x.endsWith('}'));
         for (const name of vars) {
-            params[name.substring(1)] = z.string();
+            params[name.substring(1, name.length - 1)] = z.string();
         }
         super(method, path, params, configs, description, never, tags);
+        this.expressPath = path;
+        for (const p in params) {
+            this.expressPath = this.expressPath.replace(`{${p}}`, `:${p}`);
+        }
     }
     static buildExpress<Method extends ExpressAllowedMethod, Path extends string>(
         method: Method,
