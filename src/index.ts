@@ -5,12 +5,7 @@ import _RouteController from './route_controller';
 import _Server from './server';
 import _Schema from './schema';
 import _Route from './route';
-import { z } from 'zod';
-import { extendZodWithOpenApi } from 'zod-openapi';
 
-export function initZodForDocumentation() {
-    extendZodWithOpenApi(z);
-}
 export * from './execution';
 export const Schema = _Schema.build;
 export const HttpsResponse = _HttpsResponse.build;
