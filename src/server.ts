@@ -18,6 +18,7 @@ export default class Server<
     readonly version: string;
     readonly title: string;
     readonly description: undefined | string;
+    readonly endpoints: { url: string; title: string }[];
 
     private allowedHeaders = new Set(['X-Requested-With', 'Access-Control-Allow-Origin', 'Content-Type']);
     private allowedMethods = new Set<string>();
@@ -34,6 +35,11 @@ export default class Server<
         this.version = version;
         this.title = title;
         this.description = description;
+        this.endpoints = [];
+    }
+
+    addEndpoint(title: string, url: string) {
+        this.endpoints.push({ url, title });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,7 +97,12 @@ export default class Server<
             };
         }
         const documentation = createDocument({
-            info: { title: this.title, version: this.version, description: this.description },
+            info: {
+                title: this.title,
+                version: this.version,
+                description: this.description,
+            },
+            servers: this.endpoints.map((x) => ({ url: x.url, description: x.title })),
             openapi: '3.1.0',
             paths: paths,
         });
