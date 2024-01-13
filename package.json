@@ -17,7 +17,7 @@
   "keywords": [],
   "author": "Vardayini Tech",
   "license": "ISC",
-  "dependencies": {
+  "peerDependencies": {
     "zod": "^3.21.4",
     "zod-openapi": "^2.11.0"
   },
