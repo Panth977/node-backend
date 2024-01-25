@@ -22,24 +22,13 @@ export function getRequestParser(
 }
 const responseParser = Symbol();
 
-function generateRefName(ref: string) {
-    return ref
-        .split(/[^\w]|_+/)
-        .filter((x) => x)
-        .map((x) => (x.length ? x[0].toUpperCase() + x.substring(1) : ''))
-        .join('');
-}
-
 export function getResponseParser(
     route: RouteController
 ): z.ZodObject<{ header: z.ZodObject<Record<string, z.ZodType<unknown>>>; data: z.ZodType<unknown>; message: z.ZodString }> {
     if (responseParser in route === false) {
-        const header = Object.keys(route.response.header)
-            ? z.object(route.response.header).openapi({ ref: generateRefName(route.info.ref + '.headers') })
-            : z.object({}).openapi({ ref: 'emptyHeaders' });
         Object.assign(route, {
             [responseParser]: z.object({
-                header: header,
+                header: z.object(route.response.header),
                 data: route.response.body,
                 message: z.string(),
             }),
