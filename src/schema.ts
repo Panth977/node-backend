@@ -5,7 +5,7 @@ export type MergeSchemas<S1 extends Schema, S2 extends Schema> = Schema<S1['head
 export type InferOutput<S extends Schema> = { header: ZodOutputRecord<S['header']>; query: ZodOutputRecord<S['query']>; body: S['body']['_output'] };
 export type InferInput<S extends Schema> = { header: ZodInputRecord<S['header']>; query: ZodInputRecord<S['query']>; body: S['body']['_input'] };
 
-export const emptyBody = z.unknown().brand('Empty Body').openapi({ ref: 'emptyBody' });
+export const emptyBody = z.unknown().openapi({ ref: 'emptyBody' });
 
 export default class Schema<
     Header extends Record<string, z.ZodType> = Record<string, z.ZodType>,
