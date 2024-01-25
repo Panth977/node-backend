@@ -2,7 +2,6 @@ import { z } from 'zod';
 import RouteController from './route_controller';
 import HttpsResponse from './response';
 import { InferInput } from './schema';
-import { ZodInputRecord } from './helper';
 
 const requestParser = Symbol();
 export function getRequestParser(
@@ -11,9 +10,9 @@ export function getRequestParser(
     if (requestParser in route === false) {
         Object.assign(route, {
             [requestParser]: z.object({
-                params: z.object(route.info.params),
-                header: z.object(route.request.header),
-                query: z.object(route.request.query),
+                params: route.info.params,
+                header: route.request.header,
+                query: route.request.query,
                 body: route.request.body,
             }),
         });
@@ -27,7 +26,7 @@ export function getResponseParser(
     if (responseParser in route === false) {
         Object.assign(route, {
             [responseParser]: z.object({
-                header: z.object(route.response.header),
+                header: route.response.header,
                 data: route.response.body,
                 message: z.string(),
             }),
@@ -38,7 +37,7 @@ export function getResponseParser(
 
 export function prepare(
     route: RouteController,
-    request: InferInput<RouteController['request']> & { params: ZodInputRecord<RouteController['info']['params']> }
+    request: InferInput<RouteController['request']> & { params: RouteController['info']['params']['_input'] }
 ) {
     const parsedResult = getRequestParser(route).safeParse(request, { path: ['request'] });
     if (!parsedResult.success) throw HttpsResponse.build('invalid-argument', 'Request was found to have wrong arguments', parsedResult.error.errors);

@@ -7,7 +7,7 @@ type AllowedMethodsMethods = 'get' | 'put' | 'post' | 'delete' | 'options' | 'he
 export default class Route<
     Method extends AllowedMethodsMethods = AllowedMethodsMethods,
     Path extends string = string,
-    Params extends Record<string, z.ZodType> = Record<string, z.ZodType>,
+    Params extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>,
     Configs = unknown,
     FrameworkArg = unknown,
 > {
@@ -49,7 +49,7 @@ export default class Route<
         path: Path,
         description?: string
     ) {
-        return new Route(method, path, {}, never, description, arg, []);
+        return new Route(method, path, z.object({}), never, description, arg, []);
     }
 
     setDescription(description: string) {

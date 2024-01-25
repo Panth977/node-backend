@@ -1,6 +1,6 @@
 import RouteController from './route_controller';
 import { z } from 'zod';
-import Schema, { InferInput, InferOutput, emptyBody } from './schema';
+import Schema, { InferInput, InferOutput, emptyBody, emptyHeaders } from './schema';
 import HttpsResponse, { ResponseData } from './response';
 import Route from './route';
 import { ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
@@ -82,7 +82,7 @@ export default class Server<
                 responses: {
                     200: {
                         description: 'Success Response',
-                        headers: resParser.shape.header,
+                        headers: Object.keys(resParser.shape.header.shape) ? resParser.shape.header : emptyHeaders,
                         content: {
                             'application/json': {
                                 schema: z.object({

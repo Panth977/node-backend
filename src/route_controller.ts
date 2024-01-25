@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type MiddlewareController from './middleware_controller';
 import Route from './route';
 import Schema, { InferOutput, MergeSchemas } from './schema';
-import { ZodOutputRecord, never } from './helper';
+import { never } from './helper';
 
 export type InferImplementation<
     Info extends Route,
@@ -10,15 +10,15 @@ export type InferImplementation<
     Requirements extends Record<string | symbol, unknown>,
     Response extends Schema,
 > = (
-    payload: InferOutput<Request> & { params: ZodOutputRecord<Info['params']> },
+    payload: InferOutput<Request> & { params: Info['params']['_output'] },
     attachments: Requirements,
     frameworkArg: Info['frameworkArg'],
     route: Route
 ) => Promise<AllowVoid<ReturnHeaders<Response['header']> & ReturnData<Response['body']> & { message?: string }>>;
 type AllowVoid<T extends Record<string, unknown>> = 'header' extends keyof T ? T : 'data' extends keyof T ? T : T | void;
-type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders extends never
+type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders['shape'] extends never
     ? unknown
-    : { header: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_input'] } };
+    : { header: ResponseHeaders['_input'] };
 type ReturnData<ResponseData extends Schema['body']> = ResponseData extends z.ZodUnknown ? unknown : { data: ResponseData['_input'] };
 
 export default class RouteController<

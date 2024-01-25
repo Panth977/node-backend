@@ -27,13 +27,13 @@ export const ExpressMiddleware = ExpressDefMiddleware.buildExpress;
 type GetPossibleParams<T extends string> = T extends `${string}/{${infer P}}/${infer R}`
     ? P | GetPossibleParams<`/${R}`>
     : T extends `${string}/{${infer P}}`
-    ? P
-    : never;
+      ? P
+      : never;
 type PossibleTags = 'Read' | 'Health' | 'Organization' | 'Product' | 'Organization Relations' | 'Config & Setup' | 'Entries' | 'Inventory & Reports';
 export class ExpressDefRoute<Method extends ExpressAllowedMethod = ExpressAllowedMethod, Path extends string = string> extends classes.Route<
     Method,
     Path,
-    Record<GetPossibleParams<Path>, z.ZodString>,
+    z.ZodObject<Record<GetPossibleParams<Path>, z.ZodString>>,
     Configs,
     FrameworkArg
 > {
@@ -44,7 +44,7 @@ export class ExpressDefRoute<Method extends ExpressAllowedMethod = ExpressAllowe
         for (const name of vars) {
             params[name.substring(1, name.length - 1)] = z.string();
         }
-        super(method, path, params, configs, description, never, tags);
+        super(method, path, z.object(params as Record<GetPossibleParams<Path>, z.ZodString>), configs, description, never, tags);
         this.expressPath = path;
         for (const p in params) {
             this.expressPath = this.expressPath.replace(`{${p}}`, `:${p}`);

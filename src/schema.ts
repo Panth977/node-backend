@@ -1,15 +1,15 @@
 import { z } from 'zod';
-import { ZodInputRecord, ZodOutputRecord } from './helper';
 
 export type MergeSchemas<S1 extends Schema, S2 extends Schema> = Schema<S1['header'] & S2['header'], S1['query'] & S2['query'], S1['body']>;
-export type InferOutput<S extends Schema> = { header: ZodOutputRecord<S['header']>; query: ZodOutputRecord<S['query']>; body: S['body']['_output'] };
-export type InferInput<S extends Schema> = { header: ZodInputRecord<S['header']>; query: ZodInputRecord<S['query']>; body: S['body']['_input'] };
+export type InferOutput<S extends Schema> = { header: S['header']['_output']; query: S['query']['_output']; body: S['body']['_output'] };
+export type InferInput<S extends Schema> = { header: S['header']['_input']; query: S['query']['_input']; body: S['body']['_input'] };
 
 export const emptyBody = z.unknown().openapi({ ref: 'emptyBody' });
+export const emptyHeaders = z.object({}).openapi({ ref: 'emptyHeaders' });
 
 export default class Schema<
-    Header extends Record<string, z.ZodType> = Record<string, z.ZodType>,
-    Query extends Record<string, z.ZodType> = Record<string, z.ZodType>,
+    Header extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>,
+    Query extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>,
     Body extends z.ZodType = z.ZodType,
 > {
     readonly header: Header;
@@ -22,20 +22,20 @@ export default class Schema<
         this.body = body;
     }
     static build() {
-        return new Schema({}, {}, emptyBody);
+        return new Schema(emptyHeaders, z.object({}), emptyBody);
     }
 
     addHeader<Header extends Record<string, z.ZodType>>(header: Header) {
-        return new Schema(Object.assign({}, this.header, header), this.query, this.body);
+        return new Schema(this.header.extend(header), this.query, this.body);
     }
     addQuery<Query extends Record<string, z.ZodType>>(query: Query) {
-        return new Schema(this.header, Object.assign({}, this.query, query), this.body);
+        return new Schema(this.header, this.query.extend(query), this.body);
     }
     addBody<Body extends z.ZodType>(body: Body) {
         return new Schema(this.header, this.query, body);
     }
 
     merge<Header extends Schema['header'], Query extends Schema['query'], Body extends Schema['body']>(schema: Schema<Header, Query, Body>) {
-        return new Schema(Object.assign({}, this.header, schema.header), Object.assign({}, this.query, schema.query), this.body);
+        return new Schema(this.header.merge(schema.header), this.query.merge(schema.query), this.body);
     }
 }

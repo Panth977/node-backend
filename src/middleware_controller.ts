@@ -1,4 +1,4 @@
-import { ZodOutputRecord, never } from './helper';
+import { never } from './helper';
 import Schema, { InferOutput, MergeSchemas } from './schema';
 import Route from './route';
 import Middleware from './middleware';
@@ -9,14 +9,14 @@ type InferImplementation<
     Requirements extends Record<string | symbol, unknown>,
     ImplementationReturn,
 > = (
-    payload: InferOutput<Request> & { params: ZodOutputRecord<Route['params']> },
+    payload: InferOutput<Request> & { params: Route['params']['_output'] },
     attachments: Requirements,
     frameworkArg: Info['frameworkArg'],
     route: Route
 ) => Promise<ImplementationReturn>;
-type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders extends never
+type ReturnHeaders<ResponseHeaders extends Schema['header']> = keyof ResponseHeaders['shape'] extends never
     ? unknown
-    : { header: { [k in keyof ResponseHeaders]: ResponseHeaders[k]['_input'] } };
+    : { header: ResponseHeaders['_input'] };
 
 export default class MiddlewareController<
     Info extends Middleware = Middleware,
