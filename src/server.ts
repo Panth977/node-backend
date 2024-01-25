@@ -1,6 +1,6 @@
 import RouteController from './route_controller';
 import { z } from 'zod';
-import Schema, { InferInput, InferOutput } from './schema';
+import Schema, { InferInput, InferOutput, emptyBody } from './schema';
 import HttpsResponse, { ResponseData } from './response';
 import Route from './route';
 import { ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
@@ -70,7 +70,7 @@ export default class Server<
                 requestParams: { path: reqParser.shape.params, header: reqParser.shape.header, query: reqParser.shape.query },
                 tags: route.info.tags,
                 requestBody:
-                    reqParser.shape.body instanceof z.ZodUnknown
+                    reqParser.shape.body === emptyBody
                         ? undefined
                         : {
                               content: {
