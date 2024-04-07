@@ -1,1 +1,1 @@
-export * from './express';
+export * as express from './express';

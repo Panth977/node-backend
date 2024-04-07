@@ -8,11 +8,11 @@ import { MiddlewareBuild } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
 
-export function expressPathParser(path: string) {
+export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
 }
 
-export function setupExpressContext(method: string, path: string): RequestHandler {
+export function setupContext(method: string, path: string): RequestHandler {
     return function (req, res, nxt) {
         res.locals ??= {};
         res.locals.context = createContext({ in: 'endpoint', name: `(${method.toUpperCase()}) ${path}` });
@@ -24,7 +24,7 @@ export function setupExpressContext(method: string, path: string): RequestHandle
     };
 }
 
-export function createExpressMiddlewareHandler<
+export function createMiddlewareHandler<
     //
     N extends string,
     ReqH extends z.AnyZodObject,
@@ -46,7 +46,7 @@ export function createExpressMiddlewareHandler<
         }
     };
 }
-export function createExpressHttpHandler<
+export function createHttpHandler<
     //
     M extends Method,
     P extends string,
@@ -71,7 +71,7 @@ export function createExpressHttpHandler<
         }
     };
 }
-export function createExpressSseHandler<
+export function createSseHandler<
     //
     P extends string,
     ReqH extends z.AnyZodObject,
@@ -109,7 +109,7 @@ export function createExpressSseHandler<
     };
 }
 
-export function createExpressErrorHandler(): ErrorRequestHandler {
+export function createErrorHandler(): ErrorRequestHandler {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return function (error: unknown, req: Request, res: Response, next: NextFunction) {
         res.locals.context.error('Request Error:', error);
@@ -123,7 +123,7 @@ export function createExpressErrorHandler(): ErrorRequestHandler {
 }
 
 export function serve(
-    routes: Parameters<typeof createExpressSseHandler | typeof createExpressHttpHandler>[0][],
+    routes: Parameters<typeof createSseHandler | typeof createHttpHandler>[0][],
     documentationParams?: {
         params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
         serveJsonOn: string;
@@ -135,21 +135,21 @@ export function serve(
     for (const build of routes) {
         if (build.endpoint === 'http') {
             router[build.method](
-                expressPathParser(build.path),
-                setupExpressContext(build.method, build.path),
-                ...build.middlewares.map(createExpressMiddlewareHandler),
-                createExpressHttpHandler(build)
+                pathParser(build.path),
+                setupContext(build.method, build.path),
+                ...build.middlewares.map(createMiddlewareHandler),
+                createHttpHandler(build)
             );
         } else if (build.endpoint === 'sse') {
             router['get'](
-                expressPathParser(build.path),
-                setupExpressContext('get', build.path),
-                ...build.middlewares.map(createExpressMiddlewareHandler),
-                createExpressSseHandler(build)
+                pathParser(build.path),
+                setupContext('get', build.path),
+                ...build.middlewares.map(createMiddlewareHandler),
+                createSseHandler(build)
             );
         }
     }
-    router.use(createExpressErrorHandler());
+    router.use(createErrorHandler());
     if (documentationParams) {
         try {
             const paths: ZodOpenApiPathsObject = {};
@@ -172,4 +172,5 @@ export function serve(
             console.error(err);
         }
     }
+    return routes;
 }
