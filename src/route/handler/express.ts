@@ -172,5 +172,5 @@ export function serve(
             console.error(err);
         }
     }
-    return routes;
+    return router;
 }
