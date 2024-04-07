@@ -28,12 +28,20 @@ export type SseParams<
     ReqH extends z.AnyZodObject,
     ReqQ extends z.AnyZodObject,
     ReqP extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 > = ExtraParams<P, ReqH, ReqQ, ReqP> &
     Omit<
-        AsyncGeneratorParam<string, z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>, z.ZodType<string>, z.ZodVoid, z.ZodVoid, S, C & Opt>,
+        AsyncGeneratorParam<
+            string,
+            z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
+            z.ZodType<string>,
+            z.ZodVoid,
+            z.ZodVoid,
+            S,
+            C & { options: Opt }
+        >,
         '_name' | '_input' | '_output' | '_yield' | '_next'
     >;
 export type SseBuild<
@@ -42,11 +50,19 @@ export type SseBuild<
     ReqH extends z.AnyZodObject,
     ReqQ extends z.AnyZodObject,
     ReqP extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 > = ExtraParams<P, ReqH, ReqQ, ReqP> &
-    AsyncGeneratorBuild<string, z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>, z.ZodType<string>, z.ZodVoid, z.ZodVoid, S, C & Opt> & {
+    AsyncGeneratorBuild<
+        string,
+        z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
+        z.ZodType<string>,
+        z.ZodVoid,
+        z.ZodVoid,
+        S,
+        C & { options: Opt }
+    > & {
         endpoint: 'sse';
         middlewares: MiddlewareBuild<string, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, Record<never, never>, Context>[];
     };
@@ -57,7 +73,7 @@ export function getSseDocumentObject<
     ReqH extends z.AnyZodObject,
     ReqQ extends z.AnyZodObject,
     ReqP extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 >(build: SseBuild<P, ReqH, ReqQ, ReqP, S, C, Opt>): ZodOpenApiOperationObject {

@@ -7,7 +7,7 @@ export function AsyncMemoData<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({ getKey, expSec }: { getKey(input: I['_output']): string; expSec: number }): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     const cache: Record<string, Promise<O['_input']>> = {};
@@ -25,7 +25,7 @@ export function SyncMemoData<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({ getKey, expSec }: { getKey(input: I['_output']): string; expSec: number }): SyncFunctionWrapperBuild<N, I, O, S, C> {
     const cache: Record<string, O['_input']> = {};

@@ -42,7 +42,7 @@ export type HttpParams<
     ReqB extends z.ZodType,
     ResH extends z.AnyZodObject,
     ResB extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 > = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
@@ -52,9 +52,9 @@ export type HttpParams<
             z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
             z.ZodObject<{ headers: ResH; body: ResB }>,
             S,
-            C & Opt
+            C & { options: Opt }
         >,
-        '_name' | '_input' | '_output'
+        '_name' | '_input' | '_output' // | 'wrappers'
     >;
 export type HttpBuild<
     //
@@ -66,7 +66,7 @@ export type HttpBuild<
     ReqB extends z.ZodType,
     ResH extends z.AnyZodObject,
     ResB extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 > = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
@@ -75,7 +75,7 @@ export type HttpBuild<
         z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
         z.ZodObject<{ headers: ResH; body: ResB }>,
         S,
-        C & Opt
+        C & { options: Opt }
     > & {
         endpoint: 'http';
         middlewares: MiddlewareBuild<string, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, Record<never, never>, Context>[];
@@ -91,7 +91,7 @@ export function getHttpDocumentObject<
     ReqB extends z.ZodType,
     ResH extends z.AnyZodObject,
     ResB extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 >(build: HttpBuild<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): ZodOpenApiOperationObject {

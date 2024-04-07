@@ -7,7 +7,7 @@ export function AsyncLogTime<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     return async function LogTime(context, input, func) {
@@ -26,7 +26,7 @@ export function SyncLogTime<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(): SyncFunctionWrapperBuild<N, I, O, S, C> {
     return function LogTime(context, input, func) {
@@ -47,7 +47,7 @@ export function SyncGeneratorLogTime<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(): SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return function* LogTime(context, input, func) {
@@ -76,7 +76,7 @@ export function AsyncGeneratorLogTime<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(): AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return async function* LogTime(context, input, func) {

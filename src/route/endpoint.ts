@@ -21,7 +21,7 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqQ extends z.AnyZodObject,
         ResH extends z.AnyZodObject,
         Opt_ extends z.AnyZodObject,
-        S extends Record<never, never>,
+        S,
         C extends Context,
     >(middleware: MiddlewareBuild<N, ReqH, ReqQ, ResH, Opt_, S, C>): Endpoint<Opt & Opt_['_output']> {
         return new Endpoint([...this.middlewares, middleware as never]);
@@ -36,7 +36,7 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqB extends z.ZodType,
         ResH extends z.AnyZodObject,
         ResB extends z.ZodType,
-        S extends Record<never, never>,
+        S,
         C extends Context,
     >(params: HttpParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): HttpBuild<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt> {
         return Object.assign(
@@ -57,7 +57,7 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqH extends z.AnyZodObject,
         ReqQ extends z.AnyZodObject,
         ReqP extends z.AnyZodObject,
-        S extends Record<never, never>,
+        S,
         C extends Context,
     >(params: SseParams<P, ReqH, ReqQ, ReqP, S, C, Opt>): SseBuild<P, ReqH, ReqQ, ReqP, S, C, Opt> {
         return Object.assign(

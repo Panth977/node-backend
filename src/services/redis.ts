@@ -301,7 +301,7 @@ export function CacheObject<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({
     cache,
@@ -329,7 +329,7 @@ export function CacheMap<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     K extends string | number,
 >({
@@ -364,7 +364,7 @@ export function CacheCollection<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     K extends string | number,
 >({

@@ -12,7 +12,7 @@
     "publish-minor": "rm -rf lib/ && npm version minor && npm run build && npm publish",
     "publish-major": "rm -rf lib/ && npm version major && npm run build && npm publish",
     "build-types": "tsc --declaration --outDir ./typings",
-    "test": "npm run build && node lib/tests/index.js"
+    "test": "npm run build && node lib/test/index.js"
   },
   "keywords": [],
   "author": "Vardayini Tech",

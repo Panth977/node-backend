@@ -24,7 +24,7 @@ export type MiddlewareParam<
     ReqQ extends z.AnyZodObject,
     ResH extends z.AnyZodObject,
     Opt extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 > = ExtraParams<ReqH, ReqQ, ResH, Opt> &
     Omit<
@@ -38,7 +38,7 @@ export type MiddlewareBuild<
     ReqQ extends z.AnyZodObject,
     ResH extends z.AnyZodObject,
     Opt extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 > = ExtraParams<ReqH, ReqQ, ResH, Opt> &
     AsyncFunctionBuild<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, S, C>;
@@ -50,7 +50,7 @@ export function createMiddleware<
     ReqQ extends z.AnyZodObject,
     ResH extends z.AnyZodObject,
     Opt extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(params: MiddlewareParam<N, ReqH, ReqQ, ResH, Opt, S, C>): MiddlewareBuild<N, ReqH, ReqQ, ResH, Opt, S, C> {
     return Object.assign(

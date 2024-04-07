@@ -11,16 +11,16 @@ export type AsyncFunctionWrapperBuild<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
-> = WFn<C & AsyncFunctionParam<N, I, O, S, C>, I['_output'], O['_input']>;
+> = WFn<C & { params: AsyncFunctionParam<N, I, O, S, C> }, I['_output'], O['_input']>;
 
 export type AsyncFunctionParam<
     //
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 > = {
     _name: N;
@@ -28,14 +28,14 @@ export type AsyncFunctionParam<
     _output: O;
     _static: S;
     wrappers?: AsyncFunctionWrapperBuild<N, I, O, S, C>[];
-    func: Fn<C & AsyncFunctionParam<N, I, O, S, C>, I['_output'], O['_input']>;
+    func: Fn<C & { params: AsyncFunctionParam<N, I, O, S, C> }, I['_output'], O['_input']>;
 };
 export type AsyncFunctionBuild<
     //
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 > = { type: 'async function' } & AsyncFunctionParam<N, I, O, S, C> & Fn<C, I['_input'], O['_output']>;
 
@@ -53,14 +53,14 @@ export function asyncFunction<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(params: AsyncFunctionParam<N, I, O, S, C>): AsyncFunctionBuild<N, I, O, S, C> {
     params = Object.freeze(params);
     const func = [...(params.wrappers ?? []), null].reduceRight(wrap, params.func);
     const stackLabel = Object.freeze({ name: params._name, in: 'async function' });
     const f: Fn<C, I['_input'], O['_output']> = (context, input) =>
-        func(Object.assign({}, context, params, { stack: Object.freeze([...context.stack, stackLabel]) }), input);
+        func(Object.assign({}, context, { params }, { stack: Object.freeze([...context.stack, stackLabel]) }), input);
     Object.defineProperty(f, 'name', { value: params._name, writable: false });
     return Object.assign(f, params, { type: 'async function' } as const);
 }

@@ -31,7 +31,7 @@ export function createMiddlewareHandler<
     ReqQ extends z.AnyZodObject,
     ResH extends z.AnyZodObject,
     Opt extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(build: MiddlewareBuild<N, ReqH, ReqQ, ResH, Opt, S, C>): RequestHandler {
     return async function (req, res, nxt) {
@@ -56,14 +56,14 @@ export function createHttpHandler<
     ReqB extends z.ZodType,
     ResH extends z.AnyZodObject,
     ResB extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 >(build: HttpBuild<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): RequestHandler {
     return async function (req, res, nxt) {
         try {
             const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
-            const output = await build(Object.assign({}, res.locals.context, res.locals.options), input);
+            const output = await build(Object.assign({}, res.locals.context, { options: res.locals.options }), input);
             for (const key in output.headers) res.setHeader(key, output.headers[key]);
             res.status(200).send(output.body);
         } catch (error) {
@@ -77,7 +77,7 @@ export function createSseHandler<
     ReqH extends z.AnyZodObject,
     ReqQ extends z.AnyZodObject,
     ReqP extends z.AnyZodObject,
-    S extends Record<never, never>,
+    S,
     C extends Context,
     Opt extends Record<never, never>,
 >(build: SseBuild<P, ReqH, ReqQ, ReqP, S, C, Opt>): RequestHandler {
@@ -97,7 +97,7 @@ export function createSseHandler<
         }
         try {
             const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
-            const g = build(Object.assign({}, res.locals.context, res.locals.options), input);
+            const g = build(Object.assign({}, res.locals.context, { options: res.locals.options }), input);
             let val = await g.next();
             while (!val.done && !closed) {
                 res.write(`data: ${val.value}\n\n`);
@@ -140,6 +140,7 @@ export function serve(
                 ...build.middlewares.map(createMiddlewareHandler),
                 createHttpHandler(build)
             );
+            console.log('Route build success:', build.method, pathParser(build.path));
         } else if (build.endpoint === 'sse') {
             router['get'](
                 pathParser(build.path),

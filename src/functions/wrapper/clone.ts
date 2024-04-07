@@ -7,7 +7,7 @@ export function AsyncCloneData<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({ input: cloneInput = true, output: cloneOutput = true } = {}): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     return async function CloneData(context, input, func) {
@@ -22,7 +22,7 @@ export function SyncCloneData<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({ input: cloneInput = true, output: cloneOutput = true } = {}): SyncFunctionWrapperBuild<N, I, O, S, C> {
     return function CloneData(context, input, func) {
@@ -40,7 +40,7 @@ export function SyncGeneratorCloneData<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({ input: cloneInput = true, output: cloneOutput = true, yield: cloneYield = true, next: cloneNext = true } = {}): //
 SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
@@ -67,7 +67,7 @@ export function AsyncGeneratorCloneData<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >({ input: cloneInput = true, output: cloneOutput = true, yield: cloneYield = true, next: cloneNext = true } = {}): //
 AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {

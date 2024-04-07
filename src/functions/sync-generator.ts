@@ -13,9 +13,9 @@ export type SyncGeneratorWrapperBuild<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
-> = WFn<C & SyncGeneratorParam<N, I, Y, TN, O, S, C>, I['_output'], Y['_input'], TN['_output'], O['_input']>;
+> = WFn<C & { params: SyncGeneratorParam<N, I, Y, TN, O, S, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
 
 export type SyncGeneratorParam<
     //
@@ -24,7 +24,7 @@ export type SyncGeneratorParam<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 > = {
     _name: N;
@@ -34,7 +34,7 @@ export type SyncGeneratorParam<
     _output: O;
     _static: S;
     wrappers?: SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C>[];
-    func: Fn<C & SyncGeneratorParam<N, I, Y, TN, O, S, C>, I['_output'], Y['_input'], TN['_output'], O['_input']>;
+    func: Fn<C & { params: SyncGeneratorParam<N, I, Y, TN, O, S, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
 };
 export type SyncGeneratorBuild<
     //
@@ -43,7 +43,7 @@ export type SyncGeneratorBuild<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 > = { type: 'function*' } & SyncGeneratorParam<N, I, Y, TN, O, S, C> & Fn<C, I['_input'], Y['_output'], TN['_input'], O['_output']>;
 
@@ -63,7 +63,7 @@ export function syncGenerator<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S extends Record<never, never>,
+    S,
     C extends Context,
 >(params: SyncGeneratorParam<N, I, Y, TN, O, S, C>): SyncGeneratorBuild<N, I, Y, TN, O, S, C> {
     if (fNames.has(params._name)) throw new Error(`[${JSON.stringify(params._name)}] is not available!`);
@@ -72,7 +72,7 @@ export function syncGenerator<
     fNames.add(params._name);
     const stackLabel = Object.freeze({ name: params._name, in: 'function*' });
     const f: Fn<C, I['_input'], Y['_output'], TN['_input'], O['_output']> = (context, input) =>
-        func(Object.assign({}, context, params, { stack: Object.freeze([...context.stack, stackLabel]) }), input);
+        func(Object.assign({}, context, { params }, { stack: Object.freeze([...context.stack, stackLabel]) }), input);
     Object.defineProperty(f, 'name', { value: params._name, writable: false });
     return Object.assign(f, params, { type: 'function*' } as const);
 }
