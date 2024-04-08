@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { Context } from './context';
+import { unimplemented, wrap } from './_helper';
 
 export namespace AsyncFunction {
-    export type Type = { type: 'async function' };
+    export const type = Symbol();
     export type Return<T> = Promise<T>;
     export type Fn<C, I, O> = (context: C, input: I) => Return<O>;
     export type WFn<C, I, O> = (context: C, input: I, func: Fn<C, I, O>) => Return<O>;
@@ -14,8 +15,22 @@ export namespace AsyncFunction {
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = WFn<C & { params: Param<N, I, O, L, C> }, I['_output'], O['_input']>;
-    export type Param<
+    > = WFn<C & { params: Params<N, I, O, L, C> }, I['_output'], O['_input']>;
+    export type _Params<
+        //
+        N extends string,
+        I extends z.ZodType,
+        O extends z.ZodType,
+        L,
+        C extends Context,
+    > = {
+        _input: I;
+        _output: O;
+        _local?: L;
+        wrappers?: (params: Params<N, I, O, L, C>) => WrapperBuild<N, I, O, L, C>[];
+        func?: Fn<C & { params: Params<N, I, O, L, C> }, I['_output'], O['_input']>;
+    };
+    export type Params<
         //
         N extends string = string,
         I extends z.ZodType = z.ZodType,
@@ -26,9 +41,9 @@ export namespace AsyncFunction {
         _name: N;
         _input: I;
         _output: O;
-        _local: L;
-        wrappers?: (params: Type & Param<N, I, O, L, C>) => WrapperBuild<N, I, O, L, C>[];
-        func: Fn<C & { params: Param<N, I, O, L, C> }, I['_output'], O['_input']>;
+        _local: undefined extends L ? undefined : L;
+        type: 'async function';
+        [type]: { N: N; I: I; O: O; L: L; C: C };
     };
     export type Build<
         //
@@ -37,16 +52,7 @@ export namespace AsyncFunction {
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = Type & Param<N, I, O, L, C> & Fn<C, I['_input'], O['_output']>;
-}
-
-function wrap<C extends Context, I, O>(func: AsyncFunction.Fn<C, I, O>, wrapper: null | AsyncFunction.WFn<C, I, O>): AsyncFunction.Fn<C, I, O> {
-    if (wrapper) {
-        const stackLabel = Object.freeze({ name: wrapper.name, in: 'wrapper' });
-        return (context, input) => wrapper(Object.assign({}, context, { stack: Object.freeze([...context.stack, stackLabel]) }), input, func);
-    }
-    const implementationLabel = Object.freeze({ name: 'func', in: 'implementation' });
-    return (context, input) => func(Object.assign({}, context, { stack: Object.freeze([...context.stack, implementationLabel]) }), input);
+    > = Params<N, I, O, L, C> & Fn<C, I['_input'], O['_output']>;
 }
 
 export function asyncFunction<
@@ -56,9 +62,16 @@ export function asyncFunction<
     O extends z.ZodType,
     L,
     C extends Context,
->(_params: AsyncFunction.Param<N, I, O, L, C>): AsyncFunction.Build<N, I, O, L, C> {
-    const params = Object.freeze(Object.assign(_params, { type: 'async function' } as const));
-    const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
+>(_name: N, _params: AsyncFunction._Params<N, I, O, L, C>): AsyncFunction.Build<N, I, O, L, C> {
+    const params: AsyncFunction.Params<N, I, O, L, C> = {
+        _input: _params._input,
+        _name: _name,
+        _output: _params._output,
+        type: 'async function',
+        _local: _params._local as never,
+        [AsyncFunction.type]: undefined as never,
+    };
+    const func = [...(_params.wrappers?.(params) ?? []), null].reduceRight(wrap, _params.func ?? unimplemented);
     const stackLabel = Object.freeze({ name: params._name, in: 'async function' });
     const f: AsyncFunction.Fn<C, I['_input'], O['_output']> = (context, input) =>
         func(Object.assign({}, context, { params }, { stack: Object.freeze([...context.stack, stackLabel]) }), input);

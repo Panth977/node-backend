@@ -4,7 +4,7 @@ import { SyncFunction } from '../sync';
 import { Context } from '../context';
 import { SyncGenerator } from '../sync-generator';
 import { AsyncGenerator } from '../async-generator';
-import { getParams } from '../identifier';
+import { getParams } from '../_helper';
 
 export function SafeParse<
     //
@@ -13,7 +13,7 @@ export function SafeParse<
     O extends z.ZodType,
     L,
     C extends Context,
->(params: AsyncFunction.Param<N, I, O, L, C>, behavior?: { input?: boolean; output?: boolean }): AsyncFunction.WrapperBuild<N, I, O, L, C>;
+>(params: AsyncFunction.Params<N, I, O, L, C>, behavior?: { input?: boolean; output?: boolean }): AsyncFunction.WrapperBuild<N, I, O, L, C>;
 export function SafeParse<
     //
     N extends string,
@@ -21,7 +21,7 @@ export function SafeParse<
     O extends z.ZodType,
     L,
     C extends Context,
->(params: SyncFunction.Param<N, I, O, L, C>, behavior?: { input?: boolean; output?: boolean }): SyncFunction.WrapperBuild<N, I, O, L, C>;
+>(params: SyncFunction.Params<N, I, O, L, C>, behavior?: { input?: boolean; output?: boolean }): SyncFunction.WrapperBuild<N, I, O, L, C>;
 export function SafeParse<
     //
     N extends string,
@@ -32,7 +32,7 @@ export function SafeParse<
     L,
     C extends Context,
 >(
-    params: SyncGenerator.Param<N, I, Y, TN, O, L, C>,
+    params: SyncGenerator.Params<N, I, Y, TN, O, L, C>,
     behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
 ): SyncGenerator.WrapperBuild<N, I, Y, TN, O, L, C>;
 export function SafeParse<
@@ -45,16 +45,11 @@ export function SafeParse<
     L,
     C extends Context,
 >(
-    params: AsyncGenerator.Param<N, I, Y, TN, O, L, C>,
+    params: AsyncGenerator.Params<N, I, Y, TN, O, L, C>,
     behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
 ): AsyncGenerator.WrapperBuild<N, I, Y, TN, O, L, C>;
 export function SafeParse(
-    params_:
-        | unknown
-        | (SyncFunction.Type & SyncFunction.Param)
-        | (AsyncFunction.Type & AsyncFunction.Param)
-        | (AsyncGenerator.Type & AsyncGenerator.Param)
-        | (SyncGenerator.Type & SyncGenerator.Param),
+    params_: unknown,
     behavior: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}
 ): AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild {
     const params = getParams(params_);

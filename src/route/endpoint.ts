@@ -1,16 +1,35 @@
 import { z } from 'zod';
 import { Middleware } from './middleware';
-import { SseEndpoint } from './sse';
-import { Context, asyncFunction, asyncGenerator } from '../functions';
-import { HttpEndpoint, Method } from './http';
+import { SseEndpoint, createSse } from './sse';
+import { Context } from '../functions';
+import { HttpEndpoint, Method, createHttp } from './http';
+
+export class BundleEndpoints {
+    private allReady: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
+    private allTodo: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
+    set ready(build: unknown) {
+        this.allReady.push(build as never);
+    }
+    set todo(build: unknown) {
+        this.allTodo.push(build as never);
+    }
+    getReadyEndpoints() {
+        return this.allReady;
+    }
+    getAllTodo() {
+        return this.allTodo;
+    }
+}
 
 export class Endpoint<Opt extends Record<never, never>> {
     middlewares: Middleware.Build[];
+    tags: string[];
     static build() {
-        return new Endpoint<Record<never, never>>([]);
+        return new Endpoint([], []);
     }
-    private constructor(middlewares: Middleware.Build[]) {
+    private constructor(middlewares: Middleware.Build[], tags: string[]) {
         this.middlewares = middlewares;
+        this.tags = tags;
     }
     addMiddleware<
         //
@@ -22,7 +41,10 @@ export class Endpoint<Opt extends Record<never, never>> {
         L,
         C extends Context,
     >(middleware: Middleware.Build<N, ReqH, ReqQ, ResH, Opt_, L, C>): Endpoint<Opt & Opt_['_output']> {
-        return new Endpoint([...this.middlewares, middleware as never]);
+        return new Endpoint([...this.middlewares, middleware as never], this.tags);
+    }
+    addTags(...tags: string[]): Endpoint<Opt> {
+        return new Endpoint(this.middlewares, [...this.tags, ...tags]);
     }
     http<
         //
@@ -37,19 +59,12 @@ export class Endpoint<Opt extends Record<never, never>> {
         L,
         C extends Context,
     >(
-        params_: HttpEndpoint.Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
+        method: M,
+        path: P,
+        _params: HttpEndpoint._Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
     ): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
-        const params = Object.freeze(Object.assign(params_, { endpoint: 'http', middlewares: this.middlewares } as const));
-        return Object.assign(
-            asyncFunction(
-                Object.assign(params, {
-                    _name: `(${params.method.toUpperCase()})${params.path}`,
-                    _input: z.object({ headers: params.reqHeader, path: params.reqPath, query: params.reqQuery, body: params.reqBody }),
-                    _output: z.object({ headers: params.resHeaders, body: params.resBody }),
-                })
-            ),
-            params
-        );
+        (_params.tags ??= []).concat(this.tags);
+        return createHttp(method, path, this.middlewares, _params);
     }
     sse<
         //
@@ -59,19 +74,8 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqP extends z.AnyZodObject,
         L,
         C extends Context,
-    >(params_: SseEndpoint.Params<P, ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
-        const params = Object.freeze(Object.assign(params_, { endpoint: 'sse', middlewares: this.middlewares } as const));
-        return Object.assign(
-            asyncGenerator(
-                Object.assign(params, {
-                    _name: `(*GET)${params.path}`,
-                    _input: z.object({ headers: params.reqHeader, path: params.reqPath, query: params.reqQuery }),
-                    _output: z.void(),
-                    _yield: params.resWrite,
-                    _next: z.void(),
-                })
-            ),
-            params
-        );
+    >(method: 'get', path: P, _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
+        (_params.tags ??= []).concat(this.tags);
+        return createSse(method, path, this.middlewares, _params);
     }
 }

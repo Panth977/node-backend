@@ -4,7 +4,7 @@ import { SyncFunction } from '../sync';
 import { Context } from '../context';
 import { SyncGenerator } from '../sync-generator';
 import { AsyncGenerator } from '../async-generator';
-import { getParams } from '../identifier';
+import { getParams } from '../_helper';
 
 export function MemoData<
     //
@@ -14,7 +14,7 @@ export function MemoData<
     L,
     C extends Context,
 >(
-    params: AsyncFunction.Param<N, I, O, L, C>,
+    params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: { getKey(input: I['_output']): string; expSec: number }
 ): AsyncFunction.WrapperBuild<N, I, O, L, C>;
 export function MemoData<
@@ -25,16 +25,11 @@ export function MemoData<
     L,
     C extends Context,
 >(
-    params: SyncFunction.Param<N, I, O, L, C>,
+    params: SyncFunction.Params<N, I, O, L, C>,
     behavior: { getKey(input: I['_output']): string; expSec: number }
 ): SyncFunction.WrapperBuild<N, I, O, L, C>;
 export function MemoData(
-    params_:
-        | unknown
-        | (SyncFunction.Type & SyncFunction.Param)
-        | (AsyncFunction.Type & AsyncFunction.Param)
-        | (AsyncGenerator.Type & AsyncGenerator.Param)
-        | (SyncGenerator.Type & SyncGenerator.Param),
+    params_: unknown,
     behavior: { getKey(input: unknown): string; expSec: number }
 ): AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild {
     const params = getParams(params_);

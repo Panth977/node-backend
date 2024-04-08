@@ -304,7 +304,7 @@ export function CacheObject<
     L,
     C extends Context,
 >(
-    params: AsyncFunction.Param<N, I, O, L, C>,
+    params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: {
         cache: Cache;
         addOpt(cache: Cache, input: I['_output']): Cache;
@@ -332,7 +332,7 @@ export function CacheMap<
     C extends Context,
     K extends string | number,
 >(
-    params: AsyncFunction.Param<N, I, O, L, C>,
+    params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: {
         cache: Cache;
         addOpt(cache: Cache, input: I['_output']): Cache;
@@ -364,7 +364,7 @@ export function CacheCollection<
     C extends Context,
     K extends string | number,
 >(
-    params: AsyncFunction.Param<N, I, O, L, C>,
+    params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: {
         cache: Cache;
         addOpt(cache: Cache, input: I['_output']): Cache;

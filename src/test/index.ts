@@ -5,14 +5,12 @@ import * as path from 'path';
 import createHttpError from 'http-errors';
 import express from 'express';
 
-const passMiddleware = route.createMiddleware({
-    _name: 'pass',
+const passMiddleware = route.createMiddleware('pass', {
     options: z.object({ isValid: z.boolean() }),
     reqHeader: z.object({}),
     reqQuery: z.object({}),
     resHeaders: z.object({}),
     tags: ['NNN'],
-    _static: null,
     wrappers: (params) => [
         //
         functions.wrapper.SafeParse(params),
@@ -29,9 +27,7 @@ const passMiddleware = route.createMiddleware({
 
 const endpoints = new route.BundleEndpoints();
 const defaultEndpointsFactory = route.Endpoint.build().addMiddleware(passMiddleware);
-endpoints.ready = defaultEndpointsFactory.http({
-    path: '/getfile/{filename}',
-    method: 'get',
+endpoints.ready = defaultEndpointsFactory.http('get', '/file/{filename}', {
     reqPath: z.object({
         filename: z.string(),
     }),
@@ -45,7 +41,6 @@ endpoints.ready = defaultEndpointsFactory.http({
     otherResMediaTypes: ['application/pdf'],
     tags: ['TTT'],
     resBody: z.any(),
-    _static: {},
     wrappers: (params) => [
         //
         functions.wrapper.SafeParse(params),
@@ -55,8 +50,6 @@ endpoints.ready = defaultEndpointsFactory.http({
     async func(context, input) {
         context.logger.debug('input', input);
         if (!context.options.isValid) throw createHttpError.NotAcceptable();
-        // Assuming you have a file named 'example.pdf' in the same directory
-        console.log(__dirname, input.path.filename);
         const filePath = path.join(__dirname, input.path.filename);
         const fileBuffer = fs.readFileSync(filePath);
         await new Promise((r) => setTimeout(r, 5000));
@@ -70,9 +63,7 @@ endpoints.ready = defaultEndpointsFactory.http({
     },
 });
 
-endpoints.ready = defaultEndpointsFactory.http({
-    path: '/health',
-    method: 'get',
+endpoints.ready = defaultEndpointsFactory.http('get', '/health', {
     reqPath: z.object({}),
     reqHeader: z.object({}),
     reqQuery: z.object({}),
@@ -80,7 +71,6 @@ endpoints.ready = defaultEndpointsFactory.http({
     resHeaders: z.object({}),
     tags: ['XXX'],
     resBody: z.any(),
-    _static: {},
     async func() {
         return {
             headers: {},
@@ -89,7 +79,6 @@ endpoints.ready = defaultEndpointsFactory.http({
     },
 });
 
-const app = express();
 const router = route.handler.express.serve(endpoints, {
     params: {
         openapi: '3.0.1',
@@ -100,13 +89,15 @@ const router = route.handler.express.serve(endpoints, {
             contact: { url: 'oizom.com' },
         },
         // security: [{ type: 'header', name: 'x-access-token' }], // TODO
-        servers: [{ url: 'http://localhost:8080/', description: 'local' }],
+        servers: [{ url: 'http://localhost:8080/v2', description: 'local' }],
     },
     serveJsonOn: '/swagger.json',
     serveUiOn: '/swagger/',
 });
-app.get('/getfile', (req, res) => {
-    const filePath = path.join(__dirname, 'example.pdf');
+// express
+const app = express();
+app.get('/file/:filename', (req, res) => {
+    const filePath = path.join(__dirname, req.params.filename);
     const fileBuffer = fs.readFileSync(filePath);
 
     // Manually setting the Content-Type and Content-Disposition headers
@@ -116,7 +107,7 @@ app.get('/getfile', (req, res) => {
     // Sending the file buffer directly
     res.send(fileBuffer);
 });
-app.use(router);
+app.use('/v2', router);
 app.listen(8080, () => {
     console.log('Listning to port', 8080);
 });
