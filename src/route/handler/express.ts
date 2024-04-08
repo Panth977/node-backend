@@ -7,6 +7,7 @@ import { Context, createContext } from '../../functions';
 import { MiddlewareBuild } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
+import { BundleEndpoints } from '../bundle';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -123,7 +124,7 @@ export function createErrorHandler(): ErrorRequestHandler {
 }
 
 export function serve(
-    routes: Parameters<typeof createSseHandler | typeof createHttpHandler>[0][],
+    bundle: BundleEndpoints,
     documentationParams?: {
         params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
         serveJsonOn: string;
@@ -131,6 +132,7 @@ export function serve(
         middlewares?: RequestHandler[];
     }
 ) {
+    const routes = bundle.getEndpoints().ready;
     const router = Router();
     for (const build of routes) {
         if (build.endpoint === 'http') {

@@ -34,8 +34,9 @@ const passMiddleware = route.createMiddleware({
     },
 });
 
+const endpoints = new route.BundleEndpoints();
 const defaultEndpointsFactory = route.Endpoint.build().addMiddleware(passMiddleware);
-const getFileRoute = defaultEndpointsFactory.http({
+endpoints.ready = defaultEndpointsFactory.http({
     path: '/getfile/{filename}',
     method: 'get',
     reqPath: z.object({
@@ -76,7 +77,7 @@ const getFileRoute = defaultEndpointsFactory.http({
     },
 });
 
-const healthRoute = defaultEndpointsFactory.http({
+endpoints.ready = defaultEndpointsFactory.http({
     path: '/health',
     method: 'get',
     reqPath: z.object({}),
@@ -95,10 +96,8 @@ const healthRoute = defaultEndpointsFactory.http({
     },
 });
 
-const routes = [getFileRoute, healthRoute] as never;
-
 const app = express();
-const router = route.handler.express.serve(routes, {
+const router = route.handler.express.serve(endpoints, {
     params: {
         openapi: '3.0.1',
         info: {
