@@ -7,33 +7,28 @@ import express from 'express';
 
 const passMiddleware = route.createMiddleware('pass', {
     options: z.object({ isValid: z.boolean() }),
-    reqHeader: z.object({}),
-    reqQuery: z.object({}),
-    resHeaders: z.object({}),
     tags: ['NNN'],
+    reqHeader: z.object({}).passthrough(),
     wrappers: (params) => [
         //
         functions.wrapper.SafeParse(params),
         functions.wrapper.Debug(params),
     ],
     async func(context, input) {
-        context.logger.debug('input', input);
+        context.logger.debug('input-middleware', input);
         return {
-            headers: {},
             options: { isValid: true },
         };
     },
 });
 
 const endpoints = new route.BundleEndpoints();
-const defaultEndpointsFactory = route.Endpoint.build().addMiddleware(passMiddleware);
-endpoints.ready = defaultEndpointsFactory.http('get', '/file/{filename}', {
+const defaultEndpointsFactory1 = route.Endpoint.build().addMiddleware(passMiddleware).addTags('aa');
+const defaultEndpointsFactory2 = route.Endpoint.build();
+const getFile = defaultEndpointsFactory1.http('get', '/file/{filename}', {
     reqPath: z.object({
         filename: z.string(),
     }),
-    reqHeader: z.object({}),
-    reqQuery: z.object({}),
-    reqBody: z.any(),
     resHeaders: z.object({
         'Content-Type': z.string(),
         'Content-Disposition': z.string(),
@@ -48,7 +43,7 @@ endpoints.ready = defaultEndpointsFactory.http('get', '/file/{filename}', {
         functions.wrapper.Debug(params),
     ],
     async func(context, input) {
-        context.logger.debug('input', input);
+        context.logger.debug('input-endpoint', input);
         if (!context.options.isValid) throw createHttpError.NotAcceptable();
         const filePath = path.join(__dirname, input.path.filename);
         const fileBuffer = fs.readFileSync(filePath);
@@ -62,18 +57,12 @@ endpoints.ready = defaultEndpointsFactory.http('get', '/file/{filename}', {
         };
     },
 });
-
-endpoints.ready = defaultEndpointsFactory.http('get', '/health', {
-    reqPath: z.object({}),
-    reqHeader: z.object({}),
-    reqQuery: z.object({}),
-    reqBody: z.any(),
-    resHeaders: z.object({}),
+endpoints.ready = getFile;
+endpoints.ready = defaultEndpointsFactory2.http('get', '/health', {
     tags: ['XXX'],
     resBody: z.any(),
     async func() {
         return {
-            headers: {},
             body: 'Every thing is up and running',
         };
     },

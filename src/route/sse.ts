@@ -2,28 +2,27 @@ import { AsyncGenerator, Context, asyncGenerator } from '../functions';
 import { z } from 'zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { Middleware } from './middleware';
+import { TakeIfDefined, takeIfDefined } from './_helper';
 
 export namespace SseEndpoint {
-    export type Type = { endpoint: 'sse' };
     export type _Params<
         //
         P extends string = string,
-        ReqH extends z.AnyZodObject = z.AnyZodObject,
-        ReqQ extends z.AnyZodObject = z.AnyZodObject,
-        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
-        path: P;
-        reqHeader: ReqH;
-        reqQuery: ReqQ;
-        reqPath: ReqP;
-        resWrite: z.ZodType<string>;
+        reqHeader?: ReqH;
+        reqQuery?: ReqQ;
+        reqPath?: ReqP;
+        resWrite?: z.ZodType<string>;
     } & Omit<
             AsyncGenerator._Params<
-                string,
-                z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
+                `(get)${P}`,
+                TakeIfDefined<{ headers: ReqH; query: ReqQ; path: ReqP }>,
                 z.ZodType<string>,
                 z.ZodVoid,
                 z.ZodVoid,
@@ -46,16 +45,16 @@ export namespace SseEndpoint {
     export type Build<
         //
         P extends string = string,
-        ReqH extends z.AnyZodObject = z.AnyZodObject,
-        ReqQ extends z.AnyZodObject = z.AnyZodObject,
-        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = Params<P> &
         AsyncGenerator.Build<
-            string,
-            z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
+            `(get)${P}`,
+            TakeIfDefined<{ headers: ReqH; query: ReqQ; path: ReqP }>,
             z.ZodType<string>,
             z.ZodVoid,
             z.ZodVoid,
@@ -67,9 +66,9 @@ export namespace SseEndpoint {
 export function createSse<
     //
     P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
+    ReqH extends undefined | z.AnyZodObject,
+    ReqQ extends undefined | z.AnyZodObject,
+    ReqP extends undefined | z.AnyZodObject,
     L,
     C extends Context,
     Opt extends Record<never, never>,
@@ -87,16 +86,16 @@ export function createSse<
             summary: _params.summary,
             requestParams: {
                 header: z.object(
-                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqHeader.shape ?? {}), {
-                        ..._params.reqHeader.shape,
+                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqHeader?.shape ?? {}), {
+                        ...(_params.reqHeader?.shape ?? {}),
                     })
                 ),
                 query: z.object(
-                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqQuery.shape ?? {}), {
-                        ..._params.reqQuery.shape,
+                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqQuery?.shape ?? {}), {
+                        ...(_params.reqQuery?.shape ?? {}),
                     })
                 ),
-                path: z.object({ ..._params.reqPath.shape }),
+                path: z.object({ ...(_params.reqPath?.shape ?? {}) }),
             },
             responses: {
                 200: {
@@ -114,14 +113,14 @@ export function createSse<
         middlewares,
         path,
     };
-    const build = asyncGenerator(`(${method.toUpperCase()})${path}`, {
-        _input: z.object({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery }),
+    const build = asyncGenerator(`(get)${path}`, {
+        _input: takeIfDefined({ headers: _params.reqHeader, query: _params.reqQuery, path: _params.reqPath }) as never,
         _output: z.void(),
-        _yield: _params.resWrite,
+        _yield: _params.resWrite ?? z.string(),
         _next: z.void(),
         _local: _params._local,
         wrappers: _params.wrappers,
         func: _params.func,
     });
-    return Object.assign(build, params);
+    return Object.assign(build, params) as never;
 }

@@ -42,7 +42,8 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
         return async function (req, res, nxt) {
             try {
                 const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
-                const output = await build(Object.assign({}, res.locals.context, { options: res.locals.options }), input);
+                const context = Object.assign({}, res.locals.context, { options: res.locals.options });
+                const output = await build(context, input);
                 for (const key in output.headers) res.setHeader(key, output.headers[key]);
                 res.status(200).send(output.body);
             } catch (error) {

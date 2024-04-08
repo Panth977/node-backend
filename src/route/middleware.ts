@@ -1,32 +1,33 @@
 import { z } from 'zod';
 import { AsyncFunction, Context, asyncFunction } from '../functions';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
+import { TakeIfDefined, takeIfDefined } from './_helper';
 
 export namespace Middleware {
     export type _Params<
         //
         N extends string,
-        ReqH extends z.AnyZodObject,
-        ReqQ extends z.AnyZodObject,
-        ResH extends z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject,
+        ResH extends undefined | z.AnyZodObject,
         Opt extends z.AnyZodObject,
         L = unknown,
         C extends Context = Context,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags'> & {
-        reqHeader: ReqH;
-        reqQuery: ReqQ;
-        resHeaders: ResH;
+        reqHeader?: ReqH;
+        reqQuery?: ReqQ;
+        resHeaders?: ResH;
         options: Opt;
     } & Omit<
-            AsyncFunction._Params<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, L, C>,
+            AsyncFunction._Params<N, TakeIfDefined<{ headers: ReqH; query: ReqQ }>, TakeIfDefined<{ headers: ResH; options: Opt }>, L, C>,
             '_input' | '_output'
         >;
 
     export type Params<
         //
-        ReqH extends z.AnyZodObject = z.AnyZodObject,
-        ReqQ extends z.AnyZodObject = z.AnyZodObject,
-        ResH extends z.AnyZodObject = z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ResH extends undefined | z.AnyZodObject = z.AnyZodObject,
         Opt extends z.AnyZodObject = z.AnyZodObject,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags'> & {
         reqHeader: ReqH;
@@ -38,39 +39,41 @@ export namespace Middleware {
     export type Build<
         //
         N extends string = string,
-        ReqH extends z.AnyZodObject = z.AnyZodObject,
-        ReqQ extends z.AnyZodObject = z.AnyZodObject,
-        ResH extends z.AnyZodObject = z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ResH extends undefined | z.AnyZodObject = z.AnyZodObject,
         Opt extends z.AnyZodObject = z.AnyZodObject,
         L = unknown,
         C extends Context = Context,
     > = Params<ReqH, ReqQ, ResH, Opt> &
-        AsyncFunction.Build<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, L, C>;
+        AsyncFunction.Build<N, TakeIfDefined<{ headers: ReqH; query: ReqQ }>, TakeIfDefined<{ headers: ResH; options: Opt }>, L, C>;
 }
 
 export function createMiddleware<
     //
     N extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ResH extends z.AnyZodObject,
+    ReqH extends undefined | z.AnyZodObject,
+    ReqQ extends undefined | z.AnyZodObject,
+    ResH extends undefined | z.AnyZodObject,
     Opt extends z.AnyZodObject,
     L,
     C extends Context,
 >(_name: N, _params: Middleware._Params<N, ReqH, ReqQ, ResH, Opt, L, C>): Middleware.Build<N, ReqH, ReqQ, ResH, Opt, L, C> {
     const params: Middleware.Params<ReqH, ReqQ, ResH, Opt> = {
         endpoint: 'middleware',
-        reqHeader: _params.reqHeader,
+        reqHeader: _params.reqHeader as never,
         options: _params.options,
-        reqQuery: _params.reqQuery,
-        resHeaders: _params.resHeaders,
+        reqQuery: _params.reqQuery as never,
+        resHeaders: _params.resHeaders as never,
+        security: _params.security,
+        tags: _params.tags,
     };
     const build = asyncFunction(_name, {
-        _input: z.object({ headers: params.reqHeader, query: params.reqQuery }),
-        _output: z.object({ headers: params.resHeaders, options: params.options }),
+        _input: takeIfDefined({ headers: params.reqHeader, query: params.reqQuery }) as never,
+        _output: takeIfDefined({ headers: params.resHeaders, options: params.options }) as never,
         _local: _params._local,
         wrappers: _params.wrappers,
         func: _params.func,
     });
-    return Object.assign(build, params);
+    return Object.assign(build, params) as never;
 }

@@ -34,9 +34,9 @@ export class Endpoint<Opt extends Record<never, never>> {
     addMiddleware<
         //
         N extends string,
-        ReqH extends z.AnyZodObject,
-        ReqQ extends z.AnyZodObject,
-        ResH extends z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject,
+        ResH extends undefined | z.AnyZodObject,
         Opt_ extends z.AnyZodObject,
         L,
         C extends Context,
@@ -50,12 +50,12 @@ export class Endpoint<Opt extends Record<never, never>> {
         //
         M extends Method,
         P extends string,
-        ReqH extends z.AnyZodObject,
-        ReqQ extends z.AnyZodObject,
-        ReqP extends z.AnyZodObject,
-        ReqB extends z.ZodType,
-        ResH extends z.AnyZodObject,
-        ResB extends z.ZodType,
+        ReqH extends undefined | z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject,
+        ReqP extends undefined | z.AnyZodObject,
+        ReqB extends undefined | z.ZodType,
+        ResH extends undefined | z.AnyZodObject,
+        ResB extends undefined | z.ZodType,
         L,
         C extends Context,
     >(
@@ -63,15 +63,15 @@ export class Endpoint<Opt extends Record<never, never>> {
         path: P,
         _params: HttpEndpoint._Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
     ): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
-        (_params.tags ??= []).concat(this.tags);
+        _params.tags = (_params.tags ??= []).concat(this.tags);
         return createHttp(method, path, this.middlewares, _params);
     }
     sse<
         //
         P extends string,
-        ReqH extends z.AnyZodObject,
-        ReqQ extends z.AnyZodObject,
-        ReqP extends z.AnyZodObject,
+        ReqH extends undefined | z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject,
+        ReqP extends undefined | z.AnyZodObject,
         L,
         C extends Context,
     >(method: 'get', path: P, _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
