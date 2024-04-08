@@ -107,3 +107,21 @@ export function sortOnKey<R>({ rows, key, mode }: { rows: R[]; key: string; mode
     }
     throw new Error('unimplemented mode found!');
 }
+
+export function destructureSqlRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+    const newRows = [];
+    for (const row of rows) {
+        const newRow = {};
+        Object.entries(row).forEach(([key, value]) => {
+            const parts = key.split('.');
+            const lastKey = parts.pop() as string;
+            let current: any = newRow;
+            for (const key of parts) {
+                current = current[key] ??= {};
+            }
+            current[lastKey] = value;
+        });
+        newRows.push(newRow);
+    }
+    return newRows;
+}

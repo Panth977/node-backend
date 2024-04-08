@@ -50,8 +50,8 @@ export class Cache {
         this.allowed = allowed;
         this.log = log;
     }
-    static build(separator: string, getClient: () => Promise<RedisClientType>) {
-        return new Cache(separator, getClient, '', { read: true, write: true }, { read: false, write: false });
+    static build(getClient: () => Promise<RedisClientType>) {
+        return new Cache(':', getClient, '', { read: true, write: true }, { read: false, write: false });
     }
     private getKey(key?: string | number) {
         return `${this.prefix}${this.separator}${key ?? ''}`;
@@ -301,16 +301,16 @@ export function CacheObject<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
 >(
-    params: AsyncFunction.Param<N, I, O, S, C>,
+    params: AsyncFunction.Param<N, I, O, L, C>,
     behavior: {
         cache: Cache;
         addOpt(cache: Cache, input: I['_output']): Cache;
         expire: number;
     }
-): AsyncFunction.WrapperBuild<N, I, O, S, C> {
+): AsyncFunction.WrapperBuild<N, I, O, L, C> {
     return async function CacheObject(context, input, func) {
         const cache = behavior.addOpt(behavior.cache, input);
         let result = await cache.get(context, {});
@@ -328,11 +328,11 @@ export function CacheMap<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
     K extends string | number,
 >(
-    params: AsyncFunction.Param<N, I, O, S, C>,
+    params: AsyncFunction.Param<N, I, O, L, C>,
     behavior: {
         cache: Cache;
         addOpt(cache: Cache, input: I['_output']): Cache;
@@ -340,7 +340,7 @@ export function CacheMap<
         updateKeys(input: I['_output'], keys: K[]): I['_output'];
         expire: number;
     }
-): AsyncFunction.WrapperBuild<N, I, O, S, C> {
+): AsyncFunction.WrapperBuild<N, I, O, L, C> {
     return async function CacheMap(context, input, func) {
         const cache = behavior.addOpt(behavior.cache, input);
         const keys = behavior.getKeys(input);
@@ -360,11 +360,11 @@ export function CacheCollection<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
     K extends string | number,
 >(
-    params: AsyncFunction.Param<N, I, O, S, C>,
+    params: AsyncFunction.Param<N, I, O, L, C>,
     behavior: {
         cache: Cache;
         addOpt(cache: Cache, input: I['_output']): Cache;
@@ -372,7 +372,7 @@ export function CacheCollection<
         updateFields(input: I['_output'], reqKeys: K[], ignoreKeys: string[]): I['_output'];
         expire: number;
     }
-): AsyncFunction.WrapperBuild<N, I, O, S, C> {
+): AsyncFunction.WrapperBuild<N, I, O, L, C> {
     return async function CacheCollection(context, input, func) {
         const cache = behavior.addOpt(behavior.cache, input);
         const fields = behavior.getFields(input);

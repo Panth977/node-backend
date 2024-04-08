@@ -11,23 +11,23 @@ export function MemoData<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
 >(
-    params: AsyncFunction.Param<N, I, O, S, C>,
+    params: AsyncFunction.Param<N, I, O, L, C>,
     behavior: { getKey(input: I['_output']): string; expSec: number }
-): AsyncFunction.WrapperBuild<N, I, O, S, C>;
+): AsyncFunction.WrapperBuild<N, I, O, L, C>;
 export function MemoData<
     //
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
 >(
-    params: SyncFunction.Param<N, I, O, S, C>,
+    params: SyncFunction.Param<N, I, O, L, C>,
     behavior: { getKey(input: I['_output']): string; expSec: number }
-): SyncFunction.WrapperBuild<N, I, O, S, C>;
+): SyncFunction.WrapperBuild<N, I, O, L, C>;
 export function MemoData(
     params_:
         | unknown

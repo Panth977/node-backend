@@ -25,7 +25,7 @@ export namespace SseEndpoint {
         ReqH extends z.AnyZodObject = z.AnyZodObject,
         ReqQ extends z.AnyZodObject = z.AnyZodObject,
         ReqP extends z.AnyZodObject = z.AnyZodObject,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = ExtraParams<P, ReqH, ReqQ, ReqP> &
@@ -36,7 +36,7 @@ export namespace SseEndpoint {
                 z.ZodType<string>,
                 z.ZodVoid,
                 z.ZodVoid,
-                S,
+                L,
                 C & { options: Opt }
             >,
             '_name' | '_input' | '_output' | '_yield' | '_next'
@@ -47,7 +47,7 @@ export namespace SseEndpoint {
         ReqH extends z.AnyZodObject = z.AnyZodObject,
         ReqQ extends z.AnyZodObject = z.AnyZodObject,
         ReqP extends z.AnyZodObject = z.AnyZodObject,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = ExtraParams<P, ReqH, ReqQ, ReqP> &
@@ -57,7 +57,7 @@ export namespace SseEndpoint {
             z.ZodType<string>,
             z.ZodVoid,
             z.ZodVoid,
-            S,
+            L,
             C & { options: Opt }
         > &
         Type & { middlewares: Middleware.Build[] };
@@ -69,10 +69,10 @@ export function getSseDocumentObject<
     ReqH extends z.AnyZodObject,
     ReqQ extends z.AnyZodObject,
     ReqP extends z.AnyZodObject,
-    S,
+    L,
     C extends Context,
     Opt extends Record<never, never>,
->(build: SseEndpoint.Build<P, ReqH, ReqQ, ReqP, S, C, Opt>): ZodOpenApiOperationObject {
+>(build: SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt>): ZodOpenApiOperationObject {
     return {
         tags: build.middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(build.tags ?? [])]),
         security: build.middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(build.security ?? [])]),

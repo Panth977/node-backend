@@ -14,9 +14,9 @@ export namespace AsyncGenerator {
         Y extends z.ZodType = z.ZodType,
         TN extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
-    > = WFn<C & { params: Param<N, I, Y, TN, O, S, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
+    > = WFn<C & { params: Param<N, I, Y, TN, O, L, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
 
     export type Param<
         //
@@ -25,7 +25,7 @@ export namespace AsyncGenerator {
         Y extends z.ZodType = z.ZodType,
         TN extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
     > = {
         _name: N;
@@ -33,9 +33,9 @@ export namespace AsyncGenerator {
         _yield: Y;
         _next: TN;
         _output: O;
-        _static: S;
-        wrappers?: (params: Type & Param<N, I, Y, TN, O, S, C>) => WrapperBuild<N, I, Y, TN, O, S, C>[];
-        func: Fn<C & { params: Param<N, I, Y, TN, O, S, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
+        _local: L;
+        wrappers?: (params: Type & Param<N, I, Y, TN, O, L, C>) => WrapperBuild<N, I, Y, TN, O, L, C>[];
+        func: Fn<C & { params: Param<N, I, Y, TN, O, L, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
     };
     export type Build<
         //
@@ -44,9 +44,9 @@ export namespace AsyncGenerator {
         Y extends z.ZodType = z.ZodType,
         TN extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
-    > = Type & Param<N, I, Y, TN, O, S, C> & Fn<C, I['_input'], Y['_output'], TN['_input'], O['_output']>;
+    > = Type & Param<N, I, Y, TN, O, L, C> & Fn<C, I['_input'], Y['_output'], TN['_input'], O['_output']>;
 }
 
 function wrap<C extends Context, I, Y, TN, O>(
@@ -68,9 +68,9 @@ export function asyncGenerator<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
->(_params: AsyncGenerator.Param<N, I, Y, TN, O, S, C>): AsyncGenerator.Build<N, I, Y, TN, O, S, C> {
+>(_params: AsyncGenerator.Param<N, I, Y, TN, O, L, C>): AsyncGenerator.Build<N, I, Y, TN, O, L, C> {
     const params = Object.freeze(Object.assign(_params, { type: 'async function*' } as const));
     const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
     const stackLabel = Object.freeze({ name: params._name, in: 'async function*' });

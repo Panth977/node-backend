@@ -11,30 +11,17 @@ export function SafeParse<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
->(params: AsyncFunction.Param<N, I, O, S, C>, behavior?: { input?: boolean; output?: boolean }): AsyncFunction.WrapperBuild<N, I, O, S, C>;
+>(params: AsyncFunction.Param<N, I, O, L, C>, behavior?: { input?: boolean; output?: boolean }): AsyncFunction.WrapperBuild<N, I, O, L, C>;
 export function SafeParse<
     //
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
->(params: SyncFunction.Param<N, I, O, S, C>, behavior?: { input?: boolean; output?: boolean }): SyncFunction.WrapperBuild<N, I, O, S, C>;
-export function SafeParse<
-    //
-    N extends string,
-    I extends z.ZodType,
-    Y extends z.ZodType,
-    TN extends z.ZodType,
-    O extends z.ZodType,
-    S,
-    C extends Context,
->(
-    params: SyncGenerator.Param<N, I, Y, TN, O, S, C>,
-    behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): SyncGenerator.WrapperBuild<N, I, Y, TN, O, S, C>;
+>(params: SyncFunction.Param<N, I, O, L, C>, behavior?: { input?: boolean; output?: boolean }): SyncFunction.WrapperBuild<N, I, O, L, C>;
 export function SafeParse<
     //
     N extends string,
@@ -42,12 +29,25 @@ export function SafeParse<
     Y extends z.ZodType,
     TN extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
 >(
-    params: AsyncGenerator.Param<N, I, Y, TN, O, S, C>,
+    params: SyncGenerator.Param<N, I, Y, TN, O, L, C>,
     behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): AsyncGenerator.WrapperBuild<N, I, Y, TN, O, S, C>;
+): SyncGenerator.WrapperBuild<N, I, Y, TN, O, L, C>;
+export function SafeParse<
+    //
+    N extends string,
+    I extends z.ZodType,
+    Y extends z.ZodType,
+    TN extends z.ZodType,
+    O extends z.ZodType,
+    L,
+    C extends Context,
+>(
+    params: AsyncGenerator.Param<N, I, Y, TN, O, L, C>,
+    behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
+): AsyncGenerator.WrapperBuild<N, I, Y, TN, O, L, C>;
 export function SafeParse(
     params_:
         | unknown

@@ -12,32 +12,32 @@ export namespace AsyncFunction {
         N extends string = string,
         I extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
-    > = WFn<C & { params: Param<N, I, O, S, C> }, I['_output'], O['_input']>;
+    > = WFn<C & { params: Param<N, I, O, L, C> }, I['_output'], O['_input']>;
     export type Param<
         //
         N extends string = string,
         I extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
     > = {
         _name: N;
         _input: I;
         _output: O;
-        _static: S;
-        wrappers?: (params: Type & Param<N, I, O, S, C>) => WrapperBuild<N, I, O, S, C>[];
-        func: Fn<C & { params: Param<N, I, O, S, C> }, I['_output'], O['_input']>;
+        _local: L;
+        wrappers?: (params: Type & Param<N, I, O, L, C>) => WrapperBuild<N, I, O, L, C>[];
+        func: Fn<C & { params: Param<N, I, O, L, C> }, I['_output'], O['_input']>;
     };
     export type Build<
         //
         N extends string = string,
         I extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
-    > = Type & Param<N, I, O, S, C> & Fn<C, I['_input'], O['_output']>;
+    > = Type & Param<N, I, O, L, C> & Fn<C, I['_input'], O['_output']>;
 }
 
 function wrap<C extends Context, I, O>(func: AsyncFunction.Fn<C, I, O>, wrapper: null | AsyncFunction.WFn<C, I, O>): AsyncFunction.Fn<C, I, O> {
@@ -54,9 +54,9 @@ export function asyncFunction<
     N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
-    S,
+    L,
     C extends Context,
->(_params: AsyncFunction.Param<N, I, O, S, C>): AsyncFunction.Build<N, I, O, S, C> {
+>(_params: AsyncFunction.Param<N, I, O, L, C>): AsyncFunction.Build<N, I, O, L, C> {
     const params = Object.freeze(Object.assign(_params, { type: 'async function' } as const));
     const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
     const stackLabel = Object.freeze({ name: params._name, in: 'async function' });

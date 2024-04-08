@@ -39,7 +39,7 @@ export namespace HttpEndpoint {
         ReqB extends z.ZodType = z.ZodType,
         ResH extends z.AnyZodObject = z.AnyZodObject,
         ResB extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
@@ -48,7 +48,7 @@ export namespace HttpEndpoint {
                 string,
                 z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
                 z.ZodObject<{ headers: ResH; body: ResB }>,
-                S,
+                L,
                 C & { options: Opt }
             >,
             '_name' | '_input' | '_output' // | 'wrappers'
@@ -63,7 +63,7 @@ export namespace HttpEndpoint {
         ReqB extends z.ZodType = z.ZodType,
         ResH extends z.AnyZodObject = z.AnyZodObject,
         ResB extends z.ZodType = z.ZodType,
-        S = unknown,
+        L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
@@ -71,7 +71,7 @@ export namespace HttpEndpoint {
             string,
             z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
             z.ZodObject<{ headers: ResH; body: ResB }>,
-            S,
+            L,
             C & { options: Opt }
         > &
         Type & { middlewares: Middleware.Build[] };
@@ -87,10 +87,10 @@ export function getHttpDocumentObject<
     ReqB extends z.ZodType,
     ResH extends z.AnyZodObject,
     ResB extends z.ZodType,
-    S,
+    L,
     C extends Context,
     Opt extends Record<never, never>,
->(build: HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): ZodOpenApiOperationObject {
+>(build: HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>): ZodOpenApiOperationObject {
     return {
         tags: build.middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(build.tags ?? [])]),
         security: build.middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(build.security ?? [])]),
