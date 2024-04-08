@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AsyncFunctionWrapperBuild, SyncFunctionWrapperBuild } from '..';
+import { AsyncFunctionWrapperBuild, SyncFunctionWrapperBuild, AsyncFunctionParam, SyncFunctionParam } from '..';
 import { Context } from '../context';
 
 export function AsyncMemoData<
@@ -9,7 +9,10 @@ export function AsyncMemoData<
     O extends z.ZodType,
     S,
     C extends Context,
->({ getKey, expSec }: { getKey(input: I['_output']): string; expSec: number }): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: AsyncFunctionParam<N, I, O, S, C>,
+    { getKey, expSec }: { getKey(input: I['_output']): string; expSec: number }
+): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     const cache: Record<string, Promise<O['_input']>> = {};
     return async function MemoData(context, input, func) {
         const key = getKey(input);
@@ -27,7 +30,10 @@ export function SyncMemoData<
     O extends z.ZodType,
     S,
     C extends Context,
->({ getKey, expSec }: { getKey(input: I['_output']): string; expSec: number }): SyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: SyncFunctionParam<N, I, O, S, C>,
+    { getKey, expSec }: { getKey(input: I['_output']): string; expSec: number }
+): SyncFunctionWrapperBuild<N, I, O, S, C> {
     const cache: Record<string, O['_input']> = {};
     return function MemoData(context, input, func) {
         const key = getKey(input);

@@ -33,7 +33,7 @@ export type AsyncGeneratorParam<
     _next: TN;
     _output: O;
     _static: S;
-    wrappers?: AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C>[];
+    wrappers?: (params: AsyncGeneratorParam<N, I, Y, TN, O, S, C>) => AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C>[];
     func: Fn<C & { params: AsyncGeneratorParam<N, I, Y, TN, O, S, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
 };
 export type AsyncGeneratorBuild<
@@ -68,7 +68,7 @@ export function asyncGenerator<
 >(params: AsyncGeneratorParam<N, I, Y, TN, O, S, C>): AsyncGeneratorBuild<N, I, Y, TN, O, S, C> {
     if (fNames.has(params._name)) throw new Error(`[${JSON.stringify(params._name)}] is not available!`);
     params = Object.freeze(params);
-    const func = [...(params.wrappers ?? []), null].reduceRight(wrap, params.func);
+    const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
     fNames.add(params._name);
     const stackLabel = Object.freeze({ name: params._name, in: 'async function*' });
     const f: Fn<C, I['_input'], Y['_output'], TN['_input'], O['_output']> = (context, input) =>

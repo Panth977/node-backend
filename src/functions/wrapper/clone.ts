@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { AsyncFunctionWrapperBuild, SyncFunctionWrapperBuild, AsyncGeneratorWrapperBuild, SyncGeneratorWrapperBuild } from '..';
+import {
+    AsyncFunctionWrapperBuild,
+    SyncFunctionWrapperBuild,
+    AsyncGeneratorWrapperBuild,
+    SyncGeneratorWrapperBuild,
+    AsyncFunctionParam,
+    SyncFunctionParam,
+    SyncGeneratorParam,
+    AsyncGeneratorParam,
+} from '..';
 import { Context } from '../context';
 
 export function AsyncCloneData<
@@ -9,7 +18,10 @@ export function AsyncCloneData<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: cloneInput = true, output: cloneOutput = true } = {}): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: AsyncFunctionParam<N, I, O, S, C>,
+    { input: cloneInput = true, output: cloneOutput = true } = {}
+): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     return async function CloneData(context, input, func) {
         if (cloneInput) input = structuredClone(input);
         let output = await func(context, input);
@@ -24,7 +36,7 @@ export function SyncCloneData<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: cloneInput = true, output: cloneOutput = true } = {}): SyncFunctionWrapperBuild<N, I, O, S, C> {
+>(params: SyncFunctionParam<N, I, O, S, C>, { input: cloneInput = true, output: cloneOutput = true } = {}): SyncFunctionWrapperBuild<N, I, O, S, C> {
     return function CloneData(context, input, func) {
         if (cloneInput) input = structuredClone(input);
         let output = func(context, input);
@@ -42,7 +54,10 @@ export function SyncGeneratorCloneData<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: cloneInput = true, output: cloneOutput = true, yield: cloneYield = true, next: cloneNext = true } = {}): //
+>(
+    params: SyncGeneratorParam<N, I, Y, TN, O, S, C>,
+    { input: cloneInput = true, output: cloneOutput = true, yield: cloneYield = true, next: cloneNext = true } = {}
+): //
 SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return function* CloneData(context, input, func) {
         if (cloneInput) input = structuredClone(input);
@@ -69,7 +84,10 @@ export function AsyncGeneratorCloneData<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: cloneInput = true, output: cloneOutput = true, yield: cloneYield = true, next: cloneNext = true } = {}): //
+>(
+    params: AsyncGeneratorParam<N, I, Y, TN, O, S, C>,
+    { input: cloneInput = true, output: cloneOutput = true, yield: cloneYield = true, next: cloneNext = true } = {}
+): //
 AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return async function* CloneData(context, input, func) {
         if (cloneInput) input = structuredClone(input);

@@ -1,10 +1,3 @@
-// const { route } = require('@panth977/node-backend');
-// const { z } = require('zod');
-// const fs = require('fs');
-// const path = require('path');
-// const createHttpError = require('http-errors');
-// const express = require('express');
-
 import { z } from 'zod';
 import { functions, route } from '..';
 import * as fs from 'fs';
@@ -20,10 +13,10 @@ const passMiddleware = route.createMiddleware({
     resHeaders: z.object({}),
     tags: ['NNN'],
     _static: null,
-    wrappers: [
+    wrappers: (params) => [
         //
-        functions.wrapper.AsyncSafeParse(),
-        functions.wrapper.AsyncLogTime(),
+        functions.wrapper.AsyncSafeParse(params),
+        functions.wrapper.AsyncLogTime(params),
     ],
     async func(context, input) {
         context.logger.debug('input', input);
@@ -53,11 +46,11 @@ endpoints.ready = defaultEndpointsFactory.http({
     tags: ['TTT'],
     resBody: z.any(),
     _static: {},
-    wrappers: [
+    wrappers: (params) => [
         //
-        functions.wrapper.AsyncSafeParse() as never,
-        functions.wrapper.AsyncMemoData({ getKey: (input) => input.path.filename, expSec: 80 }) as never,
-        functions.wrapper.AsyncLogTime() as never,
+        functions.wrapper.AsyncSafeParse(params, {}),
+        functions.wrapper.AsyncMemoData(params, { getKey: (input) => input.path.filename, expSec: 80 }),
+        functions.wrapper.AsyncLogTime(params),
     ],
     async func(context, input) {
         context.logger.debug('input', input);

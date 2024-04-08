@@ -27,7 +27,7 @@ export type AsyncFunctionParam<
     _input: I;
     _output: O;
     _static: S;
-    wrappers?: AsyncFunctionWrapperBuild<N, I, O, S, C>[];
+    wrappers?: (params: AsyncFunctionParam<N, I, O, S, C>) => AsyncFunctionWrapperBuild<N, I, O, S, C>[];
     func: Fn<C & { params: AsyncFunctionParam<N, I, O, S, C> }, I['_output'], O['_input']>;
 };
 export type AsyncFunctionBuild<
@@ -57,7 +57,7 @@ export function asyncFunction<
     C extends Context,
 >(params: AsyncFunctionParam<N, I, O, S, C>): AsyncFunctionBuild<N, I, O, S, C> {
     params = Object.freeze(params);
-    const func = [...(params.wrappers ?? []), null].reduceRight(wrap, params.func);
+    const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
     const stackLabel = Object.freeze({ name: params._name, in: 'async function' });
     const f: Fn<C, I['_input'], O['_output']> = (context, input) =>
         func(Object.assign({}, context, { params }, { stack: Object.freeze([...context.stack, stackLabel]) }), input);

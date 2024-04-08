@@ -26,7 +26,7 @@ export type SyncFunctionParam<
     _input: I;
     _output: O;
     _static: S;
-    wrappers?: SyncFunctionWrapperBuild<N, I, O, S, C>[];
+    wrappers?: (params: SyncFunctionParam<N, I, O, S, C>) => SyncFunctionWrapperBuild<N, I, O, S, C>[];
     func: Fn<C & { params: SyncFunctionParam<N, I, O, S, C> }, I['_output'], O['_input']>;
 };
 export type SyncFunctionBuild<
@@ -56,7 +56,7 @@ export function syncFunction<
     C extends Context,
 >(params: SyncFunctionParam<N, I, O, S, C>): SyncFunctionBuild<N, I, O, S, C> {
     params = Object.freeze(params);
-    const func = [...(params.wrappers ?? []), null].reduceRight(wrap, params.func);
+    const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
     const stackLabel = Object.freeze({ name: params._name, in: 'function' });
     const f: Fn<C, I['_input'], O['_output']> = (context, input) =>
         func(Object.assign({}, context, { params }, { stack: Object.freeze([...context.stack, stackLabel]) }), input);

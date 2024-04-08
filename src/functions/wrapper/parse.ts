@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { AsyncFunctionWrapperBuild, SyncFunctionWrapperBuild, AsyncGeneratorWrapperBuild, SyncGeneratorWrapperBuild } from '..';
+import {
+    AsyncFunctionWrapperBuild,
+    SyncFunctionWrapperBuild,
+    AsyncGeneratorWrapperBuild,
+    SyncGeneratorWrapperBuild,
+    AsyncFunctionParam,
+    SyncFunctionParam,
+    SyncGeneratorParam,
+    AsyncGeneratorParam,
+} from '..';
 import { Context } from '../context';
 
 export function AsyncSafeParse<
@@ -9,11 +18,14 @@ export function AsyncSafeParse<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: parseInput = true, output: parseOutput = true } = {}): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: AsyncFunctionParam<N, I, O, S, C>,
+    { input: parseInput = true, output: parseOutput = true } = {}
+): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     return async function SafeParse(context, input, func) {
-        if (parseInput) input = context.params._input.parse(input);
+        if (parseInput) input = params._input.parse(input);
         let output = await func(context, input);
-        if (parseOutput) output = context.params._output.parse(output);
+        if (parseOutput) output = params._output.parse(output);
         return output;
     };
 }
@@ -24,7 +36,7 @@ export function SyncSafeParse<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: parseInput = true, output: parseOutput = true } = {}): SyncFunctionWrapperBuild<N, I, O, S, C> {
+>(params: SyncFunctionParam<N, I, O, S, C>, { input: parseInput = true, output: parseOutput = true } = {}): SyncFunctionWrapperBuild<N, I, O, S, C> {
     return function SafeParse(context, input, func) {
         if (parseInput) input = context.params._input.parse(input);
         let output = func(context, input);
@@ -42,8 +54,10 @@ export function SyncGeneratorSafeParse<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: parseInput = true, output: parseOutput = true, yield: parseYield = true, next: parseNext = true } = {}): //
-SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
+>(
+    params: SyncGeneratorParam<N, I, Y, TN, O, S, C>,
+    { input: parseInput = true, output: parseOutput = true, yield: parseYield = true, next: parseNext = true } = {}
+): SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return function* SafeParse(context, input, func) {
         if (parseInput) input = context.params._input.parse(input);
         const g = func(context, input);
@@ -69,7 +83,10 @@ export function AsyncGeneratorSafeParse<
     O extends z.ZodType,
     S,
     C extends Context,
->({ input: parseInput = true, output: parseOutput = true, yield: parseYield = true, next: parseNext = true } = {}): //
+>(
+    params: AsyncGeneratorParam<N, I, Y, TN, O, S, C>,
+    { input: parseInput = true, output: parseOutput = true, yield: parseYield = true, next: parseNext = true } = {}
+): //
 AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return async function* SafeParse(context, input, func) {
         if (parseInput) input = context.params._input.parse(input);

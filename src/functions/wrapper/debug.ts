@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { AsyncFunctionWrapperBuild, SyncFunctionWrapperBuild, AsyncGeneratorWrapperBuild, SyncGeneratorWrapperBuild } from '..';
+import {
+    AsyncFunctionWrapperBuild,
+    SyncFunctionWrapperBuild,
+    AsyncGeneratorWrapperBuild,
+    SyncGeneratorWrapperBuild,
+    AsyncFunctionParam,
+    SyncFunctionParam,
+    SyncGeneratorParam,
+    AsyncGeneratorParam,
+} from '..';
 import { Context } from '../context';
 
 export function AsyncLogTime<
@@ -9,7 +18,7 @@ export function AsyncLogTime<
     O extends z.ZodType,
     S,
     C extends Context,
->(): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(params: AsyncFunctionParam<N, I, O, S, C>): AsyncFunctionWrapperBuild<N, I, O, S, C> {
     return async function LogTime(context, input, func) {
         const start = Date.now();
         try {
@@ -28,7 +37,7 @@ export function SyncLogTime<
     O extends z.ZodType,
     S,
     C extends Context,
->(): SyncFunctionWrapperBuild<N, I, O, S, C> {
+>(params: SyncFunctionParam<N, I, O, S, C>): SyncFunctionWrapperBuild<N, I, O, S, C> {
     return function LogTime(context, input, func) {
         const start = Date.now();
         try {
@@ -49,7 +58,7 @@ export function SyncGeneratorLogTime<
     O extends z.ZodType,
     S,
     C extends Context,
->(): SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
+>(params: SyncGeneratorParam<N, I, Y, TN, O, S, C>): SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return function* LogTime(context, input, func) {
         const start = Date.now();
         try {
@@ -78,7 +87,7 @@ export function AsyncGeneratorLogTime<
     O extends z.ZodType,
     S,
     C extends Context,
->(): AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
+>(params: AsyncGeneratorParam<N, I, Y, TN, O, S, C>): AsyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C> {
     return async function* LogTime(context, input, func) {
         const start = Date.now();
         try {

@@ -33,7 +33,7 @@ export type SyncGeneratorParam<
     _next: TN;
     _output: O;
     _static: S;
-    wrappers?: SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C>[];
+    wrappers?: (params: SyncGeneratorParam<N, I, Y, TN, O, S, C>) => SyncGeneratorWrapperBuild<N, I, Y, TN, O, S, C>[];
     func: Fn<C & { params: SyncGeneratorParam<N, I, Y, TN, O, S, C> }, I['_output'], Y['_input'], TN['_output'], O['_input']>;
 };
 export type SyncGeneratorBuild<
@@ -68,7 +68,7 @@ export function syncGenerator<
 >(params: SyncGeneratorParam<N, I, Y, TN, O, S, C>): SyncGeneratorBuild<N, I, Y, TN, O, S, C> {
     if (fNames.has(params._name)) throw new Error(`[${JSON.stringify(params._name)}] is not available!`);
     params = Object.freeze(params);
-    const func = [...(params.wrappers ?? []), null].reduceRight(wrap, params.func);
+    const func = [...(params.wrappers?.(params) ?? []), null].reduceRight(wrap, params.func);
     fNames.add(params._name);
     const stackLabel = Object.freeze({ name: params._name, in: 'function*' });
     const f: Fn<C, I['_input'], Y['_output'], TN['_input'], O['_output']> = (context, input) =>
