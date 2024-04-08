@@ -1,85 +1,81 @@
-import { SecurityRequirementObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
-import { AsyncFunctionBuild, AsyncFunctionParam, Context } from '../functions';
+import { AsyncFunction, Context } from '../functions';
 import { z } from 'zod';
-import { MiddlewareBuild } from './middleware';
+import { Middleware } from './middleware';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 
 export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';
 
-type ExtraParams<
-    M extends Method,
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    ReqB extends z.ZodType,
-    ResH extends z.AnyZodObject,
-    ResB extends z.ZodType,
-> = {
-    method: M;
-    path: P;
-    description?: string;
-    summary?: string;
-    tags?: string[];
-    security?: SecurityRequirementObject[];
-    reqHeader: ReqH;
-    reqQuery: ReqQ;
-    reqPath: ReqP;
-    reqBody: ReqB;
-    resHeaders: ResH;
-    resBody: ResB;
-    otherResMediaTypes?: string[];
-    otherReqMediaTypes?: string[];
-};
+export namespace HttpEndpoint {
+    export type Type = { endpoint: 'http' };
+    type ExtraParams<
+        M extends Method = Method,
+        P extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        ReqB extends z.ZodType = z.ZodType,
+        ResH extends z.AnyZodObject = z.AnyZodObject,
+        ResB extends z.ZodType = z.ZodType,
+    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
+        method: M;
+        path: P;
+        reqHeader: ReqH;
+        reqQuery: ReqQ;
+        reqPath: ReqP;
+        reqBody: ReqB;
+        resHeaders: ResH;
+        resBody: ResB;
+        otherResMediaTypes?: string[];
+        otherReqMediaTypes?: string[];
+    };
 
-export type HttpParams<
-    //
-    M extends Method,
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    ReqB extends z.ZodType,
-    ResH extends z.AnyZodObject,
-    ResB extends z.ZodType,
-    S,
-    C extends Context,
-    Opt extends Record<never, never>,
-> = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
-    Omit<
-        AsyncFunctionParam<
+    export type Params<
+        //
+        M extends Method = Method,
+        P extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        ReqB extends z.ZodType = z.ZodType,
+        ResH extends z.AnyZodObject = z.AnyZodObject,
+        ResB extends z.ZodType = z.ZodType,
+        S = unknown,
+        C extends Context = Context,
+        Opt extends Record<never, never> = Record<never, never>,
+    > = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
+        Omit<
+            AsyncFunction.Param<
+                string,
+                z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
+                z.ZodObject<{ headers: ResH; body: ResB }>,
+                S,
+                C & { options: Opt }
+            >,
+            '_name' | '_input' | '_output' // | 'wrappers'
+        >;
+    export type Build<
+        //
+        M extends Method = Method,
+        P extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        ReqB extends z.ZodType = z.ZodType,
+        ResH extends z.AnyZodObject = z.AnyZodObject,
+        ResB extends z.ZodType = z.ZodType,
+        S = unknown,
+        C extends Context = Context,
+        Opt extends Record<never, never> = Record<never, never>,
+    > = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
+        AsyncFunction.Build<
             string,
             z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
             z.ZodObject<{ headers: ResH; body: ResB }>,
             S,
             C & { options: Opt }
-        >,
-        '_name' | '_input' | '_output' // | 'wrappers'
-    >;
-export type HttpBuild<
-    //
-    M extends Method,
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    ReqB extends z.ZodType,
-    ResH extends z.AnyZodObject,
-    ResB extends z.ZodType,
-    S,
-    C extends Context,
-    Opt extends Record<never, never>,
-> = ExtraParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
-    AsyncFunctionBuild<
-        string,
-        z.ZodObject<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
-        z.ZodObject<{ headers: ResH; body: ResB }>,
-        S,
-        C & { options: Opt }
-    > & {
-        endpoint: 'http';
-        middlewares: MiddlewareBuild<string, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, Record<never, never>, Context>[];
-    };
+        > &
+        Type & { middlewares: Middleware.Build[] };
+}
 
 export function getHttpDocumentObject<
     //
@@ -94,7 +90,7 @@ export function getHttpDocumentObject<
     S,
     C extends Context,
     Opt extends Record<never, never>,
->(build: HttpBuild<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): ZodOpenApiOperationObject {
+>(build: HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): ZodOpenApiOperationObject {
     return {
         tags: build.middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(build.tags ?? [])]),
         security: build.middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(build.security ?? [])]),

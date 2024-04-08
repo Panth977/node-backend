@@ -1,5 +1,5 @@
 import { RedisClientType } from '@redis/client';
-import { AsyncFunctionWrapperBuild, Context } from '../functions';
+import { AsyncFunction, Context } from '../functions';
 import { z } from 'zod';
 
 function separateUncached<I extends string | number, V>(ids: I[], values: V[]): I[] {
@@ -303,21 +303,20 @@ export function CacheObject<
     O extends z.ZodType,
     S,
     C extends Context,
->({
-    cache,
-    addOpt,
-    expire,
-}: {
-    cache: Cache;
-    addOpt(cache: Cache, input: I['_output']): Cache;
-    expire: number;
-}): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: AsyncFunction.Param<N, I, O, S, C>,
+    behavior: {
+        cache: Cache;
+        addOpt(cache: Cache, input: I['_output']): Cache;
+        expire: number;
+    }
+): AsyncFunction.WrapperBuild<N, I, O, S, C> {
     return async function CacheObject(context, input, func) {
-        cache = addOpt(cache, input);
+        const cache = behavior.addOpt(behavior.cache, input);
         let result = await cache.get(context, {});
         if (!result) {
             const value = await func(context, input);
-            cache.set(context, { value, expire });
+            cache.set(context, { value, expire: behavior.expire });
             result = value;
         }
         return result;
@@ -332,28 +331,25 @@ export function CacheMap<
     S,
     C extends Context,
     K extends string | number,
->({
-    cache,
-    addOpt,
-    getKeys,
-    updateKeys,
-    expire,
-}: {
-    cache: Cache;
-    addOpt(cache: Cache, input: I['_output']): Cache;
-    getKeys(input: I['_output']): K[];
-    updateKeys(input: I['_output'], keys: K[]): I['_output'];
-    expire: number;
-}): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: AsyncFunction.Param<N, I, O, S, C>,
+    behavior: {
+        cache: Cache;
+        addOpt(cache: Cache, input: I['_output']): Cache;
+        getKeys(input: I['_output']): K[];
+        updateKeys(input: I['_output'], keys: K[]): I['_output'];
+        expire: number;
+    }
+): AsyncFunction.WrapperBuild<N, I, O, S, C> {
     return async function CacheMap(context, input, func) {
-        cache = addOpt(cache, input);
-        const keys = getKeys(input);
+        const cache = behavior.addOpt(behavior.cache, input);
+        const keys = behavior.getKeys(input);
         const cached = await cache.getM(context, { keys });
         const result = bundleCached(keys, cached);
         const uncachedKeys = separateUncached(keys, cached);
         if (uncachedKeys.length) {
-            const bulk = await func(context, updateKeys(input, uncachedKeys));
-            cache.setM(context, { bulk, expire });
+            const bulk = await func(context, behavior.updateKeys(input, uncachedKeys));
+            cache.setM(context, { bulk, expire: behavior.expire });
             Object.assign(result, bulk);
         }
         return result;
@@ -367,28 +363,25 @@ export function CacheCollection<
     S,
     C extends Context,
     K extends string | number,
->({
-    cache,
-    addOpt,
-    getFields,
-    updateFields,
-    expire,
-}: {
-    cache: Cache;
-    addOpt(cache: Cache, input: I['_output']): Cache;
-    getFields(input: I['_output']): K[] | '*';
-    updateFields(input: I['_output'], reqKeys: K[], ignoreKeys: string[]): I['_output'];
-    expire: number;
-}): AsyncFunctionWrapperBuild<N, I, O, S, C> {
+>(
+    params: AsyncFunction.Param<N, I, O, S, C>,
+    behavior: {
+        cache: Cache;
+        addOpt(cache: Cache, input: I['_output']): Cache;
+        getFields(input: I['_output']): K[] | '*';
+        updateFields(input: I['_output'], reqKeys: K[], ignoreKeys: string[]): I['_output'];
+        expire: number;
+    }
+): AsyncFunction.WrapperBuild<N, I, O, S, C> {
     return async function CacheCollection(context, input, func) {
-        cache = addOpt(cache, input);
-        const fields = getFields(input);
+        const cache = behavior.addOpt(behavior.cache, input);
+        const fields = behavior.getFields(input);
         if (fields === '*') {
             const { $, ...result } = await cache.getHash<{ $?: '*' }>(context, {});
             if ($ !== '*') {
                 const knownFields = Object.keys(result);
-                const bulk = await func(context, updateFields(input, [], knownFields));
-                cache.setMHashField(context, { bulk: { ...bulk, $: '*' }, expire });
+                const bulk = await func(context, behavior.updateFields(input, [], knownFields));
+                cache.setMHashField(context, { bulk: { ...bulk, $: '*' }, expire: behavior.expire });
                 Object.assign(result, bulk);
             }
             return result;
@@ -398,8 +391,8 @@ export function CacheCollection<
         const uncachedFields = separateUncached(fields, cached);
         const result = bundleCached(fields, cached);
         if (uncachedFields.length) {
-            const bulk = await func(context, updateFields(input, uncachedFields, []));
-            cache.setMHashField(context, { bulk, expire });
+            const bulk = await func(context, behavior.updateFields(input, uncachedFields, []));
+            cache.setMHashField(context, { bulk, expire: behavior.expire });
             Object.assign(result, bulk);
         }
         return result;

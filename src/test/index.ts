@@ -15,8 +15,8 @@ const passMiddleware = route.createMiddleware({
     _static: null,
     wrappers: (params) => [
         //
-        functions.wrapper.AsyncSafeParse(params),
-        functions.wrapper.AsyncLogTime(params),
+        functions.wrapper.SafeParse(params),
+        functions.wrapper.Debug(params),
     ],
     async func(context, input) {
         context.logger.debug('input', input);
@@ -48,9 +48,9 @@ endpoints.ready = defaultEndpointsFactory.http({
     _static: {},
     wrappers: (params) => [
         //
-        functions.wrapper.AsyncSafeParse(params, {}),
-        functions.wrapper.AsyncMemoData(params, { getKey: (input) => input.path.filename, expSec: 80 }),
-        functions.wrapper.AsyncLogTime(params),
+        functions.wrapper.SafeParse(params),
+        functions.wrapper.MemoData(params, { getKey: (input) => input.path.filename, expSec: 80 }),
+        functions.wrapper.Debug(params),
     ],
     async func(context, input) {
         context.logger.debug('input', input);

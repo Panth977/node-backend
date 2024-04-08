@@ -9,7 +9,6 @@ module.exports = {
         'plugin:import/errors',
         'plugin:import/warnings',
         'plugin:import/typescript',
-        // 'google',
         'plugin:@typescript-eslint/recommended',
         'plugin:prettier/recommended',
     ],
@@ -26,5 +25,6 @@ module.exports = {
     rules: {
         'import/no-unresolved': 0,
         'prettier/prettier': ['error', { endOfLine: 'auto' }],
+        '@typescript-eslint/no-namespace': 'off', // Disable the no-namespace rule
     },
 };

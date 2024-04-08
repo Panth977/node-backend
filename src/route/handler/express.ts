@@ -1,10 +1,9 @@
-import { z } from 'zod';
 import createHttpError from 'http-errors';
 import { NextFunction, Request, RequestHandler, Response, Router, ErrorRequestHandler } from 'express';
-import { HttpBuild, Method, getHttpDocumentObject } from '../http';
-import { SseBuild, getSseDocumentObject } from '../sse';
-import { Context, createContext } from '../../functions';
-import { MiddlewareBuild } from '../middleware';
+import { HttpEndpoint, getHttpDocumentObject } from '../http';
+import { SseEndpoint, getSseDocumentObject } from '../sse';
+import { createContext } from '../../functions';
+import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
 import { BundleEndpoints } from '../bundle';
@@ -25,16 +24,7 @@ export function setupContext(method: string, path: string): RequestHandler {
     };
 }
 
-export function createMiddlewareHandler<
-    //
-    N extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ResH extends z.AnyZodObject,
-    Opt extends z.AnyZodObject,
-    S,
-    C extends Context,
->(build: MiddlewareBuild<N, ReqH, ReqQ, ResH, Opt, S, C>): RequestHandler {
+export function createMiddlewareHandler(build: Middleware.Build): RequestHandler {
     return async function (req, res, nxt) {
         try {
             const input = { headers: req.headers, query: req.query };
@@ -47,20 +37,7 @@ export function createMiddlewareHandler<
         }
     };
 }
-export function createHttpHandler<
-    //
-    M extends Method,
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    ReqB extends z.ZodType,
-    ResH extends z.AnyZodObject,
-    ResB extends z.ZodType,
-    S,
-    C extends Context,
-    Opt extends Record<never, never>,
->(build: HttpBuild<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): RequestHandler {
+export function createHttpHandler(build: HttpEndpoint.Build): RequestHandler {
     return async function (req, res, nxt) {
         try {
             const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
@@ -72,16 +49,7 @@ export function createHttpHandler<
         }
     };
 }
-export function createSseHandler<
-    //
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    S,
-    C extends Context,
-    Opt extends Record<never, never>,
->(build: SseBuild<P, ReqH, ReqQ, ReqP, S, C, Opt>): RequestHandler {
+export function createSseHandler(build: SseEndpoint.Build): RequestHandler {
     return async function (req, res, nxt) {
         let closed = false;
         try {
@@ -132,9 +100,8 @@ export function serve(
         middlewares?: RequestHandler[];
     }
 ) {
-    const routes = bundle.getEndpoints().ready;
     const router = Router();
-    for (const build of routes) {
+    for (const build of bundle.getReadyEndpoints()) {
         if (build.endpoint === 'http') {
             router[build.method](
                 pathParser(build.path),
@@ -156,7 +123,7 @@ export function serve(
     if (documentationParams) {
         try {
             const paths: ZodOpenApiPathsObject = {};
-            for (const build of routes) {
+            for (const build of bundle.getReadyEndpoints()) {
                 if (build.endpoint === 'http') {
                     (paths[build.path] ??= {})[build.method] = getHttpDocumentObject(build);
                 } else if (build.endpoint === 'sse') {

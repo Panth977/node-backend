@@ -1,17 +1,15 @@
 import { z } from 'zod';
-import { MiddlewareBuild } from './middleware';
-import { SseBuild, SseParams } from './sse';
+import { Middleware } from './middleware';
+import { SseEndpoint } from './sse';
 import { Context, asyncFunction, asyncGenerator } from '../functions';
-import { HttpBuild, HttpParams, Method } from './http';
+import { HttpEndpoint, Method } from './http';
 
 export class Endpoint<Opt extends Record<never, never>> {
-    middlewares: MiddlewareBuild<string, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, Record<never, never>, Context>[];
+    middlewares: Middleware.Build[];
     static build() {
         return new Endpoint<Record<never, never>>([]);
     }
-    private constructor(
-        middlewares: MiddlewareBuild<string, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, Record<never, never>, Context>[]
-    ) {
+    private constructor(middlewares: Middleware.Build[]) {
         this.middlewares = middlewares;
     }
     addMiddleware<
@@ -23,7 +21,7 @@ export class Endpoint<Opt extends Record<never, never>> {
         Opt_ extends z.AnyZodObject,
         S,
         C extends Context,
-    >(middleware: MiddlewareBuild<N, ReqH, ReqQ, ResH, Opt_, S, C>): Endpoint<Opt & Opt_['_output']> {
+    >(middleware: Middleware.Build<N, ReqH, ReqQ, ResH, Opt_, S, C>): Endpoint<Opt & Opt_['_output']> {
         return new Endpoint([...this.middlewares, middleware as never]);
     }
     http<
@@ -38,7 +36,10 @@ export class Endpoint<Opt extends Record<never, never>> {
         ResB extends z.ZodType,
         S,
         C extends Context,
-    >(params: HttpParams<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>): HttpBuild<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt> {
+    >(
+        params_: HttpEndpoint.Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt>
+    ): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, S, C, Opt> {
+        const params = Object.freeze(Object.assign(params_, { endpoint: 'http', middlewares: this.middlewares } as const));
         return Object.assign(
             asyncFunction(
                 Object.assign(params, {
@@ -47,8 +48,7 @@ export class Endpoint<Opt extends Record<never, never>> {
                     _output: z.object({ headers: params.resHeaders, body: params.resBody }),
                 })
             ),
-            params,
-            { endpoint: 'http', middlewares: this.middlewares } as const
+            params
         );
     }
     sse<
@@ -59,7 +59,8 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqP extends z.AnyZodObject,
         S,
         C extends Context,
-    >(params: SseParams<P, ReqH, ReqQ, ReqP, S, C, Opt>): SseBuild<P, ReqH, ReqQ, ReqP, S, C, Opt> {
+    >(params_: SseEndpoint.Params<P, ReqH, ReqQ, ReqP, S, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, S, C, Opt> {
+        const params = Object.freeze(Object.assign(params_, { endpoint: 'sse', middlewares: this.middlewares } as const));
         return Object.assign(
             asyncGenerator(
                 Object.assign(params, {
@@ -70,8 +71,7 @@ export class Endpoint<Opt extends Record<never, never>> {
                     _next: z.void(),
                 })
             ),
-            params,
-            { endpoint: 'sse', middlewares: this.middlewares } as const
+            params
         );
     }
 }

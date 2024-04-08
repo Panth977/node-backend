@@ -1,39 +1,57 @@
-import { SecurityRequirementObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
-import { AsyncGeneratorBuild, AsyncGeneratorParam, Context } from '../functions';
+import { AsyncGenerator, Context } from '../functions';
 import { z } from 'zod';
-import { MiddlewareBuild } from './middleware';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
+import { Middleware } from './middleware';
 
-type ExtraParams<
-    //
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-> = {
-    path: P;
-    description?: string;
-    summary?: string;
-    tags?: string[];
-    security?: SecurityRequirementObject[];
-    reqHeader: ReqH;
-    reqQuery: ReqQ;
-    reqPath: ReqP;
-    resWrite: z.ZodType<string>;
-};
+export namespace SseEndpoint {
+    export type Type = { endpoint: 'sse' };
+    type ExtraParams<
+        //
+        P extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ReqP extends z.AnyZodObject = z.AnyZodObject,
+    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
+        path: P;
+        reqHeader: ReqH;
+        reqQuery: ReqQ;
+        reqPath: ReqP;
+        resWrite: z.ZodType<string>;
+    };
 
-export type SseParams<
-    //
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    S,
-    C extends Context,
-    Opt extends Record<never, never>,
-> = ExtraParams<P, ReqH, ReqQ, ReqP> &
-    Omit<
-        AsyncGeneratorParam<
+    export type Params<
+        //
+        P extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        S = unknown,
+        C extends Context = Context,
+        Opt extends Record<never, never> = Record<never, never>,
+    > = ExtraParams<P, ReqH, ReqQ, ReqP> &
+        Omit<
+            AsyncGenerator.Param<
+                string,
+                z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
+                z.ZodType<string>,
+                z.ZodVoid,
+                z.ZodVoid,
+                S,
+                C & { options: Opt }
+            >,
+            '_name' | '_input' | '_output' | '_yield' | '_next'
+        >;
+    export type Build<
+        //
+        P extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ReqP extends z.AnyZodObject = z.AnyZodObject,
+        S = unknown,
+        C extends Context = Context,
+        Opt extends Record<never, never> = Record<never, never>,
+    > = ExtraParams<P, ReqH, ReqQ, ReqP> &
+        AsyncGenerator.Build<
             string,
             z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
             z.ZodType<string>,
@@ -41,31 +59,9 @@ export type SseParams<
             z.ZodVoid,
             S,
             C & { options: Opt }
-        >,
-        '_name' | '_input' | '_output' | '_yield' | '_next'
-    >;
-export type SseBuild<
-    //
-    P extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ReqP extends z.AnyZodObject,
-    S,
-    C extends Context,
-    Opt extends Record<never, never>,
-> = ExtraParams<P, ReqH, ReqQ, ReqP> &
-    AsyncGeneratorBuild<
-        string,
-        z.ZodObject<{ headers: ReqH; query: ReqQ; path: ReqP }>,
-        z.ZodType<string>,
-        z.ZodVoid,
-        z.ZodVoid,
-        S,
-        C & { options: Opt }
-    > & {
-        endpoint: 'sse';
-        middlewares: MiddlewareBuild<string, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, z.AnyZodObject, Record<never, never>, Context>[];
-    };
+        > &
+        Type & { middlewares: Middleware.Build[] };
+}
 
 export function getSseDocumentObject<
     //
@@ -76,7 +72,7 @@ export function getSseDocumentObject<
     S,
     C extends Context,
     Opt extends Record<never, never>,
->(build: SseBuild<P, ReqH, ReqQ, ReqP, S, C, Opt>): ZodOpenApiOperationObject {
+>(build: SseEndpoint.Build<P, ReqH, ReqQ, ReqP, S, C, Opt>): ZodOpenApiOperationObject {
     return {
         tags: build.middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(build.tags ?? [])]),
         security: build.middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(build.security ?? [])]),

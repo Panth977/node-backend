@@ -1,47 +1,49 @@
 import { z } from 'zod';
-import { AsyncFunctionBuild, AsyncFunctionParam, Context, asyncFunction } from '../functions';
-import { SecurityRequirementObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { AsyncFunction, Context, asyncFunction } from '../functions';
+import { ZodOpenApiOperationObject } from 'zod-openapi';
 
-type ExtraParams<
-    //
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ResH extends z.AnyZodObject,
-    Opt extends z.AnyZodObject,
-> = {
-    reqHeader: ReqH;
-    reqQuery: ReqQ;
-    resHeaders: ResH;
-    options: Opt;
-    security?: SecurityRequirementObject[];
-    tags?: string[];
-};
+export namespace Middleware {
+    export type Type = { endpoint: 'middleware' };
+    type Extra<
+        //
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ResH extends z.AnyZodObject = z.AnyZodObject,
+        Opt extends z.AnyZodObject = z.AnyZodObject,
+    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags'> & {
+        reqHeader: ReqH;
+        reqQuery: ReqQ;
+        resHeaders: ResH;
+        options: Opt;
+    };
 
-export type MiddlewareParam<
-    //
-    N extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ResH extends z.AnyZodObject,
-    Opt extends z.AnyZodObject,
-    S,
-    C extends Context,
-> = ExtraParams<ReqH, ReqQ, ResH, Opt> &
-    Omit<
-        AsyncFunctionParam<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, S, C>,
-        '_input' | '_output'
-    >;
-export type MiddlewareBuild<
-    //
-    N extends string,
-    ReqH extends z.AnyZodObject,
-    ReqQ extends z.AnyZodObject,
-    ResH extends z.AnyZodObject,
-    Opt extends z.AnyZodObject,
-    S,
-    C extends Context,
-> = ExtraParams<ReqH, ReqQ, ResH, Opt> &
-    AsyncFunctionBuild<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, S, C>;
+    export type Param<
+        //
+        N extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ResH extends z.AnyZodObject = z.AnyZodObject,
+        Opt extends z.AnyZodObject = z.AnyZodObject,
+        S = unknown,
+        C extends Context = Context,
+    > = Extra<ReqH, ReqQ, ResH, Opt> &
+        Omit<
+            AsyncFunction.Param<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, S, C>,
+            '_input' | '_output'
+        >;
+    export type Build<
+        //
+        N extends string = string,
+        ReqH extends z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends z.AnyZodObject = z.AnyZodObject,
+        ResH extends z.AnyZodObject = z.AnyZodObject,
+        Opt extends z.AnyZodObject = z.AnyZodObject,
+        S = unknown,
+        C extends Context = Context,
+    > = Type &
+        Extra<ReqH, ReqQ, ResH, Opt> &
+        AsyncFunction.Build<N, z.ZodObject<{ headers: ReqH; query: ReqQ }>, z.ZodObject<{ headers: ResH; options: Opt }>, S, C>;
+}
 
 export function createMiddleware<
     //
@@ -52,7 +54,8 @@ export function createMiddleware<
     Opt extends z.AnyZodObject,
     S,
     C extends Context,
->(params: MiddlewareParam<N, ReqH, ReqQ, ResH, Opt, S, C>): MiddlewareBuild<N, ReqH, ReqQ, ResH, Opt, S, C> {
+>(params_: Middleware.Param<N, ReqH, ReqQ, ResH, Opt, S, C>): Middleware.Build<N, ReqH, ReqQ, ResH, Opt, S, C> {
+    const params = Object.freeze(Object.assign(params_, { endpoint: 'middleware' } as const));
     return Object.assign(
         asyncFunction(
             Object.assign(params, {
