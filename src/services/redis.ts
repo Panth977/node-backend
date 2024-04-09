@@ -306,13 +306,12 @@ export function CacheObject<
 >(
     params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: {
-        cache: Cache;
-        addOpt(cache: Cache, input: I['_output']): Cache;
+        getCache(input: I['_output']): Cache;
         expire: number;
     }
 ): AsyncFunction.WrapperBuild<N, I, O, L, C> {
     return async function CacheObject(context, input, func) {
-        const cache = behavior.addOpt(behavior.cache, input);
+        const cache = behavior.getCache(input);
         let result = await cache.get(context, {});
         if (!result) {
             const value = await func(context, input);
@@ -334,15 +333,14 @@ export function CacheMap<
 >(
     params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: {
-        cache: Cache;
-        addOpt(cache: Cache, input: I['_output']): Cache;
+        getCache(input: I['_output']): Cache;
         getKeys(input: I['_output']): K[];
         updateKeys(input: I['_output'], keys: K[]): I['_output'];
         expire: number;
     }
 ): AsyncFunction.WrapperBuild<N, I, O, L, C> {
     return async function CacheMap(context, input, func) {
-        const cache = behavior.addOpt(behavior.cache, input);
+        const cache = behavior.getCache(input);
         const keys = behavior.getKeys(input);
         const cached = await cache.getM(context, { keys });
         const result = bundleCached(keys, cached);
@@ -366,15 +364,14 @@ export function CacheCollection<
 >(
     params: AsyncFunction.Params<N, I, O, L, C>,
     behavior: {
-        cache: Cache;
-        addOpt(cache: Cache, input: I['_output']): Cache;
+        getCache(input: I['_output']): Cache;
         getFields(input: I['_output']): K[] | '*';
         updateFields(input: I['_output'], reqKeys: K[], ignoreKeys: string[]): I['_output'];
         expire: number;
     }
 ): AsyncFunction.WrapperBuild<N, I, O, L, C> {
     return async function CacheCollection(context, input, func) {
-        const cache = behavior.addOpt(behavior.cache, input);
+        const cache = behavior.getCache(input);
         const fields = behavior.getFields(input);
         if (fields === '*') {
             const { $, ...result } = await cache.getHash<{ $?: '*' }>(context, {});
