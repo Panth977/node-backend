@@ -6,7 +6,6 @@ import { createContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
-import { BundleEndpoints } from '../endpoint';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -95,7 +94,7 @@ export function createErrorHandler(): ErrorRequestHandler {
 }
 
 export function serve(
-    bundle: BundleEndpoints,
+    endpoints: (HttpEndpoint.Build | SseEndpoint.Build)[],
     documentationParams?: {
         params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
         serveJsonOn: string;
@@ -104,7 +103,7 @@ export function serve(
     }
 ) {
     const router = Router();
-    for (const build of bundle.getReadyEndpoints()) {
+    for (const build of endpoints) {
         router[build.method](
             pathParser(build.path),
             setupContext(build.method, build.path),
@@ -117,7 +116,7 @@ export function serve(
     if (documentationParams) {
         try {
             const paths: ZodOpenApiPathsObject = {};
-            for (const build of bundle.getReadyEndpoints()) {
+            for (const build of endpoints) {
                 (paths[build.path] ??= {})[build.method] = build.documentation;
             }
             const jsonDoc = createDocument({ ...documentationParams.params, paths: paths });

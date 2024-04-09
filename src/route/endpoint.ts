@@ -4,27 +4,17 @@ import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, Method, createHttp } from './http';
 
-const isEndpoint = Symbol();
-
-export class BundleEndpoints {
-    private allReady: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
-    private allTodo: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
-    set ready(build: unknown) {
-        if (typeof build === 'object' && build && isEndpoint in build && build[isEndpoint]) {
-            this.allReady.push(build as never);
+export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B): (HttpEndpoint.Build | SseEndpoint.Build)[] {
+    const allReady: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
+    for (const build of Object.values(bundle)) {
+        if (typeof build === 'function' && build && 'endpoint' in build && build.endpoint === 'http') {
+            allReady.push(build as HttpEndpoint.Build);
+        }
+        if (typeof build === 'function' && build && 'endpoint' in build && build.endpoint === 'sse') {
+            allReady.push(build as SseEndpoint.Build);
         }
     }
-    set todo(build: unknown) {
-        if (typeof build === 'object' && build && isEndpoint in build && build[isEndpoint]) {
-            this.allTodo.push(build as never);
-        }
-    }
-    getReadyEndpoints() {
-        return this.allReady;
-    }
-    getAllTodo() {
-        return this.allTodo;
-    }
+    return allReady as never;
 }
 
 export class Endpoint<Opt extends Record<never, never>> {
@@ -68,9 +58,9 @@ export class Endpoint<Opt extends Record<never, never>> {
         method: M,
         path: P,
         _params: HttpEndpoint._Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
-    ): { [isEndpoint]: true } & HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
+    ): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
         _params.tags = (_params.tags ??= []).concat(this.tags);
-        return Object.assign(createHttp(method, path, this.middlewares, _params), { [isEndpoint]: true } as const);
+        return createHttp(method, path, this.middlewares, _params);
     }
     sse<
         //
@@ -80,12 +70,8 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqP extends undefined | z.AnyZodObject,
         L,
         C extends Context,
-    >(
-        method: 'get',
-        path: P,
-        _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>
-    ): { [isEndpoint]: true } & SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
+    >(method: 'get', path: P, _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
         (_params.tags ??= []).concat(this.tags);
-        return Object.assign(createSse(method, path, this.middlewares, _params), { [isEndpoint]: true } as const);
+        return createSse(method, path, this.middlewares, _params);
     }
 }

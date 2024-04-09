@@ -37,3 +37,16 @@ export function createContext(initialStack: Context['stack'][number]): Context {
         },
     };
 }
+
+export class BundleFunctions<B extends Record<never, never>> {
+    private bundle: Record<never, never> = {};
+
+    add<O extends { _name: string }>(obj: O): BundleFunctions<B & { [k in O['_name']]: O }> {
+        Object.assign(this.bundle, { [obj._name]: obj });
+        return this as never;
+    }
+
+    export(): B {
+        return this.bundle as never;
+    }
+}
