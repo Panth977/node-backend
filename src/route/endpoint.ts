@@ -4,14 +4,20 @@ import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, Method, createHttp } from './http';
 
+const isEndpoint = Symbol();
+
 export class BundleEndpoints {
     private allReady: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
     private allTodo: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
     set ready(build: unknown) {
-        this.allReady.push(build as never);
+        if (typeof build === 'object' && build && isEndpoint in build && build[isEndpoint]) {
+            this.allReady.push(build as never);
+        }
     }
     set todo(build: unknown) {
-        this.allTodo.push(build as never);
+        if (typeof build === 'object' && build && isEndpoint in build && build[isEndpoint]) {
+            this.allTodo.push(build as never);
+        }
     }
     getReadyEndpoints() {
         return this.allReady;
@@ -62,9 +68,9 @@ export class Endpoint<Opt extends Record<never, never>> {
         method: M,
         path: P,
         _params: HttpEndpoint._Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
-    ): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
+    ): { [isEndpoint]: true } & HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
         _params.tags = (_params.tags ??= []).concat(this.tags);
-        return createHttp(method, path, this.middlewares, _params);
+        return Object.assign(createHttp(method, path, this.middlewares, _params), { [isEndpoint]: true } as const);
     }
     sse<
         //
@@ -74,8 +80,12 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqP extends undefined | z.AnyZodObject,
         L,
         C extends Context,
-    >(method: 'get', path: P, _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
+    >(
+        method: 'get',
+        path: P,
+        _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>
+    ): { [isEndpoint]: true } & SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
         (_params.tags ??= []).concat(this.tags);
-        return createSse(method, path, this.middlewares, _params);
+        return Object.assign(createSse(method, path, this.middlewares, _params), { [isEndpoint]: true } as const);
     }
 }

@@ -27,3 +27,10 @@ export function getParams(params: unknown) {
     if (typeof params === 'object' && params && 'type' in params && params.type === 'function*') return params as SyncGenerator.Params;
     throw new Error('Unimplemented!');
 }
+export function getBuild(build: unknown) {
+    if (typeof build === 'function' && 'type' in build && build.type === 'function') return build as SyncFunction.Build;
+    if (typeof build === 'function' && 'type' in build && build.type === 'async function') return build as AsyncFunction.Build;
+    if (typeof build === 'function' && 'type' in build && build.type === 'async function*') return build as AsyncGenerator.Build;
+    if (typeof build === 'function' && 'type' in build && build.type === 'function*') return build as SyncGenerator.Build;
+    throw new Error('Unimplemented!');
+}
