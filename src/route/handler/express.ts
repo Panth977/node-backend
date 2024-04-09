@@ -1,8 +1,8 @@
 import createHttpError from 'http-errors';
-import { NextFunction, Request, RequestHandler, Response, Router, ErrorRequestHandler } from 'express';
+import { RequestHandler, Router, ErrorRequestHandler } from 'express';
 import { HttpEndpoint } from '../http';
 import { SseEndpoint } from '../sse';
-import { createContext } from '../../functions';
+import { Context, createContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
@@ -10,10 +10,9 @@ import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-ope
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
 }
-
-export function setupContext(method: string, path: string): RequestHandler {
+type Locals = { context: Context; options: Record<never, never> };
+export function setupContext(method: string, path: string): RequestHandler<never, never, never, never, Locals> {
     return function (req, res, nxt) {
-        res.locals ??= {};
         res.locals.context = createContext({ in: 'endpoint', name: `(${method.toUpperCase()}) ${path}` });
         res.locals.options = {};
         res.on('finish', async () => {
@@ -23,7 +22,7 @@ export function setupContext(method: string, path: string): RequestHandler {
     };
 }
 
-export function createHandler(build: Middleware.Build | HttpEndpoint.Build | SseEndpoint.Build): RequestHandler {
+export function createHandler(build: Middleware.Build | HttpEndpoint.Build | SseEndpoint.Build): RequestHandler<never, never, never, never, Locals> {
     if (build.endpoint === 'middleware') {
         return async function (req, res, nxt) {
             try {
@@ -80,10 +79,10 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
     }
     throw new Error('Unimplemented');
 }
-export function createErrorHandler(): ErrorRequestHandler {
+export function createErrorHandler(): ErrorRequestHandler<never, string, never, never, Locals> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    return function (error: unknown, req: Request, res: Response, next: NextFunction) {
-        res.locals.context.error('Request Error:', error);
+    return function (error, req, res, next) {
+        res.locals.context.logger.error('Request Error:', error);
         if (createHttpError.isHttpError(error)) {
             for (const key in error.headers) res.setHeader(key, error.headers[key]);
             res.status(error.status).send(error.message);
