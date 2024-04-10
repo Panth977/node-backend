@@ -73,7 +73,6 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                     val = await g.next();
                 }
             } catch (error) {
-                res.write(`data: ${JSON.stringify(error)}\n\n`);
                 console.log(error);
             }
             res.write(`data: ${JSON.stringify(null)}\n\n`);
