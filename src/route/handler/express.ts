@@ -69,12 +69,13 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 const g = build(Object.assign({}, res.locals.context, { options: res.locals.options }), input);
                 let val = await g.next();
                 while (!val.done && !closed) {
-                    res.write(`data: ${val.value}\n\n`);
+                    res.write(`data: ${JSON.stringify(val.value)}\n\n`);
                     val = await g.next();
                 }
             } catch (error) {
                 console.log(error);
             }
+            res.end();
         };
     }
     throw new Error('Unimplemented');
@@ -109,7 +110,7 @@ export function serve(
             ...build.middlewares.map(createHandler),
             createHandler(build)
         );
-        console.log('Route build success:', build.method, pathParser(build.path));
+        console.log('Route build success:', build.method, '\t', pathParser(build.path));
     }
     router.use(createErrorHandler());
     if (documentationParams) {
