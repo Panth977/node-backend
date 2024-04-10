@@ -172,16 +172,17 @@ export class Cache {
 
     /* Write */
 
-    async delete(context: Context, params: { key?: string | number } = {}) {
+    async delete(context: Context, params: { keys?: (string | number)[] } = {}) {
         if (this.allowed.write) {
             try {
-                const key = this.getKey(params.key);
+                const keys = (params.keys ?? ['']).map((key) => this.getKey(key));
+                if (!keys.length) return;
                 //
                 const client = await this.getClient();
-                await client.del(key);
+                await client.del(keys);
                 //
                 if (this.log.write) {
-                    context.logger.debug('Cache 🗑️', { keys: [key] });
+                    context.logger.debug('Cache 🗑️', { keys: keys });
                 }
             } catch (err) {
                 context.logger.error('Redis Error', err);
@@ -288,6 +289,25 @@ export class Cache {
                 //
                 if (this.log.write) {
                     context.logger.debug('Cache 🖊️', { key, fields: Object.keys(bulk) });
+                }
+            } catch (err) {
+                context.logger.error('Redis Error', err);
+            }
+        }
+    }
+
+    async deleteHashField(context: Context, params: { key?: string | number; fields: (string | number)[] }) {
+        if (this.allowed.write) {
+            try {
+                const key = this.getKey(params.key);
+                const fields = (params.fields ?? ['']).map((field) => `${field ?? ''}`);
+                //
+                const client = await this.getClient();
+                const exists = await client.exists(key);
+                if (exists) await client.hDel(key, fields);
+                //
+                if (this.log.write) {
+                    context.logger.debug('Cache 🗑️', { key: key, fields: fields });
                 }
             } catch (err) {
                 context.logger.error('Redis Error', err);
