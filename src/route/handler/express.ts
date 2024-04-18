@@ -3,36 +3,26 @@ import { RequestHandler, Router, ErrorRequestHandler, Request, Response } from '
 import { HttpEndpoint } from '../http';
 import { SseEndpoint } from '../sse';
 import { Context, createContext } from '../../functions';
-import { Middleware, createMiddleware } from '../middleware';
+import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
-import { z } from 'zod';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
 }
 const expressSymbol = Symbol();
-export type Locals = { context: Context & { [expressSymbol]: { req: Request; res: Response } }; options: Record<never, never> };
-export const AddReqResMiddleware = createMiddleware('AddReqResMiddleware', {
-    options: z.object({
-        req: z.any() as z.ZodType<Request>,
-        res: z.any() as z.ZodType<Response>,
-    }),
-    async func(context) {
-        return { options: (context as never)[expressSymbol] };
-    },
-});
+export type Locals = { context: Context; options: Record<never, never> };
+
+export function getExpressReqRes<C extends Context>(context: C): { req: Request; res: Response } {
+    return (context as never)[expressSymbol];
+}
+
 export function setupContext(method: string, path: string): RequestHandler<never, never, never, never, Locals> {
     return function (req, res, nxt) {
-        res.locals.context = Object.assign(
-            //
-            createContext({ in: 'endpoint', name: `(${method.toUpperCase()}) ${path}` }),
-            { [expressSymbol]: { req, res } as never }
-        );
+        res.locals.context = createContext({ in: 'endpoint', name: `(${method.toUpperCase()}) ${path}` });
+        Object.assign(res.locals.context, { [expressSymbol]: { req, res } });
         res.locals.options = {};
-        res.on('finish', async () => {
-            await res.locals.context.dispose();
-        });
+        res.on('finish', () => res.locals.context.dispose());
         nxt();
     };
 }
