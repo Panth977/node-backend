@@ -23,7 +23,8 @@
     "redis": "^4.6.13",
     "swagger-ui-express": "^5.0.0",
     "zod": "^3.21.4",
-    "zod-openapi": "^2.11.0"
+    "zod-openapi": "^2.11.0",
+    "busboy": "^1.6.0"
   },
   "prettier": {
     "printWidth": 150,
