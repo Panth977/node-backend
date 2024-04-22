@@ -6,7 +6,6 @@ import { TakeIfDefined, takeIfDefined } from './_helper';
 export namespace Middleware {
     export type _Params<
         //
-        N extends string,
         ReqH extends undefined | z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject,
         ResH extends undefined | z.AnyZodObject,
@@ -19,7 +18,7 @@ export namespace Middleware {
         resHeaders?: ResH;
         options: Opt;
     } & Omit<
-            AsyncFunction._Params<N, TakeIfDefined<{ headers: ReqH; query: ReqQ }>, TakeIfDefined<{ headers: ResH; options: Opt }>, L, C>,
+            AsyncFunction._Params<TakeIfDefined<{ headers: ReqH; query: ReqQ }>, TakeIfDefined<{ headers: ResH; options: Opt }>, L, C>,
             '_input' | '_output'
         >;
 
@@ -38,7 +37,6 @@ export namespace Middleware {
     };
     export type Build<
         //
-        N extends string = string,
         ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
         ResH extends undefined | z.AnyZodObject = z.AnyZodObject,
@@ -46,19 +44,18 @@ export namespace Middleware {
         L = unknown,
         C extends Context = Context,
     > = Params<ReqH, ReqQ, ResH, Opt> &
-        AsyncFunction.Build<N, TakeIfDefined<{ headers: ReqH; query: ReqQ }>, TakeIfDefined<{ headers: ResH; options: Opt }>, L, C>;
+        AsyncFunction.Build<TakeIfDefined<{ headers: ReqH; query: ReqQ }>, TakeIfDefined<{ headers: ResH; options: Opt }>, L, C>;
 }
 
 export function createMiddleware<
     //
-    N extends string,
     ReqH extends undefined | z.AnyZodObject,
     ReqQ extends undefined | z.AnyZodObject,
     ResH extends undefined | z.AnyZodObject,
     Opt extends z.AnyZodObject,
     L,
     C extends Context,
->(_name: N, _params: Middleware._Params<N, ReqH, ReqQ, ResH, Opt, L, C>): Middleware.Build<N, ReqH, ReqQ, ResH, Opt, L, C> {
+>(_params: Middleware._Params<ReqH, ReqQ, ResH, Opt, L, C>): Middleware.Build<ReqH, ReqQ, ResH, Opt, L, C> {
     const params: Middleware.Params<ReqH, ReqQ, ResH, Opt> = {
         endpoint: 'middleware',
         reqHeader: _params.reqHeader as never,
@@ -68,7 +65,7 @@ export function createMiddleware<
         security: _params.security,
         tags: _params.tags,
     };
-    const build = asyncFunction(_name, {
+    const build = asyncFunction({
         _input: takeIfDefined({ headers: params.reqHeader, query: params.reqQuery }) as never,
         _output: takeIfDefined({ headers: params.resHeaders, options: params.options }) as never,
         _local: _params._local,

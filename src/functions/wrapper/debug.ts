@@ -8,29 +8,26 @@ import { getParams } from '../_helper';
 
 export function Debug<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: AsyncFunction.Params<N, I, O, L, C>,
+    params: AsyncFunction.Params<I, O, L, C>,
     behavior?: { maxTimeAllowed?: number; input?: boolean; output?: boolean }
-): AsyncFunction.WrapperBuild<N, I, O, L, C>;
+): AsyncFunction.WrapperBuild<I, O, L, C>;
 export function Debug<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: SyncFunction.Params<N, I, O, L, C>,
+    params: SyncFunction.Params<I, O, L, C>,
     behavior?: { maxTimeAllowed?: number; input?: boolean; output?: boolean }
-): SyncFunction.WrapperBuild<N, I, O, L, C>;
+): SyncFunction.WrapperBuild<I, O, L, C>;
 export function Debug<
     //
-    N extends string,
     I extends z.ZodType,
     Y extends z.ZodType,
     TN extends z.ZodType,
@@ -38,12 +35,11 @@ export function Debug<
     L,
     C extends Context,
 >(
-    params: SyncGenerator.Params<N, I, Y, TN, O, L, C>,
+    params: SyncGenerator.Params<I, Y, TN, O, L, C>,
     behavior?: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): SyncGenerator.WrapperBuild<N, I, Y, TN, O, L, C>;
+): SyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
 export function Debug<
     //
-    N extends string,
     I extends z.ZodType,
     Y extends z.ZodType,
     TN extends z.ZodType,
@@ -51,9 +47,9 @@ export function Debug<
     L,
     C extends Context,
 >(
-    params: AsyncGenerator.Params<N, I, Y, TN, O, L, C>,
+    params: AsyncGenerator.Params<I, Y, TN, O, L, C>,
     behavior?: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): AsyncGenerator.WrapperBuild<N, I, Y, TN, O, L, C>;
+): AsyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
 export function Debug(
     params_: unknown,
     behavior: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}

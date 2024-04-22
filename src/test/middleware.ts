@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { functions, route } from '..';
 
-const v1 = route.createMiddleware('pass', {
+const pass = route.createMiddleware({
     options: z.object({ isValid: z.boolean() }),
     tags: ['NNN'],
     reqHeader: z.object({}).passthrough(),
@@ -17,7 +17,4 @@ const v1 = route.createMiddleware('pass', {
         };
     },
 });
-
-export const middlewares = new functions.BundleFunctions() //
-    .add(v1)
-    .export();
+export const middlewares = { pass };

@@ -10,15 +10,13 @@ export namespace AsyncFunction {
 
     export type WrapperBuild<
         //
-        N extends string = string,
         I extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = WFn<C & { params: Params<N, I, O, L, C> }, I['_output'], O['_input']>;
+    > = WFn<C & { params: Params<I, O, L, C> }, I['_output'], O['_input']>;
     export type _Params<
         //
-        N extends string,
         I extends z.ZodType,
         O extends z.ZodType,
         L,
@@ -27,54 +25,49 @@ export namespace AsyncFunction {
         _input: I;
         _output: O;
         _local?: L;
-        wrappers?: (params: Params<N, I, O, L, C>) => WrapperBuild<N, I, O, L, C>[];
-        func?: Fn<C & { params: Params<N, I, O, L, C> }, I['_output'], O['_input']>;
+        wrappers?: (params: Params<I, O, L, C>) => WrapperBuild<I, O, L, C>[];
+        func?: Fn<C & { params: Params<I, O, L, C> }, I['_output'], O['_input']>;
     };
     export type Params<
         //
-        N extends string = string,
         I extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
     > = {
-        _name: N;
         _input: I;
         _output: O;
         _local: undefined extends L ? undefined : L;
+        wrappers: WrapperBuild<I, O, L, C>[];
         type: 'async function';
-        [type]: { N: N; I: I; O: O; L: L; C: C };
+        [type]: { I: I; O: O; L: L; C: C };
     };
     export type Build<
         //
-        N extends string = string,
         I extends z.ZodType = z.ZodType,
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = Params<N, I, O, L, C> & Fn<C, I['_input'], O['_output']>;
+    > = Params<I, O, L, C> & Fn<C, I['_input'], O['_output']>;
 }
 
 export function asyncFunction<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
->(_name: N, _params: AsyncFunction._Params<N, I, O, L, C>): AsyncFunction.Build<N, I, O, L, C> {
-    const params: AsyncFunction.Params<N, I, O, L, C> = {
+>(_params: AsyncFunction._Params<I, O, L, C>): AsyncFunction.Build<I, O, L, C> {
+    const params: AsyncFunction.Params<I, O, L, C> = {
         _input: _params._input,
-        _name: _name,
         _output: _params._output,
         type: 'async function',
+        wrappers: null as never,
         _local: _params._local as never,
         [AsyncFunction.type]: undefined as never,
     };
-    const func = [...(_params.wrappers?.(params) ?? []), null].reduceRight(wrap, _params.func ?? unimplemented);
-    const stackLabel = Object.freeze({ name: params._name, in: 'async function' });
-    const f: AsyncFunction.Fn<C, I['_input'], O['_output']> = (context, input) =>
-        func(Object.assign({}, context, { params }, { stack: Object.freeze([...context.stack, stackLabel]) }), input);
-    Object.defineProperty(f, 'name', { value: params._name, writable: false });
+    params.wrappers = _params.wrappers?.(params) ?? [];
+    const func = [...params.wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
+    const f: AsyncFunction.Fn<C, I['_input'], O['_output']> = (context, input) => func(Object.assign({}, context, { params }), input);
     return Object.assign(f, params);
 }

@@ -9,11 +9,9 @@ export function wrap<C extends Context, I, R>(
     wrapper: null | ((context: C, input: I, func: (context: C, input: I) => R) => R)
 ): (context: C, input: I) => R {
     if (wrapper) {
-        const stackLabel = Object.freeze({ name: wrapper.name, in: 'wrapper' });
-        return (context, input) => wrapper(Object.assign({}, context, { stack: Object.freeze([...context.stack, stackLabel]) }), input, func);
+        return (context, input) => wrapper(context, input, func);
     }
-    const implementationLabel = Object.freeze({ name: 'func', in: 'implementation' });
-    return (context, input) => func(Object.assign({}, context, { stack: Object.freeze([...context.stack, implementationLabel]) }), input);
+    return (context, input) => func(context, input);
 }
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function unimplemented<C extends Context, I, R>(context: C, input: I): R {

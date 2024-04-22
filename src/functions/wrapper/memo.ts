@@ -8,26 +8,21 @@ import { getParams } from '../_helper';
 
 export function MemoData<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: AsyncFunction.Params<N, I, O, L, C>,
+    params: AsyncFunction.Params<I, O, L, C>,
     behavior: { getKey(input: I['_output']): string; expSec: number }
-): AsyncFunction.WrapperBuild<N, I, O, L, C>;
+): AsyncFunction.WrapperBuild<I, O, L, C>;
 export function MemoData<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
->(
-    params: SyncFunction.Params<N, I, O, L, C>,
-    behavior: { getKey(input: I['_output']): string; expSec: number }
-): SyncFunction.WrapperBuild<N, I, O, L, C>;
+>(params: SyncFunction.Params<I, O, L, C>, behavior: { getKey(input: I['_output']): string; expSec: number }): SyncFunction.WrapperBuild<I, O, L, C>;
 export function MemoData(
     params_: unknown,
     behavior: { getKey(input: unknown): string; expSec: number }

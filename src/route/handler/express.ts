@@ -6,6 +6,7 @@ import { Context, createContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
+import { Endpoint } from '../endpoint';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -17,9 +18,9 @@ export function getExpressReqRes<C extends Context>(context: C): { req: Request;
     return (context as never)[expressSymbol];
 }
 
-export function setupContext(method: string, path: string): RequestHandler<never, never, never, never, Locals> {
+export function setupContext(): RequestHandler<never, never, never, never, Locals> {
     return function (req, res, nxt) {
-        res.locals.context = createContext({ in: 'endpoint', name: `(${method.toUpperCase()}) ${path}` });
+        res.locals.context = createContext();
         Object.assign(res.locals.context, { [expressSymbol]: { req, res } });
         res.locals.options = {};
         res.on('finish', () => res.locals.context.dispose());
@@ -100,7 +101,7 @@ export function createErrorHandler(): ErrorRequestHandler<never, string, never, 
 }
 
 export function serve(
-    endpoints: (HttpEndpoint.Build | SseEndpoint.Build)[],
+    endpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
     documentationParams?: {
         params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
         serveJsonOn: string;
@@ -109,21 +110,21 @@ export function serve(
     }
 ) {
     const router = Router();
-    for (const build of endpoints) {
-        router[build.method](
-            pathParser(build.path),
-            setupContext(build.method, build.path),
-            ...build.middlewares.map(createHandler),
-            createHandler(build)
-        );
-        console.log('Route build success:', build.method, '\t', pathParser(build.path));
+    router.use(setupContext());
+    for (const loc in endpoints) {
+        const build = endpoints[loc];
+        const [method, path] = Endpoint.locParser(loc);
+        router[method](pathParser(path), ...build.middlewares.map(createHandler), createHandler(build));
+        console.log('Route build success:  ', method.toUpperCase(), '\t', path);
     }
     router.use(createErrorHandler());
     if (documentationParams) {
         try {
             const paths: ZodOpenApiPathsObject = {};
-            for (const build of endpoints) {
-                (paths[build.path] ??= {})[build.method] = build.documentation;
+            for (const loc in endpoints) {
+                const build = endpoints[loc];
+                const [method, path] = Endpoint.locParser(loc);
+                (paths[path] ??= {})[method] = build.documentation;
             }
             const jsonDoc = createDocument({ ...documentationParams.params, paths: paths });
             if (documentationParams.serveJsonOn) {

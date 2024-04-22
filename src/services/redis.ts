@@ -318,18 +318,17 @@ export class Cache {
 
 export function CacheObject<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: AsyncFunction.Params<N, I, O, L, C>,
+    params: AsyncFunction.Params<I, O, L, C>,
     behavior: {
         getCache(input: I['_output']): Cache;
         expire: number;
     }
-): AsyncFunction.WrapperBuild<N, I, O, L, C> {
+): AsyncFunction.WrapperBuild<I, O, L, C> {
     return async function CacheObject(context, input, func) {
         const cache = behavior.getCache(input);
         let result = await cache.get(context, {});
@@ -344,21 +343,20 @@ export function CacheObject<
 
 export function CacheMap<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
     K extends string | number,
 >(
-    params: AsyncFunction.Params<N, I, O, L, C>,
+    params: AsyncFunction.Params<I, O, L, C>,
     behavior: {
         getCache(input: I['_output']): Cache;
         getKeys(input: I['_output']): K[];
         updateKeys(input: I['_output'], keys: K[]): I['_output'];
         expire: number;
     }
-): AsyncFunction.WrapperBuild<N, I, O, L, C> {
+): AsyncFunction.WrapperBuild<I, O, L, C> {
     return async function CacheMap(context, input, func) {
         const cache = behavior.getCache(input);
         const keys = behavior.getKeys(input);
@@ -375,21 +373,20 @@ export function CacheMap<
 }
 export function CacheCollection<
     //
-    N extends string,
     I extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
     K extends string | number,
 >(
-    params: AsyncFunction.Params<N, I, O, L, C>,
+    params: AsyncFunction.Params<I, O, L, C>,
     behavior: {
         getCache(input: I['_output']): Cache;
         getFields(input: I['_output']): K[] | '*';
         updateFields(input: I['_output'], reqKeys: K[], ignoreKeys: string[]): I['_output'];
         expire: number;
     }
-): AsyncFunction.WrapperBuild<N, I, O, L, C> {
+): AsyncFunction.WrapperBuild<I, O, L, C> {
     return async function CacheCollection(context, input, func) {
         const cache = behavior.getCache(input);
         const fields = behavior.getFields(input);

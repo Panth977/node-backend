@@ -2,24 +2,35 @@ import { z } from 'zod';
 import { Middleware } from './middleware';
 import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
-import { HttpEndpoint, Method, createHttp } from './http';
+import { HttpEndpoint, createHttp } from './http';
 
-export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B): (HttpEndpoint.Build | SseEndpoint.Build)[] {
-    const allReady: (HttpEndpoint.Build | SseEndpoint.Build)[] = [];
-    for (const build of Object.values(bundle)) {
-        if (typeof build === 'function' && build && 'endpoint' in build && build.endpoint === 'http') {
-            allReady.push(build as HttpEndpoint.Build);
+export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';
+
+export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B) {
+    const allReady: Record<string, HttpEndpoint.Build | SseEndpoint.Build> = {};
+    for (const loc in bundle) {
+        const build = bundle[loc];
+        if (typeof build === 'function' && 'endpoint' in build && build.endpoint === 'http') {
+            allReady[loc] = build as unknown as HttpEndpoint.Build;
         }
-        if (typeof build === 'function' && build && 'endpoint' in build && build.endpoint === 'sse') {
-            allReady.push(build as SseEndpoint.Build);
+        if (typeof build === 'function' && 'endpoint' in build && build.endpoint === 'sse') {
+            allReady[loc] = build as unknown as SseEndpoint.Build;
         }
     }
-    return allReady as never;
+    return allReady;
 }
 
 export class Endpoint<Opt extends Record<never, never>> {
     middlewares: Middleware.Build[];
     tags: string[];
+    static loc<M extends Method, P extends string>(method: M, path: P) {
+        return `(${method})${path}` as const;
+    }
+    static locParser(loc: string) {
+        const method = loc.substring(1, loc.indexOf(')'));
+        const path = loc.substring(method.length + 2);
+        return [method as Method, path] as const;
+    }
     static build() {
         return new Endpoint([], []);
     }
@@ -29,14 +40,13 @@ export class Endpoint<Opt extends Record<never, never>> {
     }
     addMiddleware<
         //
-        N extends string,
         ReqH extends undefined | z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject,
         ResH extends undefined | z.AnyZodObject,
         Opt_ extends z.AnyZodObject,
         L,
         C extends Context,
-    >(middleware: Middleware.Build<N, ReqH, ReqQ, ResH, Opt_, L, C>): Endpoint<Opt & Opt_['_output']> {
+    >(middleware: Middleware.Build<ReqH, ReqQ, ResH, Opt_, L, C>): Endpoint<Opt & Opt_['_output']> {
         return new Endpoint([...this.middlewares, middleware as never], this.tags);
     }
     addTags(...tags: string[]): Endpoint<Opt> {
@@ -44,8 +54,6 @@ export class Endpoint<Opt extends Record<never, never>> {
     }
     http<
         //
-        M extends Method,
-        P extends string,
         ReqH extends undefined | z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject,
         ReqP extends undefined | z.AnyZodObject,
@@ -55,23 +63,20 @@ export class Endpoint<Opt extends Record<never, never>> {
         L,
         C extends Context,
     >(
-        method: M,
-        path: P,
-        _params: HttpEndpoint._Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
-    ): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
+        _params: HttpEndpoint._Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
+    ): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
         _params.tags = (_params.tags ??= []).concat(this.tags);
-        return createHttp(method, path, this.middlewares, _params);
+        return createHttp(this.middlewares, _params);
     }
     sse<
         //
-        P extends string,
         ReqH extends undefined | z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject,
         ReqP extends undefined | z.AnyZodObject,
         L,
         C extends Context,
-    >(method: 'get', path: P, _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
+    >(_params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
         (_params.tags ??= []).concat(this.tags);
-        return createSse(method, path, this.middlewares, _params);
+        return createSse(this.middlewares, _params);
     }
 }

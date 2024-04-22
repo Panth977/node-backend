@@ -4,13 +4,9 @@ import { Middleware } from './middleware';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { TakeIfDefined, takeIfDefined } from './_helper';
 
-export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';
-
 export namespace HttpEndpoint {
     export type _Params<
         //
-        M extends Method,
-        P extends string,
         ReqH extends undefined | z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject,
         ReqP extends undefined | z.AnyZodObject,
@@ -31,7 +27,6 @@ export namespace HttpEndpoint {
         otherReqMediaTypes?: string[];
     } & Omit<
             AsyncFunction._Params<
-                `(${M})${P}`,
                 TakeIfDefined<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
                 TakeIfDefined<{ headers: ResH; body: ResB }>,
                 L,
@@ -40,21 +35,13 @@ export namespace HttpEndpoint {
             '_name' | '_input' | '_output'
         >;
 
-    export type Params<
-        //
-        M extends Method = Method,
-        P extends string = string,
-    > = {
+    export type Params = {
         middlewares: Middleware.Build[];
         documentation: ZodOpenApiOperationObject;
         endpoint: 'http';
-        method: M;
-        path: P;
     };
     export type Build<
         //
-        M extends Method = Method,
-        P extends string = string,
         ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
@@ -64,9 +51,8 @@ export namespace HttpEndpoint {
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Params<M, P> &
+    > = Params &
         AsyncFunction.Build<
-            `(${M})${P}`,
             TakeIfDefined<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
             TakeIfDefined<{ headers: ResH; body: ResB }>,
             L,
@@ -76,8 +62,6 @@ export namespace HttpEndpoint {
 
 export function createHttp<
     //
-    M extends Method,
-    P extends string,
     ReqH extends undefined | z.AnyZodObject,
     ReqQ extends undefined | z.AnyZodObject,
     ReqP extends undefined | z.AnyZodObject,
@@ -88,12 +72,10 @@ export function createHttp<
     C extends Context,
     Opt extends Record<never, never>,
 >(
-    method: M,
-    path: P,
     middlewares: Middleware.Build[],
-    _params: HttpEndpoint._Params<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
-): HttpEndpoint.Build<M, P, ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
-    const params: HttpEndpoint.Params<M, P> = {
+    _params: HttpEndpoint._Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
+): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
+    const params: HttpEndpoint.Params = {
         documentation: {
             tags: middlewares.reduce((tags, m) => [...tags, ...(m.tags ?? [])], [...(_params.tags ?? [])]),
             security: middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(_params.security ?? [])]),
@@ -143,11 +125,9 @@ export function createHttp<
             },
         },
         endpoint: 'http',
-        method,
-        path,
         middlewares,
     };
-    const build = asyncFunction(`(${method})${path}`, {
+    const build = asyncFunction({
         _input: takeIfDefined({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery, body: _params.reqBody }) as never,
         _output: takeIfDefined({ headers: _params.resHeaders, body: _params.resBody }) as never,
         _local: _params._local,

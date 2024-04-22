@@ -7,7 +7,6 @@ import { TakeIfDefined, takeIfDefined } from './_helper';
 export namespace SseEndpoint {
     export type _Params<
         //
-        P extends string = string,
         ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
@@ -21,7 +20,6 @@ export namespace SseEndpoint {
         resWrite?: z.ZodType<string>;
     } & Omit<
             AsyncGenerator._Params<
-                `(get)${P}`,
                 TakeIfDefined<{ headers: ReqH; query: ReqQ; path: ReqP }>,
                 z.ZodType<string>,
                 z.ZodVoid,
@@ -31,12 +29,7 @@ export namespace SseEndpoint {
             >,
             '_name' | '_input' | '_output' | '_yield' | '_next'
         >;
-    export type Params<
-        //
-        P extends string = string,
-    > = {
-        method: 'get';
-        path: P;
+    export type Params = {
         documentation: ZodOpenApiOperationObject;
         endpoint: 'sse';
         middlewares: Middleware.Build[];
@@ -44,16 +37,14 @@ export namespace SseEndpoint {
 
     export type Build<
         //
-        P extends string = string,
         ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
         ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Params<P> &
+    > = Params &
         AsyncGenerator.Build<
-            `(get)${P}`,
             TakeIfDefined<{ headers: ReqH; query: ReqQ; path: ReqP }>,
             z.ZodType<string>,
             z.ZodVoid,
@@ -65,20 +56,14 @@ export namespace SseEndpoint {
 
 export function createSse<
     //
-    P extends string,
     ReqH extends undefined | z.AnyZodObject,
     ReqQ extends undefined | z.AnyZodObject,
     ReqP extends undefined | z.AnyZodObject,
     L,
     C extends Context,
     Opt extends Record<never, never>,
->(
-    method: 'get',
-    path: P,
-    middlewares: Middleware.Build[],
-    _params: SseEndpoint._Params<P, ReqH, ReqQ, ReqP, L, C, Opt>
-): SseEndpoint.Build<P, ReqH, ReqQ, ReqP, L, C, Opt> {
-    const params: SseEndpoint.Params<P> = {
+>(middlewares: Middleware.Build[], _params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
+    const params: SseEndpoint.Params = {
         documentation: {
             tags: middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(_params.tags ?? [])]),
             security: middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(_params.security ?? [])]),
@@ -109,11 +94,9 @@ export function createSse<
             },
         },
         endpoint: 'sse',
-        method,
         middlewares,
-        path,
     };
-    const build = asyncGenerator(`(get)${path}`, {
+    const build = asyncGenerator({
         _input: takeIfDefined({ headers: _params.reqHeader, query: _params.reqQuery, path: _params.reqPath }) as never,
         _output: z.void(),
         _yield: _params.resWrite ?? z.string(),
