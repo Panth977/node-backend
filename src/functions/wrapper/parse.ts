@@ -4,7 +4,7 @@ import { SyncFunction } from '../sync';
 import { Context } from '../context';
 import { SyncGenerator } from '../sync-generator';
 import { AsyncGenerator } from '../async-generator';
-import { getParams } from '../_helper';
+import { WrapperBuild, getParams } from '../_helper';
 import createHttpError from 'http-errors';
 
 export function SafeParse<
@@ -45,13 +45,11 @@ export function SafeParse<
     params: AsyncGenerator.Params<I, Y, TN, O, L, C>,
     behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
 ): AsyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
-export function SafeParse(
-    params_: unknown,
-    behavior: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}
-): AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild {
+export function SafeParse(params_: unknown, behavior: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}): WrapperBuild {
     const params = getParams(params_);
+    let Wrapper: undefined | WrapperBuild;
     if (params.type === 'function') {
-        return function SafeParse(context, input, func) {
+        Wrapper = function (context, input, func) {
             if (behavior.input ?? true) {
                 const data = params._input.safeParse(input);
                 if (!data.success) {
@@ -73,7 +71,7 @@ export function SafeParse(
         } satisfies SyncFunction.WrapperBuild;
     }
     if (params.type === 'async function') {
-        return async function SafeParse(context, input, func) {
+        Wrapper = async function (context, input, func) {
             if (behavior.input ?? true) {
                 const data = params._input.safeParse(input);
                 if (!data.success) {
@@ -95,7 +93,7 @@ export function SafeParse(
         } satisfies AsyncFunction.WrapperBuild;
     }
     if (params.type === 'async function*') {
-        return async function* SafeParse(context, input, func) {
+        Wrapper = async function* (context, input, func) {
             if (behavior.input ?? true) {
                 const data = params._input.safeParse(input);
                 if (!data.success) {
@@ -140,7 +138,7 @@ export function SafeParse(
         } satisfies AsyncGenerator.WrapperBuild;
     }
     if (params.type === 'function*') {
-        return function* SafeParse(context, input, func) {
+        Wrapper = function* (context, input, func) {
             if (behavior.input ?? true) {
                 const data = params._input.safeParse(input);
                 if (!data.success) {
@@ -184,5 +182,10 @@ export function SafeParse(
             return output;
         } satisfies SyncGenerator.WrapperBuild;
     }
+    if (Wrapper) return Object.assign(Wrapper, { [instance]: SafeParse });
     throw new Error('Unimplemented!');
+}
+const instance = Symbol();
+export function isSafeParse<W>(w: W): boolean {
+    return typeof w === 'function' && instance in w && w[instance] === SafeParse;
 }

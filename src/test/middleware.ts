@@ -17,4 +17,28 @@ const pass = route.createMiddleware({
         };
     },
 });
-export const middlewares = { pass };
+const unsafePass = route.createMiddleware({
+    options: z.object({ isValid: z.boolean() }),
+    tags: ['NNN'],
+    reqHeader: z.object({}).passthrough(),
+    wrappers: (params) => [
+        //
+        functions.wrapper.Debug(params),
+    ],
+    async func(context, input) {
+        context.logger.debug('input-middleware', input);
+        return {
+            options: { isValid: true },
+        };
+    },
+});
+export const middlewares = { pass, unsafePass };
+
+// sanity
+// ensure all middlewares are safe-parsed;
+for (const key in middlewares) {
+    const safeParserWrappers = middlewares[key as keyof typeof middlewares].wrappers.filter(functions.wrapper.isSafeParse);
+    if (!safeParserWrappers.length) {
+        console.log('Safe Parser not found for:', key);
+    }
+}

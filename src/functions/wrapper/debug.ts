@@ -4,7 +4,7 @@ import { SyncFunction } from '../sync';
 import { Context } from '../context';
 import { SyncGenerator } from '../sync-generator';
 import { AsyncGenerator } from '../async-generator';
-import { getParams } from '../_helper';
+import { WrapperBuild, getParams } from '../_helper';
 
 export function Debug<
     //
@@ -53,10 +53,11 @@ export function Debug<
 export function Debug(
     params_: unknown,
     behavior: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}
-): AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild {
+): WrapperBuild {
     const params = getParams(params_);
+    let Wrapper: WrapperBuild | undefined;
     if (params.type === 'function') {
-        return function Debug(context, input, func) {
+        Wrapper = function (context, input, func) {
             const start = Date.now();
             try {
                 if (behavior.input) context.logger.debug('input', input);
@@ -74,7 +75,7 @@ export function Debug(
         } satisfies SyncFunction.WrapperBuild;
     }
     if (params.type === 'async function') {
-        return async function Debug(context, input, func) {
+        Wrapper = async function (context, input, func) {
             const start = Date.now();
             try {
                 if (behavior.input) context.logger.debug('input', input);
@@ -92,7 +93,7 @@ export function Debug(
         } satisfies AsyncFunction.WrapperBuild;
     }
     if (params.type === 'async function*') {
-        return async function* Debug(context, input, func) {
+        Wrapper = async function* (context, input, func) {
             const start = Date.now();
             try {
                 if (behavior.input) context.logger.debug('input', input);
@@ -120,7 +121,7 @@ export function Debug(
         } satisfies AsyncGenerator.WrapperBuild;
     }
     if (params.type === 'function*') {
-        return function* Debug(context, input, func) {
+        Wrapper = function* (context, input, func) {
             const start = Date.now();
             try {
                 if (behavior.input) context.logger.debug('input', input);
@@ -148,5 +149,10 @@ export function Debug(
             }
         } satisfies SyncGenerator.WrapperBuild;
     }
+    if (Wrapper) return Object.assign(Wrapper, { [instance]: Debug });
     throw new Error('Unimplemented!');
+}
+const instance = Symbol();
+export function isDebug<W>(w: W): boolean {
+    return typeof w === 'function' && instance in w && w[instance] === Debug;
 }

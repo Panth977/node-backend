@@ -32,3 +32,4 @@ export function getBuild(build: unknown) {
     if (typeof build === 'function' && 'type' in build && build.type === 'function*') return build as SyncGenerator.Build;
     throw new Error('Unimplemented!');
 }
+export type WrapperBuild = AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild;

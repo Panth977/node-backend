@@ -2,9 +2,7 @@ import { z } from 'zod';
 import { AsyncFunction } from '../async';
 import { SyncFunction } from '../sync';
 import { Context } from '../context';
-import { SyncGenerator } from '../sync-generator';
-import { AsyncGenerator } from '../async-generator';
-import { getParams } from '../_helper';
+import { WrapperBuild, getParams } from '../_helper';
 
 export function MemoData<
     //
@@ -23,14 +21,12 @@ export function MemoData<
     L,
     C extends Context,
 >(params: SyncFunction.Params<I, O, L, C>, behavior: { getKey(input: I['_output']): string; expSec: number }): SyncFunction.WrapperBuild<I, O, L, C>;
-export function MemoData(
-    params_: unknown,
-    behavior: { getKey(input: unknown): string; expSec: number }
-): AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild {
+export function MemoData(params_: unknown, behavior: { getKey(input: unknown): string; expSec: number }): WrapperBuild {
     const params = getParams(params_);
     const cache: Record<string, unknown> = {};
+    let Wrapper: WrapperBuild | undefined;
     if (params.type === 'function') {
-        return function MemoData(context, input, func) {
+        Wrapper = function (context, input, func) {
             const key = behavior.getKey(input);
             if (key in cache === false) {
                 cache[key] = func(context, input);
@@ -40,7 +36,7 @@ export function MemoData(
         } satisfies SyncFunction.WrapperBuild;
     }
     if (params.type === 'async function') {
-        return async function MemoData(context, input, func) {
+        Wrapper = async function (context, input, func) {
             const key = behavior.getKey(input);
             if (key in cache === false) {
                 cache[key] = func(context, input);
@@ -49,5 +45,10 @@ export function MemoData(
             return await cache[key];
         } satisfies AsyncFunction.WrapperBuild;
     }
+    if (Wrapper) return Object.assign(Wrapper, { [instance]: MemoData });
     throw new Error('Unimplemented!');
+}
+const instance = Symbol();
+export function isMemoData<W>(w: W): boolean {
+    return typeof w === 'function' && instance in w && w[instance] === MemoData;
 }

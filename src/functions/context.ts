@@ -7,8 +7,9 @@ export type Context = {
     dispose: () => Promise<void>;
     getStack(): string | undefined;
 };
-
-export function createContext(): Context {
+export type BuildContext<C extends Context> = (context: Context | null) => C;
+export const DefaultBuildContext: BuildContext<Context> = function (context) {
+    if (context) return Object.assign({}, context);
     let dispose: (() => Promise<void>)[] = [];
     return {
         id: randomUUID(),
@@ -24,5 +25,10 @@ export function createContext(): Context {
         getStack() {
             return new Error().stack;
         },
+    };
+};
+export function BuildContextWithParamsBuilder<P, C extends Context>(params: P, buildContext: BuildContext<C>): BuildContext<C & { params: P }> {
+    return function (context) {
+        return Object.assign(buildContext(context), { params: params });
     };
 }

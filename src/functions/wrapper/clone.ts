@@ -4,7 +4,7 @@ import { SyncFunction } from '../sync';
 import { Context } from '../context';
 import { SyncGenerator } from '../sync-generator';
 import { AsyncGenerator } from '../async-generator';
-import { getParams } from '../_helper';
+import { WrapperBuild, getParams } from '../_helper';
 
 export function CloneData<
     //
@@ -49,8 +49,9 @@ export function CloneData(
     behavior: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}
 ): AsyncFunction.WrapperBuild | SyncFunction.WrapperBuild | AsyncGenerator.WrapperBuild | SyncGenerator.WrapperBuild {
     const params = getParams(params_);
+    let Wrapper: WrapperBuild | undefined;
     if (params.type === 'function') {
-        return function CloneData(context, input, func) {
+        Wrapper = function (context, input, func) {
             if (behavior.input ?? true) input = structuredClone(input);
             let output = func(context, input);
             if (behavior.output ?? true) output = structuredClone(output);
@@ -58,7 +59,7 @@ export function CloneData(
         } satisfies SyncFunction.WrapperBuild;
     }
     if (params.type === 'async function') {
-        return async function CloneData(context, input, func) {
+        Wrapper = async function (context, input, func) {
             if (behavior.input ?? true) input = structuredClone(input);
             let output = await func(context, input);
             if (behavior.output ?? true) output = structuredClone(output);
@@ -66,7 +67,7 @@ export function CloneData(
         } satisfies AsyncFunction.WrapperBuild;
     }
     if (params.type === 'async function*') {
-        return async function* CloneData(context, input, func) {
+        Wrapper = async function* (context, input, func) {
             if (behavior.input ?? true) input = structuredClone(input);
             const g = func(context, input);
             let val = await g.next();
@@ -83,7 +84,7 @@ export function CloneData(
         } satisfies AsyncGenerator.WrapperBuild;
     }
     if (params.type === 'function*') {
-        return function* CloneData(context, input, func) {
+        Wrapper = function* (context, input, func) {
             if (behavior.input ?? true) input = structuredClone(input);
             const g = func(context, input);
             let val = g.next();
@@ -99,5 +100,10 @@ export function CloneData(
             return output;
         } satisfies SyncGenerator.WrapperBuild;
     }
+    if (Wrapper) return Object.assign(Wrapper, { [instance]: CloneData });
     throw new Error('Unimplemented!');
+}
+const instance = Symbol();
+export function isCloneData<W>(w: W): boolean {
+    return typeof w === 'function' && instance in w && w[instance] === CloneData;
 }

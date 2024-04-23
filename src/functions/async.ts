@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { Context } from './context';
+import { BuildContext, BuildContextWithParamsBuilder, Context, DefaultBuildContext } from './context';
 import { unimplemented, wrap } from './_helper';
 
 export namespace AsyncFunction {
-    export const type = Symbol();
     export type Return<T> = Promise<T>;
     export type Fn<C, I, O> = (context: C, input: I) => Return<O>;
     export type WFn<C, I, O> = (context: C, input: I, func: Fn<C, I, O>) => Return<O>;
@@ -27,6 +26,7 @@ export namespace AsyncFunction {
         _local?: L;
         wrappers?: (params: Params<I, O, L, C>) => WrapperBuild<I, O, L, C>[];
         func?: Fn<C & { params: Params<I, O, L, C> }, I['_output'], O['_input']>;
+        buildContext?: BuildContext<C>;
     };
     export type Params<
         //
@@ -40,7 +40,7 @@ export namespace AsyncFunction {
         _local: undefined extends L ? undefined : L;
         wrappers: WrapperBuild<I, O, L, C>[];
         type: 'async function';
-        [type]: { I: I; O: O; L: L; C: C };
+        buildContext: BuildContext<C extends unknown ? Context : C>;
     };
     export type Build<
         //
@@ -48,7 +48,7 @@ export namespace AsyncFunction {
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = Params<I, O, L, C> & Fn<C, I['_input'], O['_output']>;
+    > = Params<I, O, L, C> & Fn<Context | null, I['_input'], O['_output']>;
 }
 
 export function asyncFunction<
@@ -64,10 +64,11 @@ export function asyncFunction<
         type: 'async function',
         wrappers: null as never,
         _local: _params._local as never,
-        [AsyncFunction.type]: undefined as never,
+        buildContext: (_params.buildContext ?? DefaultBuildContext) as never,
     };
     params.wrappers = _params.wrappers?.(params) ?? [];
     const func = [...params.wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
-    const f: AsyncFunction.Fn<C, I['_input'], O['_output']> = (context, input) => func(Object.assign({}, context, { params }), input);
+    const buildContext = BuildContextWithParamsBuilder(params, params.buildContext as BuildContext<C>);
+    const f: AsyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) => func(buildContext(context), input);
     return Object.assign(f, params);
 }
