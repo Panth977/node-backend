@@ -18,8 +18,6 @@ export namespace HttpEndpoint {
         C extends Context,
         Opt extends Record<never, never>,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
-        method: Method;
-        path: string;
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         reqPath?: ReqP;
@@ -78,6 +76,8 @@ export function createHttp<
     Opt extends Record<never, never>,
 >(
     middlewares: Middleware.Build[],
+    method: HttpEndpoint.Method,
+    path: string,
     _params: HttpEndpoint._Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
 ): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
     const params: HttpEndpoint.Params = {
@@ -131,8 +131,8 @@ export function createHttp<
         },
         endpoint: 'http',
         middlewares,
-        method: _params.method,
-        path: _params.path,
+        method: method,
+        path: path,
     };
     const build = asyncFunction({
         _input: takeIfDefined({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery, body: _params.reqBody }) as never,

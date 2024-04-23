@@ -53,10 +53,12 @@ export class Endpoint<Opt extends Record<never, never>> {
         L,
         C extends Context,
     >(
+        method: HttpEndpoint.Method,
+        path: string,
         _params: HttpEndpoint._Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
     ): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
         _params.tags = (_params.tags ??= []).concat(this.tags);
-        return createHttp(this.middlewares, _params);
+        return createHttp(this.middlewares, method, path, _params);
     }
     sse<
         //
@@ -65,8 +67,12 @@ export class Endpoint<Opt extends Record<never, never>> {
         ReqP extends undefined | z.AnyZodObject,
         L,
         C extends Context,
-    >(_params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
+    >(
+        method: SseEndpoint.Method,
+        path: string,
+        _params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>
+    ): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
         (_params.tags ??= []).concat(this.tags);
-        return createSse(this.middlewares, _params);
+        return createSse(this.middlewares, method, path, _params);
     }
 }

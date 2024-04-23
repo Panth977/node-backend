@@ -15,8 +15,6 @@ export namespace SseEndpoint {
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
-        path: string;
-        method: Method;
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         reqPath?: ReqP;
@@ -67,7 +65,12 @@ export function createSse<
     L,
     C extends Context,
     Opt extends Record<never, never>,
->(middlewares: Middleware.Build[], _params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
+>(
+    middlewares: Middleware.Build[],
+    method: SseEndpoint.Method,
+    path: string,
+    _params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>
+): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
     const params: SseEndpoint.Params = {
         documentation: {
             tags: middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(_params.tags ?? [])]),
@@ -100,8 +103,8 @@ export function createSse<
         },
         endpoint: 'sse',
         middlewares,
-        path: _params.path,
-        method: _params.method,
+        path: path,
+        method: method,
     };
     const build = asyncGenerator({
         _input: takeIfDefined({ headers: _params.reqHeader, query: _params.reqQuery, path: _params.reqPath }) as never,

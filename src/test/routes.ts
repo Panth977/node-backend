@@ -3,11 +3,9 @@ import { functions } from '..';
 import * as fs from 'fs';
 import * as path from 'path';
 import createHttpError from 'http-errors';
-import { defaultEndpointsFactory1, defaultEndpointsFactory2 } from './factory';
+import { endpointFactory } from './factory';
 
-const GET_File = defaultEndpointsFactory1.http({
-    method: 'get',
-    path: '/file/{filename}',
+const GET_File = endpointFactory.Factory1.http('get', '/file/{filename}', {
     reqPath: z.object({
         filename: z.string(),
     }),
@@ -39,12 +37,11 @@ const GET_File = defaultEndpointsFactory1.http({
         };
     },
 });
-const GET_Health = defaultEndpointsFactory2.http({
-    method: 'get',
-    path: '/health',
+const GET_Health = endpointFactory.Factory2.http('get', '/health', {
     tags: ['XXX'],
     resBody: z.any(),
-    async func() {
+    async func(context) {
+        context;
         return {
             body: 'Every thing is up and running',
         };
