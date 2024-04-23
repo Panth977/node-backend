@@ -5,6 +5,7 @@ import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { TakeIfDefined, takeIfDefined } from './_helper';
 
 export namespace HttpEndpoint {
+    export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';
     export type _Params<
         //
         ReqH extends undefined | z.AnyZodObject,
@@ -17,6 +18,8 @@ export namespace HttpEndpoint {
         C extends Context,
         Opt extends Record<never, never>,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
+        method: Method;
+        path: string;
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         reqPath?: ReqP;
@@ -36,6 +39,8 @@ export namespace HttpEndpoint {
         >;
 
     export type Params = {
+        method: Method;
+        path: string;
         middlewares: Middleware.Build[];
         documentation: ZodOpenApiOperationObject;
         endpoint: 'http';
@@ -126,6 +131,8 @@ export function createHttp<
         },
         endpoint: 'http',
         middlewares,
+        method: _params.method,
+        path: _params.path,
     };
     const build = asyncFunction({
         _input: takeIfDefined({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery, body: _params.reqBody }) as never,

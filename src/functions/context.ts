@@ -23,7 +23,7 @@ export const DefaultBuildContext: BuildContext<Context> = function (context) {
             await Promise.allSettled(dispose_.map((exe) => exe));
         },
         getStack() {
-            return new Error().stack;
+            return new Error().stack?.substring(5);
         },
     };
 };

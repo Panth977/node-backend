@@ -4,8 +4,6 @@ import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, createHttp } from './http';
 
-export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';
-
 export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B) {
     const allReady: Record<string, HttpEndpoint.Build | SseEndpoint.Build> = {};
     for (const loc in bundle) {
@@ -23,14 +21,6 @@ export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B
 export class Endpoint<Opt extends Record<never, never>> {
     middlewares: Middleware.Build[];
     tags: string[];
-    static loc<M extends Method, P extends string>(method: M, path: P) {
-        return `(${method})${path}` as const;
-    }
-    static locParser(loc: string) {
-        const method = loc.substring(1, loc.indexOf(')'));
-        const path = loc.substring(method.length + 2);
-        return [method as Method, path] as const;
-    }
     static build() {
         return new Endpoint([], []);
     }

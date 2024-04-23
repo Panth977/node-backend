@@ -1,11 +1,13 @@
 import { z } from 'zod';
-import { functions, route } from '..';
+import { functions } from '..';
 import * as fs from 'fs';
 import * as path from 'path';
 import createHttpError from 'http-errors';
 import { defaultEndpointsFactory1, defaultEndpointsFactory2 } from './factory';
 
-const v1 = defaultEndpointsFactory1.http({
+const GET_File = defaultEndpointsFactory1.http({
+    method: 'get',
+    path: '/file/{filename}',
     reqPath: z.object({
         filename: z.string(),
     }),
@@ -37,7 +39,9 @@ const v1 = defaultEndpointsFactory1.http({
         };
     },
 });
-const v2 = defaultEndpointsFactory2.http({
+const GET_Health = defaultEndpointsFactory2.http({
+    method: 'get',
+    path: '/health',
     tags: ['XXX'],
     resBody: z.any(),
     async func() {
@@ -48,6 +52,6 @@ const v2 = defaultEndpointsFactory2.http({
 });
 
 export const routes = {
-    [route.Endpoint.loc('get', '/file/{filename}')]: v1,
-    [route.Endpoint.loc('get', '/health')]: v2,
+    GET_File,
+    GET_Health,
 };

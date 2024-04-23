@@ -6,7 +6,6 @@ import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
-import { Endpoint } from '../endpoint';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -111,9 +110,8 @@ export function serve(
 ) {
     const router = Router();
     router.use(setupContext());
-    for (const loc in endpoints) {
-        const build = endpoints[loc];
-        const [method, path] = Endpoint.locParser(loc);
+    for (const build of Object.values(endpoints)) {
+        const { method, path } = build;
         router[method](pathParser(path), ...build.middlewares.map(createHandler), createHandler(build));
         console.log('Route build success:  ', method.toUpperCase(), '\t', path);
     }
@@ -121,9 +119,8 @@ export function serve(
     if (documentationParams) {
         try {
             const paths: ZodOpenApiPathsObject = {};
-            for (const loc in endpoints) {
-                const build = endpoints[loc];
-                const [method, path] = Endpoint.locParser(loc);
+            for (const build of Object.values(endpoints)) {
+                const { method, path } = build;
                 (paths[path] ??= {})[method] = build.documentation;
             }
             const jsonDoc = createDocument({ ...documentationParams.params, paths: paths });

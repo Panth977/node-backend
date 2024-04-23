@@ -5,6 +5,7 @@ import { Middleware } from './middleware';
 import { TakeIfDefined, takeIfDefined } from './_helper';
 
 export namespace SseEndpoint {
+    export type Method = 'get';
     export type _Params<
         //
         ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
@@ -14,6 +15,8 @@ export namespace SseEndpoint {
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
     > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
+        path: string;
+        method: Method;
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         reqPath?: ReqP;
@@ -30,6 +33,8 @@ export namespace SseEndpoint {
             '_name' | '_input' | '_output' | '_yield' | '_next'
         >;
     export type Params = {
+        path: string;
+        method: Method;
         documentation: ZodOpenApiOperationObject;
         endpoint: 'sse';
         middlewares: Middleware.Build[];
@@ -95,6 +100,8 @@ export function createSse<
         },
         endpoint: 'sse',
         middlewares,
+        path: _params.path,
+        method: _params.method,
     };
     const build = asyncGenerator({
         _input: takeIfDefined({ headers: _params.reqHeader, query: _params.reqQuery, path: _params.reqPath }) as never,
