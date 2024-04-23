@@ -2,7 +2,7 @@ import createHttpError from 'http-errors';
 import { RequestHandler, Router, ErrorRequestHandler, Request, Response } from 'express';
 import { HttpEndpoint } from '../http';
 import { SseEndpoint } from '../sse';
-import { Context, createContext } from '../../functions';
+import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
@@ -20,7 +20,7 @@ export function getExpressReqRes<C extends Context>(context: C): { req: Request;
 
 export function setupContext(): RequestHandler<never, never, never, never, Locals> {
     return function (req, res, nxt) {
-        res.locals.context = createContext();
+        res.locals.context = DefaultBuildContext(null);
         Object.assign(res.locals.context, { [expressSymbol]: { req, res } });
         res.locals.options = {};
         res.on('finish', () => res.locals.context.dispose());

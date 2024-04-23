@@ -39,6 +39,6 @@ export const middlewares = { pass, unsafePass };
 for (const key in middlewares) {
     const safeParserWrappers = middlewares[key as keyof typeof middlewares].wrappers.filter(functions.wrapper.isSafeParse);
     if (!safeParserWrappers.length) {
-        console.log('Safe Parser not found for:', key);
+        console.error(new Error(`Safe Parser not found for middleware: [${key}]`));
     }
 }
