@@ -30,26 +30,26 @@ export function Debug<
     //
     I extends z.ZodType,
     Y extends z.ZodType,
-    TN extends z.ZodType,
+    N extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: SyncGenerator.Params<I, Y, TN, O, L, C>,
+    params: SyncGenerator.Params<I, Y, N, O, L, C>,
     behavior?: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): SyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
+): SyncGenerator.WrapperBuild<I, Y, N, O, L, C>;
 export function Debug<
     //
     I extends z.ZodType,
     Y extends z.ZodType,
-    TN extends z.ZodType,
+    N extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: AsyncGenerator.Params<I, Y, TN, O, L, C>,
+    params: AsyncGenerator.Params<I, Y, N, O, L, C>,
     behavior?: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): AsyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
+): AsyncGenerator.WrapperBuild<I, Y, N, O, L, C>;
 export function Debug(
     params_: unknown,
     behavior: { maxTimeAllowed?: number; input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}

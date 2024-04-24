@@ -24,26 +24,26 @@ export function CloneData<
     //
     I extends z.ZodType,
     Y extends z.ZodType,
-    TN extends z.ZodType,
+    N extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: SyncGenerator.Params<I, Y, TN, O, L, C>,
+    params: SyncGenerator.Params<I, Y, N, O, L, C>,
     behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): SyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
+): SyncGenerator.WrapperBuild<I, Y, N, O, L, C>;
 export function CloneData<
     //
     I extends z.ZodType,
     Y extends z.ZodType,
-    TN extends z.ZodType,
+    N extends z.ZodType,
     O extends z.ZodType,
     L,
     C extends Context,
 >(
-    params: AsyncGenerator.Params<I, Y, TN, O, L, C>,
+    params: AsyncGenerator.Params<I, Y, N, O, L, C>,
     behavior?: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean }
-): AsyncGenerator.WrapperBuild<I, Y, TN, O, L, C>;
+): AsyncGenerator.WrapperBuild<I, Y, N, O, L, C>;
 export function CloneData(
     params_: unknown,
     behavior: { input?: boolean; output?: boolean; yield?: boolean; next?: boolean } = {}
