@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import express from 'express';
 import { routes } from './routes';
+import compression from 'compression';
 
 const router = route.handler.express.serve(route.getEndpointsFromBundle(routes), {
     params: {
@@ -21,6 +22,9 @@ const router = route.handler.express.serve(route.getEndpointsFromBundle(routes),
 });
 // express
 const app = express();
+app.use(compression()); // For compressing response bodies
+app.use(express.json({ limit: '10mb' })); // For JSON payload
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // For URL-encoded data
 app.get('/file/:filename', (req, res) => {
     const filePath = path.join(__dirname, req.params.filename);
     const fileBuffer = fs.readFileSync(filePath);
@@ -31,6 +35,10 @@ app.get('/file/:filename', (req, res) => {
 
     // Sending the file buffer directly
     res.send(fileBuffer);
+});
+app.post('/echo', (req, res) => {
+    console.log('body', req.body);
+    res.send(req.body);
 });
 app.use('/v2', router);
 app.listen(8080, () => {

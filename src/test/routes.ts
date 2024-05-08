@@ -47,8 +47,18 @@ const GET_Health = endpointFactory.Factory2.http('get', '/health', {
         };
     },
 });
+const POST_Echo = endpointFactory.Factory2.http('post', '/echo', {
+    tags: ['XXX'],
+    reqBody: z.any(),
+    resBody: z.any(),
+    async func(context, { body }) {
+        context;
+        return { body };
+    },
+});
 
 export const routes = {
     GET_File,
     GET_Health,
+    POST_Echo,
 };

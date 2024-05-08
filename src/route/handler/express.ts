@@ -48,7 +48,15 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 const context = Object.assign({}, res.locals.context, { options: res.locals.options });
                 const output = await build(context, input);
                 for (const key in output.headers) res.setHeader(key, output.headers[key]);
-                res.status(200).send(output.body);
+                if (
+                    Object.keys(output.headers ?? {})
+                        .map((x) => x.toLowerCase())
+                        .includes('content-type')
+                ) {
+                    res.status(200).send(output.body);
+                } else {
+                    res.status(200).json(output.body);
+                }
             } catch (error) {
                 nxt(error);
             }
@@ -92,7 +100,7 @@ export function createErrorHandler(): ErrorRequestHandler<never, string, never, 
         res.locals.context.logger.error('Request Error:', error);
         if (createHttpError.isHttpError(error)) {
             for (const key in error.headers) res.setHeader(key, error.headers[key]);
-            res.status(error.status).send(error.message);
+            res.status(error.status).json(error.message);
             return;
         }
         res.status(500).send('Something went wrong!');
