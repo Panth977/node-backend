@@ -26,6 +26,8 @@ export namespace SyncGenerator {
         L = unknown,
         C extends Context = Context,
     > = {
+        namespace?: string;
+        name?: string;
         _input: I;
         _yield: Y;
         _next: N;
@@ -45,6 +47,10 @@ export namespace SyncGenerator {
         L = unknown,
         C extends Context = Context,
     > = {
+        getNamespace(): string;
+        setNamespace(namespace: string): void;
+        getName(): string;
+        setName(name: string): void;
         _input: I;
         _yield: Y;
         _next: N;
@@ -75,6 +81,18 @@ export function syncGenerator<
     C extends Context,
 >(_params: SyncGenerator._Params<I, Y, N, O, L, C>): SyncGenerator.Build<I, Y, N, O, L, C> {
     const params: SyncGenerator.Params<I, Y, N, O, L, C> = {
+        getNamespace() {
+            return `namespace: ${_params.namespace}`;
+        },
+        setNamespace(namespace) {
+            _params.namespace = namespace;
+        },
+        getName() {
+            return `name: ${_params.name}`;
+        },
+        setName(name) {
+            _params.name = name;
+        },
         _input: _params._input,
         _output: _params._output,
         type: 'function*',

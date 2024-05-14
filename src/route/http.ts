@@ -135,6 +135,8 @@ export function createHttp<
         path: path,
     };
     const build = asyncFunction({
+        namespace: 'Route',
+        name: `${method.toUpperCase()}    ${path}`,
         _input: takeIfDefined({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery, body: _params.reqBody }) as never,
         _output: takeIfDefined({ headers: _params.resHeaders, body: _params.resBody }) as never,
         _local: _params._local,

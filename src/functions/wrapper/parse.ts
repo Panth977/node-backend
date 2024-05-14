@@ -5,7 +5,6 @@ import { Context } from '../context';
 import { SyncGenerator } from '../sync-generator';
 import { AsyncGenerator } from '../async-generator';
 import { WrapperBuild, getParams } from '../_helper';
-import createHttpError from 'http-errors';
 
 export function SafeParse<
     //
@@ -51,21 +50,11 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'function') {
         Wrapper = function (context, input, func) {
             if (behavior.input ?? true) {
-                const data = params._input.safeParse(input);
-                if (!data.success) {
-                    context.logger.error('invalid input', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                input = data.data;
+                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
             }
             let output = func(context, input);
             if (behavior.output ?? true) {
-                const data = params._output.safeParse(output);
-                if (!data.success) {
-                    context.logger.error('invalid output', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                output = data.data;
+                output = params._output.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
             }
             return output;
         } satisfies SyncFunction.WrapperBuild;
@@ -73,21 +62,11 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'async function') {
         Wrapper = async function (context, input, func) {
             if (behavior.input ?? true) {
-                const data = params._input.safeParse(input);
-                if (!data.success) {
-                    context.logger.error('invalid input', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                input = data.data;
+                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
             }
             let output = await func(context, input);
             if (behavior.output ?? true) {
-                const data = params._output.safeParse(output);
-                if (!data.success) {
-                    context.logger.error('invalid output', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                output = data.data;
+                output = params._output.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
             }
             return output;
         } satisfies AsyncFunction.WrapperBuild;
@@ -95,44 +74,24 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'async function*') {
         Wrapper = async function* (context, input, func) {
             if (behavior.input ?? true) {
-                const data = params._input.safeParse(input);
-                if (!data.success) {
-                    context.logger.error('invalid input', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                input = data.data;
+                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
             }
             const g = func(context, input);
             let val = await g.next();
             while (!val.done) {
                 let y = val.value;
                 if (behavior.yield ?? true) {
-                    const data = params._yield.safeParse(y);
-                    if (!data.success) {
-                        context.logger.error('invalid y', data.error.toString());
-                        throw createHttpError.BadRequest('Invalid Data Found');
-                    }
-                    y = data.data;
+                    y = params._input.parse(y, { path: [context.params.getNamespace(), context.params.getName(), 'yield'] });
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
-                    const data = params._next.safeParse(next);
-                    if (!data.success) {
-                        context.logger.error('invalid next', data.error.toString());
-                        throw createHttpError.BadRequest('Invalid Data Found');
-                    }
-                    next = data.data;
+                    next = params._input.parse(next, { path: [context.params.getNamespace(), context.params.getName(), 'next'] });
                 }
                 val = await g.next(next);
             }
             let output = val.value;
             if (behavior.output ?? true) {
-                const data = params._output.safeParse(output);
-                if (!data.success) {
-                    context.logger.error('invalid output', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                output = data.data;
+                output = params._input.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
             }
             return output;
         } satisfies AsyncGenerator.WrapperBuild;
@@ -140,44 +99,24 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'function*') {
         Wrapper = function* (context, input, func) {
             if (behavior.input ?? true) {
-                const data = params._input.safeParse(input);
-                if (!data.success) {
-                    context.logger.error('invalid input', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                input = data.data;
+                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
             }
             const g = func(context, input);
             let val = g.next();
             while (!val.done) {
                 let y = val.value;
                 if (behavior.yield ?? true) {
-                    const data = params._yield.safeParse(y);
-                    if (!data.success) {
-                        context.logger.error('invalid y', data.error.toString());
-                        throw createHttpError.BadRequest('Invalid Data Found');
-                    }
-                    y = data.data;
+                    y = params._input.parse(y, { path: [context.params.getNamespace(), context.params.getName(), 'yield'] });
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
-                    const data = params._next.safeParse(next);
-                    if (!data.success) {
-                        context.logger.error('invalid next', data.error.toString());
-                        throw createHttpError.BadRequest('Invalid Data Found');
-                    }
-                    next = data.data;
+                    next = params._input.parse(next, { path: [context.params.getNamespace(), context.params.getName(), 'next'] });
                 }
                 val = g.next(next);
             }
             let output = val.value;
             if (behavior.output ?? true) {
-                const data = params._output.safeParse(output);
-                if (!data.success) {
-                    context.logger.error('invalid output', data.error.toString());
-                    throw createHttpError.BadRequest('Invalid Data Found');
-                }
-                output = data.data;
+                output = params._input.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
             }
             return output;
         } satisfies SyncGenerator.WrapperBuild;

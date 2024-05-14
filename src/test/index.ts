@@ -5,7 +5,7 @@ import express from 'express';
 import { routes } from './routes';
 import compression from 'compression';
 
-const router = route.handler.express.serve(route.getEndpointsFromBundle(routes), {
+const router = route.handler.express.serve(route.getEndpointsFromBundle(routes), undefined, {
     params: {
         openapi: '3.0.1',
         info: {

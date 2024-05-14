@@ -94,21 +94,32 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
     }
     throw new Error('Unimplemented');
 }
-export function createErrorHandler(): ErrorRequestHandler<never, string, never, never, Locals> {
+
+function defaultOnError(error: unknown): createHttpError.HttpError {
+    console.error('Request Error:', error);
+    if (createHttpError.isHttpError(error)) return error;
+    console.log(error);
+    return createHttpError.InternalServerError('Something went wrong!');
+}
+
+export function createErrorHandler(onError: typeof defaultOnError): ErrorRequestHandler {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return function (error, req, res, next) {
-        res.locals.context.logger.error('Request Error:', error);
-        if (createHttpError.isHttpError(error)) {
+        try {
+            error = onError(error);
+            console.error('Request Error:', error);
             for (const key in error.headers) res.setHeader(key, error.headers[key]);
             res.status(error.status).json(error.message);
-            return;
+        } catch (err) {
+            console.error(err);
+            res.status(500).json('Something went wrong!');
         }
-        res.status(500).send('Something went wrong!');
     };
 }
 
 export function serve(
     endpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
+    onError = defaultOnError,
     documentationParams?: {
         params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
         serveJsonOn: string;
@@ -123,7 +134,7 @@ export function serve(
         router[method](pathParser(path), ...build.middlewares.map(createHandler), createHandler(build));
         console.log('Route build success:  ', method.toUpperCase(), '\t', path);
     }
-    router.use(createErrorHandler());
+    router.use(createErrorHandler(onError));
     if (documentationParams) {
         try {
             const paths: ZodOpenApiPathsObject = {};
