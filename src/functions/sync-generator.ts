@@ -51,6 +51,7 @@ export namespace SyncGenerator {
         setNamespace(namespace: string): void;
         getName(): string;
         setName(name: string): void;
+        getRef(): string;
         _input: I;
         _yield: Y;
         _next: N;
@@ -82,16 +83,19 @@ export function syncGenerator<
 >(_params: SyncGenerator._Params<I, Y, N, O, L, C>): SyncGenerator.Build<I, Y, N, O, L, C> {
     const params: SyncGenerator.Params<I, Y, N, O, L, C> = {
         getNamespace() {
-            return `namespace: ${_params.namespace}`;
+            return `${_params.namespace}`;
         },
         setNamespace(namespace) {
             _params.namespace = namespace;
         },
         getName() {
-            return `name: ${_params.name}`;
+            return `${_params.name}`;
         },
         setName(name) {
             _params.name = name;
+        },
+        getRef() {
+            return `${_params.namespace}['${_params.name}']`;
         },
         _input: _params._input,
         _output: _params._output,

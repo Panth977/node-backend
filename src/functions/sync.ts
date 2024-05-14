@@ -41,6 +41,7 @@ export namespace SyncFunction {
         setNamespace(namespace: string): void;
         getName(): string;
         setName(name: string): void;
+        getRef(): string;
         _input: I;
         _output: O;
         _local: undefined extends L ? undefined : L;
@@ -66,16 +67,19 @@ export function syncFunction<
 >(_params: SyncFunction._Params<I, O, L, C>): SyncFunction.Build<I, O, L, C> {
     const params: SyncFunction.Params<I, O, L, C> = {
         getNamespace() {
-            return `namespace: ${_params.namespace}`;
+            return `${_params.namespace}`;
         },
         setNamespace(namespace) {
             _params.namespace = namespace;
         },
         getName() {
-            return `name: ${_params.name}`;
+            return `${_params.name}`;
         },
         setName(name) {
             _params.name = name;
+        },
+        getRef() {
+            return `${_params.namespace}['${_params.name}']`;
         },
         _input: _params._input,
         _output: _params._output,

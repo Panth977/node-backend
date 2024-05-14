@@ -50,11 +50,11 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'function') {
         Wrapper = function (context, input, func) {
             if (behavior.input ?? true) {
-                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
+                input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
             }
             let output = func(context, input);
             if (behavior.output ?? true) {
-                output = params._output.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
+                output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
             }
             return output;
         } satisfies SyncFunction.WrapperBuild;
@@ -62,11 +62,11 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'async function') {
         Wrapper = async function (context, input, func) {
             if (behavior.input ?? true) {
-                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
+                input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
             }
             let output = await func(context, input);
             if (behavior.output ?? true) {
-                output = params._output.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
+                output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
             }
             return output;
         } satisfies AsyncFunction.WrapperBuild;
@@ -74,24 +74,24 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'async function*') {
         Wrapper = async function* (context, input, func) {
             if (behavior.input ?? true) {
-                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
+                input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
             }
             const g = func(context, input);
             let val = await g.next();
             while (!val.done) {
                 let y = val.value;
                 if (behavior.yield ?? true) {
-                    y = params._input.parse(y, { path: [context.params.getNamespace(), context.params.getName(), 'yield'] });
+                    y = params._input.parse(y, { path: [context.params.getRef() + ':yield'] });
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
-                    next = params._input.parse(next, { path: [context.params.getNamespace(), context.params.getName(), 'next'] });
+                    next = params._input.parse(next, { path: [context.params.getRef() + ':next'] });
                 }
                 val = await g.next(next);
             }
             let output = val.value;
             if (behavior.output ?? true) {
-                output = params._input.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
+                output = params._input.parse(output, { path: [context.params.getRef() + ':output'] });
             }
             return output;
         } satisfies AsyncGenerator.WrapperBuild;
@@ -99,24 +99,24 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
     if (params.type === 'function*') {
         Wrapper = function* (context, input, func) {
             if (behavior.input ?? true) {
-                input = params._input.parse(input, { path: [context.params.getNamespace(), context.params.getName(), 'input'] });
+                input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
             }
             const g = func(context, input);
             let val = g.next();
             while (!val.done) {
                 let y = val.value;
                 if (behavior.yield ?? true) {
-                    y = params._input.parse(y, { path: [context.params.getNamespace(), context.params.getName(), 'yield'] });
+                    y = params._input.parse(y, { path: [context.params.getRef() + ':yield'] });
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
-                    next = params._input.parse(next, { path: [context.params.getNamespace(), context.params.getName(), 'next'] });
+                    next = params._input.parse(next, { path: [context.params.getRef() + ':next'] });
                 }
                 val = g.next(next);
             }
             let output = val.value;
             if (behavior.output ?? true) {
-                output = params._input.parse(output, { path: [context.params.getNamespace(), context.params.getName(), 'output'] });
+                output = params._input.parse(output, { path: [context.params.getRef() + ':output'] });
             }
             return output;
         } satisfies SyncGenerator.WrapperBuild;
