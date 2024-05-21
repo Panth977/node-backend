@@ -15,7 +15,7 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
         return { code: `z.any()`, decorator: '' };
     }
     if ('$ref' in schema) {
-        return { code: `${context.schemaName}.${schema.$ref}`, decorator: '' };
+        return { code: `${context.schemaName}.${schema.$ref.substring(schema.$ref.lastIndexOf('/') + 1)}`, decorator: '' };
     }
     if (Array.isArray(schema.type)) throw new Error('unimplemented!');
     let outputCode: string;
@@ -131,7 +131,7 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
             decoratorCodeLines.push(`@${key} "${JSON.stringify(decoratorObj[key])}"`);
         }
     }
-    const decoratorCode = `/**\n${decoratorCodeLines.map((x) => ` * ${x}`).join('\n')}\n */`;
+    const decoratorCode = !decoratorCodeLines.length ? '' : `/**\n${decoratorCodeLines.map((x) => ` * ${x}`).join('\n')}\n */`;
     return { code: outputCode, decorator: decoratorCode };
 }
 
@@ -224,7 +224,7 @@ function createRouteCode(
             decoratorCodeLines.push(`@${key} "${JSON.stringify(decoratorObj[key])}"`);
         }
     }
-    const decoratorCode = `/**\n${decoratorCodeLines.map((x) => ` * ${x}`).join('\n')}\n */`;
+    const decoratorCode = !decoratorCodeLines.length ? '' : `/**\n${decoratorCodeLines.map((x) => ` * ${x}`).join('\n')}\n */`;
     if (!route.operationId) throw new Error('No bundling name or endpoint name could be resolved!');
     return { tags: route.tags ?? [], name: route.operationId, decorator: decoratorCode, code };
 }
