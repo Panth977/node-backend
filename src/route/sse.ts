@@ -1,6 +1,6 @@
 import { AsyncGenerator, Context, asyncGenerator } from '../functions';
 import { z } from 'zod';
-import { ZodOpenApiOperationObject } from 'zod-openapi';
+import { ZodOpenApiOperationObject, ZodOpenApiResponseObject } from 'zod-openapi';
 import { Middleware } from './middleware';
 import { TakeIfDefined, takeIfDefined } from './_helper';
 
@@ -91,14 +91,17 @@ export function createSse<
                 path: z.object({ ...(_params.reqPath?.shape ?? {}) }),
             },
             responses: {
-                200: {
+                default: {
+                    description: 'Server side event!',
                     content: {
-                        'text/event-stream': z.string(),
+                        'text/event-stream': {
+                            schema: z.string(),
+                        },
                     },
                     headers: z.object({
                         'Content-Type': z.literal('text/event-stream'),
                     }),
-                },
+                } as ZodOpenApiResponseObject,
             },
         },
         endpoint: 'sse',
@@ -107,8 +110,6 @@ export function createSse<
         method: method,
     };
     const build = asyncGenerator({
-        namespace: 'Route',
-        name: `${method.toUpperCase()}    ${path}`,
         _input: takeIfDefined({ headers: _params.reqHeader, query: _params.reqQuery, path: _params.reqPath }) as never,
         _output: z.void(),
         _yield: _params.resWrite ?? z.string(),

@@ -6,6 +6,8 @@ import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
+import * as code from '../code';
+import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas31';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -48,11 +50,9 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 const context = Object.assign({}, res.locals.context, { options: res.locals.options });
                 const output = await build(context, input);
                 for (const key in output.headers) res.setHeader(key, output.headers[key]);
-                if (
-                    Object.keys(output.headers ?? {})
-                        .map((x) => x.toLowerCase())
-                        .includes('content-type')
-                ) {
+                const contentTypeKey = Object.keys(output.headers ?? {}).find((x) => x.toLowerCase() === 'content-type');
+                const contentTypeVal = output.headers[contentTypeKey ?? ''] ?? 'application/json';
+                if (contentTypeVal.toLowerCase() !== 'application/json') {
                     res.status(200).send(output.body);
                 } else {
                     res.status(200).json(output.body);
@@ -122,7 +122,8 @@ export function serve(
     onError = defaultOnError,
     documentationParams?: {
         params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
-        serveJsonOn: string;
+        serveJsonOn?: string;
+        serveCodesOn?: string;
         serveUiOn: string;
         middlewares?: RequestHandler[];
     }
@@ -145,6 +146,26 @@ export function serve(
             const jsonDoc = createDocument({ ...documentationParams.params, paths: paths });
             if (documentationParams.serveJsonOn) {
                 router.get(documentationParams.serveJsonOn, ...(documentationParams.middlewares ?? []), (_, res) => res.send(jsonDoc));
+            }
+            if (documentationParams.serveCodesOn) {
+                router.get(documentationParams.serveCodesOn, ...(documentationParams.middlewares ?? []), function (req, res) {
+                    const type = req.query.type;
+                    if (!type) {
+                        res.json(Object.keys(code));
+                    } else {
+                        try {
+                            const genFn = (code as Record<string, (context: unknown, json: OpenAPIObject) => string>)[type as string];
+                            if (!genFn) {
+                                res.status(404).send('No Such code parser found');
+                                return;
+                            }
+                            const genCode = genFn(req.query, jsonDoc);
+                            res.status(200).json(genCode);
+                        } catch (err) {
+                            res.status(500).send(err);
+                        }
+                    }
+                });
             }
             router.use(documentationParams.serveUiOn, ...(documentationParams.middlewares ?? []), swaggerUi.serve, swaggerUi.setup(jsonDoc));
         } catch (err) {

@@ -18,6 +18,7 @@ const router = route.handler.express.serve(route.getEndpointsFromBundle(routes),
         servers: [{ url: 'http://localhost:8080/v2', description: 'local' }],
     },
     serveJsonOn: '/swagger.json',
+    serveCodesOn: '/auto-gen-code',
     serveUiOn: '/swagger/',
 });
 // express

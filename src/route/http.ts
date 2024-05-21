@@ -1,7 +1,7 @@
 import { AsyncFunction, Context, asyncFunction } from '../functions';
 import { z } from 'zod';
 import { Middleware } from './middleware';
-import { ZodOpenApiOperationObject } from 'zod-openapi';
+import { ZodOpenApiOperationObject, ZodOpenApiResponseObject } from 'zod-openapi';
 import { TakeIfDefined, takeIfDefined } from './_helper';
 
 export namespace HttpEndpoint {
@@ -24,8 +24,8 @@ export namespace HttpEndpoint {
         reqBody?: ReqB;
         resHeaders?: ResH;
         resBody?: ResB;
-        otherResMediaTypes?: string[];
-        otherReqMediaTypes?: string[];
+        resMediaTypes?: string;
+        reqMediaTypes?: string;
     } & Omit<
             AsyncFunction._Params<
                 TakeIfDefined<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
@@ -82,6 +82,9 @@ export function createHttp<
 ): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
     const params: HttpEndpoint.Params = {
         documentation: {
+            get operationId() {
+                return build.getName();
+            },
             tags: middlewares.reduce((tags, m) => [...tags, ...(m.tags ?? [])], [...(_params.tags ?? [])]),
             security: middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(_params.security ?? [])]),
             description: _params.description,
@@ -101,32 +104,24 @@ export function createHttp<
             },
             requestBody: {
                 content: {
-                    'application/json': {
+                    [_params.reqMediaTypes ?? 'application/json']: {
                         schema: _params.reqBody,
                     },
-                    ...(_params.otherReqMediaTypes ?? []).reduce(
-                        (content, mediaType) => Object.assign(content, { [mediaType]: { schema: z.any() } }),
-                        {}
-                    ),
                 },
             },
             responses: {
-                200: {
+                default: {
                     content: {
-                        'application/json': {
+                        [_params.resMediaTypes ?? 'application/json']: {
                             schema: _params.resBody,
                         },
-                        ...(_params.otherResMediaTypes ?? []).reduce(
-                            (content, mediaType) => Object.assign(content, { [mediaType]: { schema: z.any() } }),
-                            {}
-                        ),
                     },
                     headers: z.object(
                         middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.resHeaders?.shape ?? {}), {
                             ...(_params.resHeaders?.shape ?? {}),
                         })
                     ),
-                },
+                } as ZodOpenApiResponseObject,
             },
         },
         endpoint: 'http',
@@ -135,8 +130,6 @@ export function createHttp<
         path: path,
     };
     const build = asyncFunction({
-        namespace: 'Route',
-        name: `${method.toUpperCase()}    ${path}`,
         _input: takeIfDefined({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery, body: _params.reqBody }) as never,
         _output: takeIfDefined({ headers: _params.resHeaders, body: _params.resBody }) as never,
         _local: _params._local,

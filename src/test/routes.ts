@@ -13,7 +13,7 @@ const GET_File = endpointFactory.Factory1.http('get', '/file/{filename}', {
         'Content-Type': z.string(),
         'Content-Disposition': z.string(),
     }),
-    otherResMediaTypes: ['application/pdf'],
+    resMediaTypes: 'application/pdf',
     tags: ['TTT'],
     resBody: z.any(),
     wrappers: (params) => [
@@ -62,3 +62,6 @@ export const routes = {
     GET_Health,
     POST_Echo,
 };
+for (const key in routes) {
+    routes[key as keyof typeof routes].setName(key);
+}
