@@ -51,7 +51,7 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 const output = await build(context, input);
                 for (const key in output.headers) res.setHeader(key, output.headers[key]);
                 const contentTypeKey = Object.keys(output.headers ?? {}).find((x) => x.toLowerCase() === 'content-type');
-                const contentTypeVal = output.headers[contentTypeKey ?? ''] ?? 'application/json';
+                const contentTypeVal = output.headers?.[contentTypeKey ?? ''] ?? 'application/json';
                 if (contentTypeVal.toLowerCase() !== 'application/json') {
                     res.status(200).send(output.body);
                 } else {
