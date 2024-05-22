@@ -19,15 +19,22 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
     if (Array.isArray(schema.type)) throw new Error('unimplemented!');
     let outputCode: string;
     if (schema.anyOf) {
-        let code = '';
-        for (const possibleSchema of schema.anyOf) {
-            const possibleSchemaCode = createSchemaCode(context, possibleSchema);
-            code += `${possibleSchemaCode.code} ${possibleSchemaCode.decorator},`;
+        if (schema.anyOf.length === 1) {
+            return createSchemaCode(context, schema.anyOf[0]);
         }
-        outputCode = `z.union([${code}])`;
+        if (!schema.anyOf.length) {
+            outputCode = `z.any()`;
+        } else {
+            let code = '';
+            for (const possibleSchema of schema.anyOf) {
+                const possibleSchemaCode = createSchemaCode(context, possibleSchema);
+                code += `${possibleSchemaCode.decorator} ${possibleSchemaCode.code},`;
+            }
+            outputCode = `z.union([${code}])`;
+        }
     } else if (schema.type === 'array') {
         const itemSchemaCode = createSchemaCode(context, schema.items);
-        const code = `${itemSchemaCode.code} ${itemSchemaCode.decorator}`;
+        const code = `${itemSchemaCode.decorator} ${itemSchemaCode.code}`;
         outputCode = `z.array(${code})`;
     } else if (schema.discriminator) {
         let code = '';
@@ -318,33 +325,3 @@ function buildApiCallHandler(server, func) {
     return (endpoint, payload) => func(server, endpoint, payload);
 }
 `;
-
-console.log(
-    createSchemaCode(
-        {
-            baseUrlName: 'B',
-            lang: 'js',
-            routesName: 'R',
-            schemaName: 'S',
-        },
-        {
-            type: 'object',
-            properties: {
-                gt: {
-                    type: 'object',
-                    additionalProperties: {
-                        type: 'number',
-                    },
-                    description: 'Dict of {Key: key}',
-                },
-                lt: {
-                    type: 'object',
-                    additionalProperties: {
-                        type: 'number',
-                    },
-                    description: 'Dict of {Key: key}',
-                },
-            },
-        }
-    )
-);
