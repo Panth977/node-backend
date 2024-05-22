@@ -9,7 +9,6 @@ const contextSchema = z.object({
 });
 type Context = z.infer<typeof contextSchema>;
 type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace';
-
 function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObject | null | undefined): { decorator: string; code: string } {
     if (!schema || !Object.keys(schema).length) {
         return { code: `z.any()`, decorator: '' };
@@ -131,7 +130,7 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
             decoratorCodeLines.push(`@${key} "${JSON.stringify(decoratorObj[key])}"`);
         }
     }
-    const decoratorCode = !decoratorCodeLines.length ? '' : `/**\n${decoratorCodeLines.map((x) => ` * ${x}`).join('\n')}\n */`;
+    const decoratorCode = !decoratorCodeLines.length ? '' : `/** ${decoratorCodeLines.join(' ')} */`;
     return { code: outputCode, decorator: decoratorCode };
 }
 
@@ -224,7 +223,7 @@ function createRouteCode(
             decoratorCodeLines.push(`@${key} "${JSON.stringify(decoratorObj[key])}"`);
         }
     }
-    const decoratorCode = !decoratorCodeLines.length ? '' : `/**\n${decoratorCodeLines.map((x) => ` * ${x}`).join('\n')}\n */`;
+    const decoratorCode = !decoratorCodeLines.length ? '' : `/** ${decoratorCodeLines.join(' ')} */`;
     if (!route.operationId) throw new Error('No bundling name or endpoint name could be resolved!');
     return { tags: route.tags ?? [], name: route.operationId, decorator: decoratorCode, code };
 }
