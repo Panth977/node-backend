@@ -48,7 +48,7 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
         let code = '';
         for (const propName in schema.properties) {
             const propSchemaCode = createSchemaCode(context, schema.properties[propName]);
-            if (!schema.required?.includes(propName)) propSchemaCode.code = `z.optional(${code})`;
+            if (!schema.required?.includes(propName)) propSchemaCode.code = `${propSchemaCode.code}.optional()`;
             code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code},`;
         }
         code = `z.object({${code}})`;
@@ -318,3 +318,33 @@ function buildApiCallHandler(server, func) {
     return (endpoint, payload) => func(server, endpoint, payload);
 }
 `;
+
+console.log(
+    createSchemaCode(
+        {
+            baseUrlName: 'B',
+            lang: 'js',
+            routesName: 'R',
+            schemaName: 'S',
+        },
+        {
+            type: 'object',
+            properties: {
+                gt: {
+                    type: 'object',
+                    additionalProperties: {
+                        type: 'number',
+                    },
+                    description: 'Dict of {Key: key}',
+                },
+                lt: {
+                    type: 'object',
+                    additionalProperties: {
+                        type: 'number',
+                    },
+                    description: 'Dict of {Key: key}',
+                },
+            },
+        }
+    )
+);
