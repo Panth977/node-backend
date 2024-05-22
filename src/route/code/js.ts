@@ -127,7 +127,7 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
     const decoratorCodeLines = [];
     for (const key in decoratorObj) {
         if (decoratorObj[key] !== undefined) {
-            decoratorCodeLines.push(`@${key} "${JSON.stringify(decoratorObj[key])}"`);
+            decoratorCodeLines.push(`@${key} ${JSON.stringify(decoratorObj[key])}`);
         }
     }
     const decoratorCode = !decoratorCodeLines.length ? '' : `/** ${decoratorCodeLines.join(' ')} */`;
@@ -220,7 +220,7 @@ function createRouteCode(
     const decoratorCodeLines = [];
     for (const key in decoratorObj) {
         if (decoratorObj[key] !== undefined) {
-            decoratorCodeLines.push(`@${key} "${JSON.stringify(decoratorObj[key])}"`);
+            decoratorCodeLines.push(`@${key} ${JSON.stringify(decoratorObj[key])}`);
         }
     }
     const decoratorCode = !decoratorCodeLines.length ? '' : `/** ${decoratorCodeLines.join(' ')} */`;
@@ -244,7 +244,7 @@ export function javascript(context: Context, json: OpenAPIObject) {
         let code = '';
         for (const schemaName in json.components?.schemas) {
             const schema = createSchemaCode(context, json.components?.schemas[schemaName]);
-            code += `${schema.decorator} get "${JSON.stringify(schemaName)}"() {return ${schema.code}},`;
+            code += `${schema.decorator} get ${JSON.stringify(schemaName)}() {return ${schema.code}},`;
         }
         return `const ${context.schemaName} = {${code}};`;
     })();
