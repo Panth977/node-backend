@@ -60,13 +60,13 @@ export function Debug(
         Wrapper = function (context, input, func) {
             const start = Date.now();
             try {
-                if (behavior.input) context.logger.debug('input', input);
+                if (behavior.input) context.logger('input', input);
                 const output = func(context, input);
-                if (behavior.output) context.logger.debug('output', output);
+                if (behavior.output) context.logger('output', output);
                 return output;
             } finally {
                 const timeTaken = Date.now() - start;
-                context.logger.debug('⏳ Time', {
+                context.logger('⏳ Time', {
                     throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
                     time: timeTaken,
                     stack: context.getStack(),
@@ -78,13 +78,13 @@ export function Debug(
         Wrapper = async function (context, input, func) {
             const start = Date.now();
             try {
-                if (behavior.input) context.logger.debug('input', input);
+                if (behavior.input) context.logger('input', input);
                 const output = await func(context, input);
-                if (behavior.output) context.logger.debug('output', output);
+                if (behavior.output) context.logger('output', output);
                 return output;
             } finally {
                 const timeTaken = Date.now() - start;
-                context.logger.debug('⏳ Time', {
+                context.logger('⏳ Time', {
                     throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
                     time: timeTaken,
                     stack: context.getStack(),
@@ -96,27 +96,27 @@ export function Debug(
         Wrapper = async function* (context, input, func) {
             const start = Date.now();
             try {
-                if (behavior.input) context.logger.debug('input', input);
+                if (behavior.input) context.logger('input', input);
                 const g = func(context, input);
                 let val = await g.next();
                 let i = 0;
                 while (!val.done) {
                     const timeTaken = Date.now() - start;
-                    context.logger.debug('⏳ Time', {
+                    context.logger('⏳ Time', {
                         yield: i,
                         throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
                         time: timeTaken,
                         stack: context.getStack(),
                     });
                     i++;
-                    if (behavior.yield) context.logger.debug('yield', val.value);
+                    if (behavior.yield) context.logger('yield', val.value);
                     const next = yield val.value;
-                    if (behavior.next) context.logger.debug('next', next);
+                    if (behavior.next) context.logger('next', next);
                     val = await g.next(next);
                 }
-                if (behavior.output) context.logger.debug('output', val.value);
+                if (behavior.output) context.logger('output', val.value);
             } finally {
-                context.logger.debug('⏳ Time', { time: Date.now() - start, stack: context.getStack() });
+                context.logger('⏳ Time', { time: Date.now() - start, stack: context.getStack() });
             }
         } satisfies AsyncGenerator.WrapperBuild;
     }
@@ -124,28 +124,28 @@ export function Debug(
         Wrapper = function* (context, input, func) {
             const start = Date.now();
             try {
-                if (behavior.input) context.logger.debug('input', input);
+                if (behavior.input) context.logger('input', input);
                 const g = func(context, input);
                 let val = g.next();
                 let i = 0;
                 while (!val.done) {
                     const timeTaken = Date.now() - start;
-                    context.logger.debug('⏳ Time', {
+                    context.logger('⏳ Time', {
                         yield: i,
                         throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
                         time: timeTaken,
                         stack: context.getStack(),
                     });
                     i++;
-                    if (behavior.yield) context.logger.debug('yield', val.value);
+                    if (behavior.yield) context.logger('yield', val.value);
                     const next = yield val.value;
-                    if (behavior.next) context.logger.debug('next', next);
+                    if (behavior.next) context.logger('next', next);
                     val = g.next(next);
                 }
-                if (behavior.output) context.logger.debug('output', val.value);
+                if (behavior.output) context.logger('output', val.value);
                 return val.value;
             } finally {
-                context.logger.debug('⏳ Time', { time: Date.now() - start, stack: context.getStack() });
+                context.logger('⏳ Time', { time: Date.now() - start, stack: context.getStack() });
             }
         } satisfies SyncGenerator.WrapperBuild;
     }
