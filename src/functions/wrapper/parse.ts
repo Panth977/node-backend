@@ -81,17 +81,17 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
             while (!val.done) {
                 let y = val.value;
                 if (behavior.yield ?? true) {
-                    y = params._input.parse(y, { path: [context.params.getRef() + ':yield'] });
+                    y = params._yield.parse(y, { path: [context.params.getRef() + ':yield'] });
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
-                    next = params._input.parse(next, { path: [context.params.getRef() + ':next'] });
+                    next = params._next.parse(next, { path: [context.params.getRef() + ':next'] });
                 }
                 val = await g.next(next);
             }
             let output = val.value;
             if (behavior.output ?? true) {
-                output = params._input.parse(output, { path: [context.params.getRef() + ':output'] });
+                output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
             }
             return output;
         } satisfies AsyncGenerator.WrapperBuild;
@@ -106,17 +106,17 @@ export function SafeParse(params_: unknown, behavior: { input?: boolean; output?
             while (!val.done) {
                 let y = val.value;
                 if (behavior.yield ?? true) {
-                    y = params._input.parse(y, { path: [context.params.getRef() + ':yield'] });
+                    y = params._yield.parse(y, { path: [context.params.getRef() + ':yield'] });
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
-                    next = params._input.parse(next, { path: [context.params.getRef() + ':next'] });
+                    next = params._next.parse(next, { path: [context.params.getRef() + ':next'] });
                 }
                 val = g.next(next);
             }
             let output = val.value;
             if (behavior.output ?? true) {
-                output = params._input.parse(output, { path: [context.params.getRef() + ':output'] });
+                output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
             }
             return output;
         } satisfies SyncGenerator.WrapperBuild;
