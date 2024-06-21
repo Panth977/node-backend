@@ -11,7 +11,7 @@ const pass = route.createMiddleware({
         functions.wrapper.Debug(params),
     ],
     async func(context, input) {
-        context.logger('input-middleware', input);
+        context.log('input-middleware', input);
         return {
             options: { isValid: true },
         };
@@ -26,7 +26,7 @@ const unsafePass = route.createMiddleware({
         functions.wrapper.Debug(params),
     ],
     async func(context, input) {
-        context.logger('input-middleware', input);
+        context.log('input-middleware', input);
         return {
             options: { isValid: true },
         };

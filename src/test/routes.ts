@@ -23,7 +23,7 @@ const GET_File = endpointFactory.Factory1.http('get', '/file/{filename}', {
         functions.wrapper.Debug(params),
     ],
     async func(context, input) {
-        context.logger('input-endpoint', input);
+        context.log('input-endpoint', input);
         if (!context.options.isValid) throw createHttpError.NotAcceptable();
         const filePath = path.join(__dirname, input.path.filename);
         const fileBuffer = fs.readFileSync(filePath);

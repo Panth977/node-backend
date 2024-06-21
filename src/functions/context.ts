@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 
 export type Context = {
     id: string;
-    logger(message: string, meta?: unknown): void;
+    log(message: string, meta?: unknown): void;
     onDispose: (exe: () => Promise<void>) => void;
     dispose: () => Promise<void>;
     getStack(): string | undefined;
@@ -13,7 +13,7 @@ export const DefaultBuildContext: BuildContext<Context> = function (context) {
     let dispose: (() => Promise<void>)[] = [];
     return {
         id: randomUUID(),
-        logger(message, meta) {
+        log(message, meta) {
             console.log(this.id, message, meta);
         },
         onDispose(exe) {
