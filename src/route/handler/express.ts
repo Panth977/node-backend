@@ -96,24 +96,23 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
     throw new Error('Unimplemented');
 }
 
-function defaultOnError(error: unknown): createHttpError.HttpError {
-    console.error('Request Error:', error);
+function defaultOnError(context: Context | undefined | null, error: unknown): createHttpError.HttpError {
     if (createHttpError.isHttpError(error)) return error;
-    console.log(error);
+    context?.log('Request Error:', error) ?? console.error('Request Error:', error);
     return createHttpError.InternalServerError('Something went wrong!');
 }
 
-export function createErrorHandler(onError: typeof defaultOnError): ErrorRequestHandler {
+export function createErrorHandler(onError: typeof defaultOnError): ErrorRequestHandler<never, never, never, never, Locals> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return function (error, req, res, next) {
         try {
-            error = onError(error);
+            error = onError(res.locals.context, error);
             console.error('Request Error:', error);
             for (const key in error.headers) res.setHeader(key, error.headers[key]);
             res.status(error.status).json(error.message);
         } catch (err) {
             console.error(err);
-            res.status(500).json('Something went wrong!');
+            res.status(500).json('Something went wrong!' as never);
         }
     };
 }
