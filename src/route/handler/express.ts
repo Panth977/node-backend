@@ -163,6 +163,7 @@ export function serve(
                             const genCode = genFn(req.query, jsonDoc);
                             res.status(200).json(genCode);
                         } catch (err) {
+                            console.error(err);
                             res.status(500).send(err);
                         }
                     }
