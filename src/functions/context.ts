@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import util from 'util';
 
 export type Context = {
     id: string;
@@ -13,8 +14,13 @@ export const DefaultBuildContext: BuildContext<Context> = function (context) {
     let dispose: (() => Promise<void>)[] = [];
     return {
         id: randomUUID(),
-        log(message, meta) {
-            console.log(this.id, message, meta);
+        log(...args) {
+            const id = this.id;
+            const message = util.format(...args);
+            const lines = message.split('\n');
+            for (const line of lines) {
+                console.log(id, line);
+            }
         },
         onDispose(exe) {
             dispose.push(exe);
