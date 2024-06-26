@@ -73,6 +73,9 @@ export function createSse<
 ): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
     const params: SseEndpoint.Params = {
         documentation: {
+            get operationId() {
+                return build.getName();
+            },
             tags: middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(_params.tags ?? [])]),
             security: middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(_params.security ?? [])]),
             description: _params.description,
