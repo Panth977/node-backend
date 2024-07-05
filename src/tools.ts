@@ -1,12 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type KeyPath<T> = keyof T | (string & Record<never, never>);
-// export function getNestedKey(obj: any, path: string[]) {
-//     return path.reduce((acc, part) => acc && acc[part], obj);
-// }
-
-// export function setNestedKey(obj: any, path: string[], value: any): void {
-//     return (path.slice(0, path.length - 1).reduce((acc, part) => acc && acc[part], obj)[path[path.length - 1]] = value);
-// }
 
 export function orderOnKey<R>(ids: string[], rows: (R | undefined)[], key: KeyPath<R>): (R | undefined)[] {
     // Create a map of rows keyed by the value at the specified key path
@@ -16,25 +9,6 @@ export function orderOnKey<R>(ids: string[], rows: (R | undefined)[], key: KeyPa
     const orderedRows = ids.map((id) => rowsMap.get(id) || undefined);
 
     return orderedRows;
-}
-
-export function separateEmpty<R>(ids: string[], rows: (R | undefined)[]): string[] {
-    const empty = ids.filter((id, index) => {
-        const row = rows[index];
-        // Check for the row being undefined or an empty object
-        return !row;
-    });
-    return empty;
-}
-
-export function bundle<R>(ids: string[], rows: (R | undefined)[]): Record<string, R> {
-    const res: Record<string, R> = {};
-    for (let i = 0; i < ids.length; i++) {
-        if (rows[i]) {
-            res[ids[i]] = rows[i] as R;
-        }
-    }
-    return res;
 }
 
 export function mapRowOnKey<R>(rows: (R | undefined)[], key: KeyPath<R>): Record<string, R> {
@@ -69,22 +43,6 @@ export function bundleOnKey<R>(rows: (R | undefined)[], key: KeyPath<R>): Record
     return result;
 }
 
-export function expandList<R>(bundleRows: R[][]): R[] {
-    const result = [];
-
-    for (const rows of bundleRows) {
-        if (rows) {
-            for (const row of rows) {
-                if (row) {
-                    result.push(row);
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
 export function sortOnKey<R>(rows: R[], key: KeyPath<R>, mode: 'ASC' | 'DESC'): R[] {
     if (rows.length < 2) return rows;
     if (mode === 'ASC') {
@@ -112,12 +70,12 @@ export function undefinedKeysInRecord<R>(rows: Record<string, R>, keys: string[]
     return notFoundKeys;
 }
 
-export function destructureSqlRows(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+export function destructureSqlRows(rows: Record<string, unknown>[], split = '.'): Record<string, unknown>[] {
     const newRows = [];
     for (const row of rows) {
         const newRow = {};
         Object.entries(row).forEach(([key, value]) => {
-            const parts = key.split('.');
+            const parts = key.split(split);
             const lastKey = parts.pop() as string;
             let current: any = newRow;
             for (const key of parts) {
@@ -128,4 +86,27 @@ export function destructureSqlRows(rows: Record<string, unknown>[]): Record<stri
         newRows.push(newRow);
     }
     return newRows;
+}
+
+type Prop<T, K> = K extends [infer K1 extends string, ...infer Ks extends string[]] ? (T extends { [k in K1]: infer V } ? Prop<V, Ks> : never) : T;
+type KeyOf<T> = keyof T;
+type ValueOf<T> = T[KeyOf<T>];
+type Primitive = null | symbol | undefined | number | string | boolean | ((...arg: any[]) => any);
+type KeyTree<T> = ValueOf<{ [k in KeyOf<T>]: T[k] extends Primitive ? [k] : [k] | [k, ...KeyTree<T[k]>] }>;
+type _Join<A, S extends string> = A extends [infer E1 extends string | number, ...infer Es] ? `${E1}${S}${_Join<Es, S>}` : ``;
+type Join<A, S extends string> = _Join<A, S> extends `${infer E}${S}` ? E : never;
+type _Split<A, S extends string> = A extends `${infer E1}${S}${infer Es}` ? [E1, ..._Split<Es, S>] : [];
+type Split<A, S extends string> = A extends string ? _Split<`${A}${S}`, S> : never;
+
+export function getInnerProps<T, K extends Join<KeyTree<T>, '.'>>(obj: T, keyPath: K): Prop<T, Split<K, '.'>>;
+export function getInnerProps<S extends string, T, K extends Join<KeyTree<T>, S>>(obj: T, keyPath: K, split: S): Prop<T, Split<K, S>>;
+export function getInnerProps(obj: any, keyPath: string, split = '.') {
+    const path = keyPath.split(split);
+    return path.reduce<any>((acc, part) => acc && acc[part], obj);
+}
+export function setInnerProps<T, K extends Join<KeyTree<T>, '.'>>(obj: T, keyPath: K, value: Prop<T, Split<K, '.'>>): void;
+export function setInnerProps<S extends string, T, K extends Join<KeyTree<T>, S>>(obj: T, keyPath: K, value: Prop<T, Split<K, S>>, split: S): void;
+export function setInnerProps(obj: any, keyPath: string, value: any, split = '.') {
+    const path = keyPath.split(split);
+    path.slice(0, path.length - 1).reduce<any>((acc, part) => acc && acc[part], obj)[path[path.length - 1]] = value;
 }
