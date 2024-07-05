@@ -1,23 +1,23 @@
-import { functions } from '..';
+import { FUNCTIONS } from '..';
 type Actions = { read: boolean; write: boolean; remove: boolean };
 
 export abstract class AbstractCacheClient {
     abstract readonly name: string;
 
-    abstract readM<T extends Record<never, never>>(context: functions.Context, params: { keys: string[] }): Promise<Partial<T>>;
+    abstract readM<T extends Record<never, never>>(context: FUNCTIONS.Context, params: { keys: string[] }): Promise<Partial<T>>;
     abstract readMHashField<T extends Record<never, never>>(
-        context: functions.Context,
+        context: FUNCTIONS.Context,
         params: { key: string; fields: '*' | string[] }
     ): Promise<Partial<T>>;
 
-    abstract writeM<T extends Record<never, never>>(context: functions.Context, params: { keyValues: T; expire: number }): Promise<void>;
+    abstract writeM<T extends Record<never, never>>(context: FUNCTIONS.Context, params: { keyValues: T; expire: number }): Promise<void>;
     abstract writeMHashField<T extends Record<never, never>>(
-        context: functions.Context,
+        context: FUNCTIONS.Context,
         params: { key: string; fieldValues: T; expire: number }
     ): Promise<void>;
 
-    abstract removeM(context: functions.Context, params: { keys: string[] }): Promise<void>;
-    abstract removeMHashField(context: functions.Context, params: { key: string; fields: string[] }): Promise<void>;
+    abstract removeM(context: FUNCTIONS.Context, params: { keys: string[] }): Promise<void>;
+    abstract removeMHashField(context: FUNCTIONS.Context, params: { key: string; fields: string[] }): Promise<void>;
 }
 
 export class CacheController<T extends AbstractCacheClient> {
@@ -81,7 +81,7 @@ export class CacheController<T extends AbstractCacheClient> {
 
     /* Controllers */
     async readM<T extends Record<never, never>>(
-        context: functions.Context,
+        context: FUNCTIONS.Context,
         _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] | '*' }
     ): Promise<Partial<T>> {
         const params = { ..._params };
@@ -140,7 +140,7 @@ export class CacheController<T extends AbstractCacheClient> {
         return {} as never;
     }
     async writeM<T extends Record<never, never>>(
-        context: functions.Context,
+        context: FUNCTIONS.Context,
         _params: { keyValues: T; key?: undefined; expire?: number } | { key: string; fieldValues: T; expire?: number }
     ): Promise<void> {
         const params = { ..._params, expire: _params.expire ?? this.defaultExpiry };
@@ -188,7 +188,7 @@ export class CacheController<T extends AbstractCacheClient> {
             context.log('Error:', err);
         }
     }
-    async removeM(context: functions.Context, _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] }): Promise<void> {
+    async removeM(context: FUNCTIONS.Context, _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] }): Promise<void> {
         const params = { ..._params };
         if (params.key !== undefined) {
             params.key = this.getKey(params.key);

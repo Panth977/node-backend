@@ -1,21 +1,21 @@
 import { CacheController, AbstractCacheClient } from './controller';
 import { z } from 'zod';
-import { functions } from '..';
+import { FUNCTIONS } from '..';
 
 export function CacheObject<
     //
     I extends z.ZodType,
     O extends z.ZodType,
     L,
-    C extends functions.Context,
+    C extends FUNCTIONS.Context,
     A extends AbstractCacheClient,
 >(
-    params: functions.AsyncFunction.Params<I, O, L, C>,
+    params: FUNCTIONS.AsyncFunction.Params<I, O, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
         getCache(input: I['_output']): CacheController<A>;
     }
-): functions.AsyncFunction.WrapperBuild<I, O, L, C> {
+): FUNCTIONS.AsyncFunction.WrapperBuild<I, O, L, C> {
     behavior.invalidation?.(async function (context, input) {
         const cache = behavior.getCache(input);
         await cache.removeM(context, { keys: [''] });
@@ -37,18 +37,18 @@ export function CacheMap<
     I extends z.ZodType,
     O extends z.ZodType,
     L,
-    C extends functions.Context,
+    C extends FUNCTIONS.Context,
     K extends string | number,
     A extends AbstractCacheClient,
 >(
-    params: functions.AsyncFunction.Params<I, O, L, C>,
+    params: FUNCTIONS.AsyncFunction.Params<I, O, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
         getCache(input: I['_output']): CacheController<A>;
         getKeys(input: I['_output']): K[];
         updateKeys(input: I['_output'], keys: K[]): I['_output'];
     }
-): functions.AsyncFunction.WrapperBuild<I, O, L, C> {
+): FUNCTIONS.AsyncFunction.WrapperBuild<I, O, L, C> {
     behavior.invalidation?.(async function (context, input) {
         const cache = behavior.getCache(input);
         const keys = behavior.getKeys(input);
@@ -73,18 +73,18 @@ export function CacheCollection<
     I extends z.ZodType,
     O extends z.ZodType,
     L,
-    C extends functions.Context,
+    C extends FUNCTIONS.Context,
     K extends string | number,
     A extends AbstractCacheClient,
 >(
-    params: functions.AsyncFunction.Params<I, O, L, C>,
+    params: FUNCTIONS.AsyncFunction.Params<I, O, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
         getCache(input: I['_output']): CacheController<A>;
         getFields(input: I['_output']): K[] | '*';
         updateFields(input: I['_output'], reqKeys: K[], ignoreKeys: string[]): I['_output'];
     }
-): functions.AsyncFunction.WrapperBuild<I, O, L, C> {
+): FUNCTIONS.AsyncFunction.WrapperBuild<I, O, L, C> {
     behavior.invalidation?.(async function (context, input) {
         const cache = behavior.getCache(input);
         const fields = behavior.getFields(input);
