@@ -1,4 +1,4 @@
-import { RedisClientType } from 'redis';
+import { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from 'redis';
 import { Context } from '../../functions';
 import { AbstractCacheClient } from '../controller';
 
@@ -27,10 +27,14 @@ function map<I, O>(obj: Record<string, I>, fn: (input: I) => O) {
     return Object.fromEntries(Object.keys(obj).map((key) => [key, fn(obj[key])]));
 }
 
-export class RedisCacheClient extends AbstractCacheClient {
-    readonly client: RedisClientType;
+export class RedisCacheClient<
+    M extends RedisModules = RedisDefaultModules,
+    F extends RedisFunctions = Record<string, never>,
+    S extends RedisScripts = Record<string, never>,
+> extends AbstractCacheClient {
+    readonly client: RedisClientType<M, F, S>;
     readonly name = 'Redis';
-    constructor(client: RedisClientType) {
+    constructor(client: RedisClientType<M, F, S>) {
         super();
         this.client = client;
     }
