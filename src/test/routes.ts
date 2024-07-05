@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { functions } from '..';
+import { FUNCTIONS } from '..';
 import * as fs from 'fs';
 import * as path from 'path';
 import createHttpError from 'http-errors';
@@ -18,9 +18,9 @@ const GET_File = endpointFactory.Factory1.http('get', '/file/{filename}', {
     resBody: z.any(),
     wrappers: (params) => [
         //
-        functions.wrapper.SafeParse(params),
-        functions.wrapper.MemoData(params, { getKey: (input) => input.path.filename, expSec: 80 }),
-        functions.wrapper.Debug(params),
+        FUNCTIONS.WRAPPER.SafeParse(params),
+        FUNCTIONS.WRAPPER.MemoData(params, { getKey: (input) => input.path.filename, expSec: 80 }),
+        FUNCTIONS.WRAPPER.Debug(params),
     ],
     async func(context, input) {
         context.log('input-endpoint', input);

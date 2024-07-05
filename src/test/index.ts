@@ -1,11 +1,11 @@
-import { route } from '..';
+import { ROUTES } from '..';
 import * as fs from 'fs';
 import * as path from 'path';
 import express from 'express';
 import { routes } from './routes';
 import compression from 'compression';
 
-const router = route.handler.express.serve(route.getEndpointsFromBundle(routes), undefined, {
+const router = ROUTES.HANDLER.EXPRESS.serve(ROUTES.getEndpointsFromBundle(routes), undefined, {
     params: {
         openapi: '3.0.1',
         info: {

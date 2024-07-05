@@ -1,7 +1,7 @@
-import { route } from '..';
+import { ROUTES } from '..';
 import { middlewares } from './middleware';
 
 export const endpointFactory = {
-    Factory1: route.Endpoint.build().addMiddleware(middlewares.pass).addTags('aa'),
-    Factory2: route.Endpoint.build(),
+    Factory1: ROUTES.Endpoint.build().addMiddleware(middlewares.pass).addTags('aa'),
+    Factory2: ROUTES.Endpoint.build(),
 };

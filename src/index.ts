@@ -1,5 +1,5 @@
-export * as functions from './functions';
-export * as route from './route';
-export * as cache from './cache';
-export * as Tools from './tools';
-export * as PubSub from './pubsub';
+export * as FUNCTIONS from './functions';
+export * as ROUTES from './route';
+export * as CACHE from './cache';
+export * as TOOLS from './tools';
+export * as PUBSUB from './pubsub';
