@@ -90,17 +90,33 @@ export class RedisCacheClient<
     async increment(
         context: FUNCTIONS.Context,
         controller: CacheController<RedisCacheClient<M, F, S>> | null,
-        params: { key: string; incrBy: number; maxLimit?: number }
+        params: { key: string; incrBy: number; maxLimit?: number; expiry?: number }
     ): Promise<boolean> {
         if (controller) params.key = controller.getKey(params.key);
+        if (controller && params.expiry === undefined) params.expiry = controller.defaultExpiry;
         if (params.maxLimit === undefined) {
             await this.client.incrBy(params.key, params.incrBy);
             return true;
         }
         const luaScript = `
-local currentValue = tonumber(redis.call('GET', KEYS[1]) or '0')
-if currentValue + tonumber(ARGV[1]) <= tonumber(ARGV[2]) then
-    redis.call('INCRBY', KEYS[1], ARGV[1])
+local key = KEYS[1]
+local incrBy = tonumber(ARGV[1])
+local maxLimit = tonumber(ARGV[2])
+local expirySec = tonumber(ARGV[3])
+local currentValue = tonumber(redis.call('GET', key) or '0')
+
+if currentValue == 0 then
+    if incrBy <= maxLimit then
+        redis.call('SET', key, incrBy)
+        if expirySec > 0 then
+            redis.call('EXPIRE', key, expirySec)
+        end
+        return true
+    else
+        return false
+    end
+elseif currentValue + incrBy <= maxLimit then
+    redis.call('INCRBY', key, incrBy)
     return true
 else
     return false
@@ -109,7 +125,7 @@ end
         // Execute the Lua script
         const isAllowed = await this.client.eval(luaScript, {
             keys: [params.key],
-            arguments: [`${params.incrBy}`, `${params.maxLimit}`],
+            arguments: [`${params.incrBy}`, `${params.maxLimit}`, `${params.expiry || 0}`],
         });
         return !!isAllowed;
     }
