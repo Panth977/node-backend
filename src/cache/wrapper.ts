@@ -57,8 +57,8 @@ export function CacheMap<
     return async function CacheMap(context, input, func) {
         const cache = behavior.getCache(input);
         const keys = behavior.getKeys(input);
-        const result = await cache.readM(context, { keys: keys as string[] });
-        const uncachedKeys = keys.filter((id) => id in result);
+        const result = await cache.readM<Record<K, unknown>>(context, { keys: keys as string[] });
+        const uncachedKeys = keys.filter((id) => result[id] === undefined);
         if (uncachedKeys.length) {
             const bulk = await func(context, behavior.updateKeys(input, uncachedKeys));
             cache.writeM(context, { keyValues: bulk });
@@ -108,8 +108,8 @@ export function CacheCollection<
             return result;
         }
         if (fields.includes('$' as K)) throw new Error('Field is not allowed to be [$]');
-        const result = await cache.readM(context, { key: '', fields: fields as string[] });
-        const uncachedFields = fields.filter((id) => id in result);
+        const result = await cache.readM<Record<K, unknown>>(context, { key: '', fields: fields as string[] });
+        const uncachedFields = fields.filter((id) => result[id] === undefined);
         if (uncachedFields.length) {
             const bulk = await func(context, behavior.updateFields(input, uncachedFields, []));
             cache.writeM(context, { key: '', fieldValues: bulk });
