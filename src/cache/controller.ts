@@ -2,7 +2,7 @@ import { FUNCTIONS } from '..';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 type Actions = { read: boolean; write: boolean; remove: boolean };
-type ExtendedFunc<C extends AbstractCacheClient, P, R> = (context: FUNCTIONS.Context, controller: CacheController<C>, params: P) => R;
+type ExtendedFunc<P, R> = (context: FUNCTIONS.Context, controller: CacheController, params: P) => R;
 export abstract class AbstractCacheClient {
     abstract readonly name: string;
 
@@ -22,7 +22,7 @@ export abstract class AbstractCacheClient {
     abstract removeMHashField(context: FUNCTIONS.Context, params: { key: string; fields: string[] }): Promise<void>;
 }
 
-export class CacheController<T extends AbstractCacheClient> {
+export class CacheController<T extends AbstractCacheClient = AbstractCacheClient> {
     readonly separator;
     readonly defaultExpiry: number;
     readonly client: T;
@@ -232,11 +232,11 @@ export class CacheController<T extends AbstractCacheClient> {
         }
     }
     /* Extensions */
-    run<K extends { [K in keyof T]: T[K] extends ExtendedFunc<T, Any, Any> ? K : never }[keyof T]>(
+    run<K extends { [K in keyof T]: T[K] extends ExtendedFunc<Any, Any> ? K : never }[keyof T]>(
         context: FUNCTIONS.Context,
         method: K,
-        params: T[K] extends ExtendedFunc<T, infer P, Any> ? P : never
-    ): T[K] extends ExtendedFunc<T, Any, infer R> ? R : never {
-        return (this.client[method] as ExtendedFunc<T, unknown, unknown>)(context, this as never, params) as never;
+        params: T[K] extends ExtendedFunc<infer P, Any> ? P : never
+    ): T[K] extends ExtendedFunc<Any, infer R> ? R : never {
+        return (this.client[method] as ExtendedFunc<unknown, unknown>)(context, this as never, params) as never;
     }
 }
