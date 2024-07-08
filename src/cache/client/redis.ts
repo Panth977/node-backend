@@ -87,9 +87,9 @@ export class RedisCacheClient<
         }
         await this.client.hDel(params.key, params.fields);
     }
-    async increment(
+    async increment<C extends RedisCacheClient<M, F, S>>(
         context: FUNCTIONS.Context,
-        controller: CacheController<RedisCacheClient<M, F, S>> | null,
+        controller: CacheController<C> | null,
         params: { key: string; incrBy: number; maxLimit?: number; expiry?: number }
     ): Promise<boolean> {
         if (controller) params.key = controller.getKey(params.key);
