@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 export type Context = {
     id: string;
     log(message: string, meta?: unknown): void;
-    onDispose: (exe: () => Promise<void>) => void;
+    onDispose: (exe: (context: Omit<Context, 'onDispose' | 'dispose'>) => Promise<void>) => void;
     dispose: () => Promise<void>;
     getStack(): string | undefined;
 };
@@ -14,9 +14,14 @@ let defaultLogger = function (context: Omit<Context, 'log'>, args: unknown[]) {
 export function setDefaultLogger(logger: typeof defaultLogger) {
     defaultLogger = logger;
 }
+let defaultOnDisposeExe: Parameters<Context['onDispose']>[0] | null = null;
+export function setDefaultOnDisposeExe(exe: typeof defaultOnDisposeExe) {
+    defaultOnDisposeExe = exe;
+}
 export const DefaultBuildContext: BuildContext<Context> = function (context) {
-    if (context) return Object.assign({}, context);
-    let dispose: (() => Promise<void>)[] = [];
+    if (context) return Object.assign({}, context, { params: undefined });
+    const dispose: Parameters<Context['onDispose']>[0][] = [];
+    if (defaultOnDisposeExe) dispose.push(defaultOnDisposeExe);
     return {
         id: randomUUID(),
         log(...args) {
@@ -26,9 +31,7 @@ export const DefaultBuildContext: BuildContext<Context> = function (context) {
             dispose.push(exe);
         },
         async dispose() {
-            const dispose_ = [...dispose];
-            dispose = [];
-            await Promise.allSettled(dispose_.map((exe) => exe));
+            await Promise.allSettled([...dispose].reverse().map((exe) => exe(this)));
         },
         getStack() {
             return new Error().stack?.substring(5);
