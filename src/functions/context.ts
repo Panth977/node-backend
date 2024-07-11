@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import util from 'util';
 
 export type Context = {
     id: string;
@@ -9,18 +8,19 @@ export type Context = {
     getStack(): string | undefined;
 };
 export type BuildContext<C extends Context> = (context: Context | null) => C;
+let defaultLogger = function (context: Context, args: unknown[]) {
+    console.log(...args);
+};
+export function setDefaultLogger(logger: typeof defaultLogger) {
+    defaultLogger = logger;
+}
 export const DefaultBuildContext: BuildContext<Context> = function (context) {
     if (context) return Object.assign({}, context);
     let dispose: (() => Promise<void>)[] = [];
     return {
         id: randomUUID(),
         log(...args) {
-            const id = this.id;
-            const message = util.format(...args);
-            const lines = message.split('\n');
-            for (const line of lines) {
-                console.log(id, line);
-            }
+            defaultLogger(this, args);
         },
         onDispose(exe) {
             dispose.push(exe);
