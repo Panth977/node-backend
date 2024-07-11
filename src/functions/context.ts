@@ -26,7 +26,7 @@ export const DefaultBuildContext = (function () {
         };
     }
     const DefaultBuildContext: BuildContext<Context> = function (context) {
-        if (context) return Object.assign({}, context, { params: undefined });
+        if (context) return Object.assign({}, context);
         const dispose: Parameters<Context['onDispose']>[0][] = [];
         return {
             id: randomUUID(),

@@ -34,12 +34,15 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
     if (build.endpoint === 'middleware') {
         return async function (req, res, nxt) {
             try {
+                res.locals.context.log('🔄 ' + build.getRef());
                 const input = { headers: req.headers, query: req.query };
                 const output = await build(res.locals.context, input);
                 for (const key in output.headers) res.setHeader(key, output.headers[key]);
                 Object.assign(res.locals.options, output.options);
+                res.locals.context.log('✅ ' + build.getRef());
                 nxt();
             } catch (error) {
+                res.locals.context.log('⚠️ ' + build.getRef());
                 nxt(error);
             }
         };
@@ -47,6 +50,7 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
     if (build.endpoint === 'http') {
         return async function (req, res, nxt) {
             try {
+                res.locals.context.log('🔄 ' + build.getRef());
                 const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
                 const context = Object.assign({}, res.locals.context, { options: res.locals.options });
                 const output = await build(context, input);
@@ -58,13 +62,16 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 } else {
                     res.status(200).json(output.body);
                 }
+                res.locals.context.log('✅ ' + build.getRef());
             } catch (error) {
+                res.locals.context.log('⚠️ ' + build.getRef());
                 nxt(error);
             }
         };
     }
     if (build.endpoint === 'sse') {
         return async function (req, res, nxt) {
+            res.locals.context.log('🔄 ' + build.getRef());
             let closed = false;
             try {
                 res.setHeader('Cache-Control', 'no-cache');
@@ -76,7 +83,9 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                     closed = true;
                 });
             } catch (error) {
+                res.locals.context.log('⚠️ ' + build.getRef());
                 nxt(error);
+                return;
             }
             try {
                 const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
@@ -86,8 +95,10 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                     res.write(`data: ${JSON.stringify(val.value)}\n\n`);
                     val = await g.next();
                 }
+                res.locals.context.log('✅ ' + build.getRef());
             } catch (error) {
                 console.log(error);
+                res.locals.context.log('⚠️ ' + build.getRef());
             }
             res.write(`data: ${JSON.stringify(null)}\n\n`);
             res.end();
