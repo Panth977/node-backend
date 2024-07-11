@@ -8,7 +8,7 @@ export type Context = {
     getStack(): string | undefined;
 };
 export type BuildContext<C extends Context> = (context: Context | null) => C;
-let defaultLogger = function (context: Context, args: unknown[]) {
+let defaultLogger = function (context: Omit<Context, 'log'>, args: unknown[]) {
     console.log(...args);
 };
 export function setDefaultLogger(logger: typeof defaultLogger) {
