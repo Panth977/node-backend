@@ -3,14 +3,14 @@ import { randomUUID } from 'crypto';
 export type Context = {
     id: string;
     log(message: string, meta?: unknown): void;
-    onDispose: (exe: () => Promise<void>) => void;
+    onDispose: (exe: () => void) => void;
     dispose: () => Promise<void>;
     getStack(): string | undefined;
 };
 export type BuildContext<C extends Context> = (context: Context | null) => C;
 export const DefaultBuildContext = (function () {
     type Logger = (context: Omit<Context, 'log'>, args: unknown[]) => void;
-    type OnDisposeExe = (context: Omit<Context, 'onDispose' | 'dispose'>) => Promise<void>;
+    type OnDisposeExe = (context: Omit<Context, 'onDispose' | 'dispose'>) => void;
     const loggers = new Set<Logger>();
     const onDisposeExes = new Set<OnDisposeExe>();
     function addLogger(logger: Logger) {
@@ -30,23 +30,21 @@ export const DefaultBuildContext = (function () {
         const dispose: Parameters<Context['onDispose']>[0][] = [];
         return {
             id: randomUUID(),
-            log(...args) {
-                if (loggers.size) {
-                    for (const fn of loggers) {
-                        fn(this, args);
-                    }
-                } else {
-                    console.log(...args);
-                }
+            async log(...args) {
+                await Promise.allSettled([
+                    //
+                    ...[...loggers].map(async (fn) => fn(this, args)),
+                ]);
             },
             onDispose(exe) {
                 dispose.push(exe);
             },
             async dispose() {
-                await Promise.allSettled([...dispose].reverse().map((exe) => exe()));
-                for (const fn of onDisposeExes) {
-                    fn(this);
-                }
+                await Promise.allSettled([
+                    //
+                    ...dispose.map(async (exe) => exe()),
+                    ...[...onDisposeExes].map(async (exe) => exe(this)),
+                ]);
             },
             getStack() {
                 return new Error().stack?.substring(5);
