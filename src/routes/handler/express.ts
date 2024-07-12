@@ -109,7 +109,11 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
 
 function defaultOnError(context: Context | undefined | null, error: unknown): createHttpError.HttpError {
     if (createHttpError.isHttpError(error)) return error;
-    context?.log('Request Error:', error) ?? console.error('Request Error:', error);
+    if (context) {
+        context.log('Request Error:', error);
+    } else {
+        console.error('Request Error:', error);
+    }
     return createHttpError.InternalServerError('Something went wrong!');
 }
 
@@ -118,7 +122,6 @@ export function createErrorHandler(onError: typeof defaultOnError): ErrorRequest
     return function (error, req, res, next) {
         try {
             error = onError(res.locals.context, error);
-            console.error('Request Error:', error);
             for (const key in error.headers) res.setHeader(key, error.headers[key]);
             res.status(error.status).json(error.message);
         } catch (err) {
