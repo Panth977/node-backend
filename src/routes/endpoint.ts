@@ -4,7 +4,7 @@ import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, createHttp } from './http';
 
-export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B) {
+export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B, options?: { includeTags?: string[]; excludeTags?: string[] }) {
     const allReady: Record<string, HttpEndpoint.Build | SseEndpoint.Build> = {};
     for (const loc in bundle) {
         const build = bundle[loc];
@@ -13,6 +13,28 @@ export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B
         }
         if (typeof build === 'function' && 'endpoint' in build && build.endpoint === 'sse') {
             allReady[loc] = build as unknown as SseEndpoint.Build;
+        }
+    }
+    if (options?.includeTags) {
+        const tags = new Set(options.includeTags);
+        loop: for (const loc in allReady) {
+            for (const tag of allReady[loc].documentation.tags ?? []) {
+                if (tags.has(tag)) {
+                    continue loop;
+                }
+            }
+            delete allReady[loc];
+        }
+    }
+    if (options?.excludeTags) {
+        const tags = new Set(options.excludeTags);
+        loop: for (const loc in allReady) {
+            for (const tag of allReady[loc].documentation.tags ?? []) {
+                if (tags.has(tag)) {
+                    delete allReady[loc];
+                    continue loop;
+                }
+            }
         }
     }
     return allReady;
