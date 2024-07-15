@@ -42,7 +42,7 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 res.locals.context.log('✅ ' + build.getRef());
                 nxt();
             } catch (error) {
-                res.locals.context.log('⚠️ ' + build.getRef());
+                res.locals.context.log('❌ ' + build.getRef());
                 nxt(error);
             }
         };
@@ -64,7 +64,7 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 }
                 res.locals.context.log('✅ ' + build.getRef());
             } catch (error) {
-                res.locals.context.log('⚠️ ' + build.getRef());
+                res.locals.context.log('❌ ' + build.getRef());
                 nxt(error);
             }
         };
@@ -83,7 +83,7 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                     closed = true;
                 });
             } catch (error) {
-                res.locals.context.log('⚠️ ' + build.getRef());
+                res.locals.context.log('❌ ' + build.getRef());
                 nxt(error);
                 return;
             }
@@ -97,8 +97,8 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 }
                 res.locals.context.log('✅ ' + build.getRef());
             } catch (error) {
-                console.log(error);
-                res.locals.context.log('⚠️ ' + build.getRef());
+                res.locals.context.log(error);
+                res.locals.context.log('❌ ' + build.getRef());
             }
             res.write(`data: ${JSON.stringify(null)}\n\n`);
             res.end();
@@ -120,14 +120,9 @@ function defaultOnError(context: Context | undefined | null, error: unknown): cr
 export function createErrorHandler(onError: typeof defaultOnError): ErrorRequestHandler<never, never, never, never, Locals> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     return function (error, req, res, next) {
-        try {
-            error = onError(res.locals.context, error);
-            for (const key in error.headers) res.setHeader(key, error.headers[key]);
-            res.status(error.status).json(error.message);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json('Something went wrong!' as never);
-        }
+        error = onError(res.locals.context, error);
+        for (const key in error.headers) res.setHeader(key, error.headers[key]);
+        res.status(error.status).json(error.message);
     };
 }
 
@@ -176,7 +171,6 @@ export function serve(
                             const genCode = genFn(req.query, jsonDoc);
                             res.status(200).json(genCode);
                         } catch (err) {
-                            console.error(err);
                             res.status(500).send(err);
                         }
                     }
