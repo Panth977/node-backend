@@ -97,6 +97,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         }
         let result: Partial<T> = {} as never;
         let error: unknown;
+        const start = Date.now();
         read: try {
             if (!this.allowed.read) break read;
             if (params.key !== undefined) {
@@ -111,22 +112,26 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         } catch (err) {
             error = err ?? null;
         }
+        const timeTaken = Date.now() - start;
         log: {
             const isErr = error !== undefined;
             if (!isErr && !this.log.read) break log;
             if (params.key !== undefined) {
                 if (params.fields === '*') {
-                    context.log(`📖 ${this.client.name}.from(${params.key}).read(): ${isErr ? '❌' : '✅'}`, ...(isErr ? [error] : []));
+                    context.log(
+                        `(${timeTaken} ms) 📖 ${this.client.name}.from(${params.key}).read(): ${isErr ? '❌' : '✅'}`,
+                        ...(isErr ? [error] : [])
+                    );
                 } else {
                     context.log(
-                        `📖 ${this.client.name}.from(${params.key})\n` +
+                        `(${timeTaken} ms) 📖 ${this.client.name}.from(${params.key})\n` +
                             params.fields.map((field) => `\t.read(${field}): ${isErr ? '❌' : result[field as never] ? '✅' : '∅'}`).join('\n'),
                         ...(isErr ? [error] : [])
                     );
                 }
             } else {
                 context.log(
-                    `📖 ${this.client.name}\n` +
+                    `(${timeTaken} ms) 📖 ${this.client.name}\n` +
                         params.keys.map((key) => `\t.read(${key}): ${isErr ? '❌' : result[key as never] ? '✅' : '∅'}`).join('\n'),
                     ...(isErr ? [error] : [])
                 );
@@ -151,6 +156,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
             ) as never;
         }
         let error: unknown;
+        const start = Date.now();
         write: try {
             if (!this.allowed.write) break write;
             if (params.key !== undefined) {
@@ -163,12 +169,13 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         } catch (err) {
             error = err ?? null;
         }
+        const timeTaken = Date.now() - start;
         log: {
             const isErr = error !== undefined;
             if (!isErr && !this.log.write) break log;
             if (params.key !== undefined) {
                 context.log(
-                    `🖊️ ${this.client.name}.from(${params.key})\n` +
+                    `(${timeTaken} ms) 🖊️ ${this.client.name}.from(${params.key})\n` +
                         Object.keys(params.fieldValues)
                             .map((field) => `\t.write(${field}): ${isErr ? '❌' : '✅'}`)
                             .join('\n'),
@@ -176,7 +183,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
                 );
             } else {
                 context.log(
-                    `🖊️ ${this.client.name}\n` +
+                    `(${timeTaken} ms) 🖊️ ${this.client.name}\n` +
                         Object.keys(params.keyValues)
                             .map((key) => `\t.write(${key}): ${isErr ? '❌' : '✅'}`)
                             .join('\n'),
@@ -194,6 +201,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
             params.keys = params.keys.map((key) => this.getKey(key));
         }
         let error: unknown;
+        const start = Date.now();
         remove: try {
             if (!this.allowed.remove) break remove;
             if (params.key !== undefined) {
@@ -206,18 +214,19 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         } catch (err) {
             error = err ?? null;
         }
+        const timeTaken = Date.now() - start;
         log: {
             const isErr = error !== undefined;
             if (!isErr && !this.log.remove) break log;
             if (params.key !== undefined) {
                 context.log(
-                    `🗑️ ${this.client.name}.from(${params.key})\n` +
+                    `(${timeTaken} ms) 🗑️ ${this.client.name}.from(${params.key})\n` +
                         params.fields.map((field) => `\t.remove(${field}): ${isErr ? '❌' : '✅'}`).join('\n'),
                     ...(isErr ? [error] : [])
                 );
             } else {
                 context.log(
-                    `🗑️ ${this.client.name}\n` + params.keys.map((key) => `\t.remove(${key}): ${isErr ? '❌' : '✅'}`).join('\n'),
+                    `(${timeTaken} ms) 🗑️ ${this.client.name}\n` + params.keys.map((key) => `\t.remove(${key}): ${isErr ? '❌' : '✅'}`).join('\n'),
                     ...(isErr ? [error] : [])
                 );
             }
