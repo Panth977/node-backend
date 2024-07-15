@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 
 export type Context = {
     id: string;
-    log(message: string, meta?: unknown): void;
+    log(...args: unknown[]): void;
     onDispose: (exe: () => void) => void;
     dispose: () => Promise<void>;
     getStack(): string | undefined;

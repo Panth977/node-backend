@@ -95,9 +95,10 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         } else {
             params.keys = params.keys.map((key) => this.getKey(key));
         }
+        let result: Partial<T> = {} as never;
+        let error: unknown;
         read: try {
             if (!this.allowed.read) break read;
-            let result: Partial<T>;
             if (params.key !== undefined) {
                 if (!params.fields.length) break read;
                 result = await this.client.readMHashField(context, params);
@@ -107,39 +108,31 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
                 const map = Object.fromEntries(params.keys.map((k, i) => [params.keys[i], (_params as { keys: string[] }).keys[i]]));
                 result = Object.fromEntries(Object.keys(result).map((k) => [map[k], result[k as keyof T]])) as never;
             }
-            if (this.log.read) {
-                if (params.key !== undefined) {
-                    if (params.fields === '*') {
-                        context.log(`📖 ${this.client.name}.read(${params.key}):`, '✅');
-                    } else {
-                        for (const field of params.fields) {
-                            context.log(`📖 ${this.client.name}.read(${params.key}, ${field}):`, result[field as never] ? '✅' : '∅');
-                        }
-                    }
-                } else {
-                    for (const key of params.keys) {
-                        context.log(`📖 ${this.client.name}.read(${key}):`, result[key as never] ? '✅' : '∅');
-                    }
-                }
-            }
-            return result;
         } catch (err) {
+            error = err ?? null;
+        }
+        log: {
+            const isErr = error !== undefined;
+            if (!isErr && !this.log.read) break log;
             if (params.key !== undefined) {
                 if (params.fields === '*') {
-                    context.log(`⚠️ ${this.client.name}.read(${params.key}):`, '❌');
+                    context.log(`📖 ${this.client.name}.from(${params.key}).read(): ${isErr ? '❌' : '✅'}`, ...(isErr ? [error] : []));
                 } else {
-                    for (const field of params.fields) {
-                        context.log(`⚠️ ${this.client.name}.read(${params.key}, ${field}):`, '❌');
-                    }
+                    context.log(
+                        `📖 ${this.client.name}.from(${params.key})\n` +
+                            params.fields.map((field) => `\t.read(${field}): ${isErr ? '❌' : result[field as never] ? '✅' : '∅'}`).join('\n'),
+                        ...(isErr ? [error] : [])
+                    );
                 }
             } else {
-                for (const key of params.keys) {
-                    context.log(`⚠️ ${this.client.name}.read(${key}):`, '❌');
-                }
+                context.log(
+                    `📖 ${this.client.name}\n` +
+                        params.keys.map((key) => `\t.read(${key}): ${isErr ? '❌' : result[key as never] ? '✅' : '∅'}`).join('\n'),
+                    ...(isErr ? [error] : [])
+                );
             }
-            context.log('Error:', err);
         }
-        return {} as never;
+        return result;
     }
     async writeM<T extends Record<never, never>>(
         context: FUNCTIONS.Context,
@@ -157,6 +150,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
                 ])
             ) as never;
         }
+        let error: unknown;
         write: try {
             if (!this.allowed.write) break write;
             if (params.key !== undefined) {
@@ -166,28 +160,29 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
                 if (!Object.keys(params.keyValues).length) break write;
                 await this.client.writeM(context, params);
             }
-            if (this.log.write) {
-                if (params.key !== undefined) {
-                    for (const field in params.fieldValues) {
-                        context.log(`🖊️ ${this.client.name}.write(${params.key}, ${field}):`, '✅');
-                    }
-                } else {
-                    for (const key in params.keyValues) {
-                        context.log(`🖊️ ${this.client.name}.write(${key}):`, '✅');
-                    }
-                }
-            }
         } catch (err) {
+            error = err ?? null;
+        }
+        log: {
+            const isErr = error !== undefined;
+            if (!isErr && !this.log.write) break log;
             if (params.key !== undefined) {
-                for (const field in params.fieldValues) {
-                    context.log(`⚠️ ${this.client.name}.write(${params.key}, ${field}):`, '❌');
-                }
+                context.log(
+                    `🖊️ ${this.client.name}.from(${params.key})\n` +
+                        Object.keys(params.fieldValues)
+                            .map((field) => `\t.write(${field}): ${isErr ? '❌' : '✅'}`)
+                            .join('\n'),
+                    ...(isErr ? [error] : [])
+                );
             } else {
-                for (const key in params.keyValues) {
-                    context.log(`⚠️ ${this.client.name}.write(${key}):`, '❌');
-                }
+                context.log(
+                    `🖊️ ${this.client.name}\n` +
+                        Object.keys(params.keyValues)
+                            .map((key) => `\t.write(${key}): ${isErr ? '❌' : '✅'}`)
+                            .join('\n'),
+                    ...(isErr ? [error] : [])
+                );
             }
-            context.log('Error:', err);
         }
     }
     async removeM(context: FUNCTIONS.Context, _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] }): Promise<void> {
@@ -198,6 +193,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         } else {
             params.keys = params.keys.map((key) => this.getKey(key));
         }
+        let error: unknown;
         remove: try {
             if (!this.allowed.remove) break remove;
             if (params.key !== undefined) {
@@ -207,28 +203,24 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
                 if (!params.keys.length) break remove;
                 await this.client.removeM(context, params);
             }
-            if (this.log.remove) {
-                if (params.key !== undefined) {
-                    for (const field of params.fields) {
-                        context.log(`🗑️ ${this.client.name}.remove(${params.key}, ${field}):`, '✅');
-                    }
-                } else {
-                    for (const key of params.keys) {
-                        context.log(`🗑️ ${this.client.name}.remove(${key}):`, '✅');
-                    }
-                }
-            }
         } catch (err) {
+            error = err ?? null;
+        }
+        log: {
+            const isErr = error !== undefined;
+            if (!isErr && !this.log.remove) break log;
             if (params.key !== undefined) {
-                for (const field of params.fields) {
-                    context.log(`⚠️ ${this.client.name}.remove(${params.key}, ${field}):`, '❌');
-                }
+                context.log(
+                    `🗑️ ${this.client.name}.from(${params.key})\n` +
+                        params.fields.map((field) => `\t.remove(${field}): ${isErr ? '❌' : '✅'}`).join('\n'),
+                    ...(isErr ? [error] : [])
+                );
             } else {
-                for (const key of params.keys) {
-                    context.log(`⚠️ ${this.client.name}.remove(${key}):`, '❌');
-                }
+                context.log(
+                    `🗑️ ${this.client.name}\n` + params.keys.map((key) => `\t.remove(${key}): ${isErr ? '❌' : '✅'}`).join('\n'),
+                    ...(isErr ? [error] : [])
+                );
             }
-            context.log('Error:', err);
         }
     }
     /* Extensions */
