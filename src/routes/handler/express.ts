@@ -135,6 +135,7 @@ export function serve(
         serveCodesOn?: string;
         serveUiOn: string;
         middlewares?: RequestHandler[];
+        hideWithTags?: string[];
     }
 ) {
     const router = Router();
@@ -146,9 +147,21 @@ export function serve(
     }
     router.use(createErrorHandler(onError));
     if (documentationParams) {
+        const docEndpoints = { ...endpoints };
+        if (documentationParams.hideWithTags) {
+            const tags = new Set(documentationParams.hideWithTags);
+            loop: for (const loc in docEndpoints) {
+                for (const tag of docEndpoints[loc].documentation.tags ?? []) {
+                    if (tags.has(tag)) {
+                        delete docEndpoints[loc];
+                        continue loop;
+                    }
+                }
+            }
+        }
         try {
             const paths: ZodOpenApiPathsObject = {};
-            for (const build of Object.values(endpoints)) {
+            for (const build of Object.values(docEndpoints)) {
                 const { method, path } = build;
                 (paths[path] ??= {})[method] = build.documentation;
             }
