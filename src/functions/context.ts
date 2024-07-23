@@ -60,7 +60,7 @@ export const DefaultBuildContext = (function () {
         };
         Promise.allSettled([
             //
-            ...[...onCreateInitFn].map(async (fn) => fn(context)),
+            ...[...onCreateInitFn].map(async (fn) => fn(context as Context)),
         ]);
         return context;
     };
