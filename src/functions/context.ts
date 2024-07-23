@@ -9,10 +9,18 @@ export type Context = {
 };
 export type BuildContext<C extends Context> = (context: Context | null) => C;
 export const DefaultBuildContext = (function () {
+    type OnCreateInitFn = (context: Context) => void;
     type Logger = (context: Omit<Context, 'log'>, args: unknown[]) => void;
     type OnDisposeExe = (context: Omit<Context, 'onDispose' | 'dispose'>) => void;
+    const onCreateInitFn = new Set<OnCreateInitFn>();
     const loggers = new Set<Logger>();
     const onDisposeExes = new Set<OnDisposeExe>();
+    function onCreate(initFn: OnCreateInitFn) {
+        onCreateInitFn.add(initFn);
+        return function () {
+            onCreateInitFn.delete(initFn);
+        };
+    }
     function addLogger(logger: Logger) {
         loggers.add(logger);
         return function () {
@@ -28,7 +36,7 @@ export const DefaultBuildContext = (function () {
     const DefaultBuildContext: BuildContext<Context> = function (context) {
         if (context) return Object.assign({}, context);
         const dispose: Parameters<Context['onDispose']>[0][] = [];
-        return {
+        context = {
             id: randomUUID(),
             async log(...args) {
                 await Promise.allSettled([
@@ -50,8 +58,13 @@ export const DefaultBuildContext = (function () {
                 return new Error().stack?.substring(5);
             },
         };
+        Promise.allSettled([
+            //
+            ...[...onCreateInitFn].map(async (fn) => fn(context)),
+        ]);
+        return context;
     };
-    return Object.assign(DefaultBuildContext, { addLogger, addOnDisposeExe });
+    return Object.assign(DefaultBuildContext, { addLogger, addOnDisposeExe, onCreate });
 })();
 export function BuildContextWithParamsBuilder<P, C extends Context>(params: P, buildContext: BuildContext<C>): BuildContext<C & { params: P }> {
     return function (context) {
