@@ -58,8 +58,11 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         let code = '';
         for (const propName in schema.properties) {
             const propSchemaCode = createSchemaCode(schema.properties[propName]);
-            if (!schema.required?.includes(propName)) propSchemaCode.code = `${propSchemaCode.code}.optional()`;
-            code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code},`;
+            if (schema.required?.includes(propName)) {
+                code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code},`;
+            } else {
+                code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code}.optional(),`;
+            }
         }
         code = `z.object({${code}})`;
         if (schema.additionalProperties === false) {
