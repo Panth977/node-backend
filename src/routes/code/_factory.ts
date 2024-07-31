@@ -39,7 +39,7 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
             }),
             resBody: defaultOptionsSchema.omit({ createSchemaFor: true, createRoutesFor: true }),
             async func(context, { body }) {
-                return gen.exe(json, body as never) as never;
+                return { body: gen.exe(json, body as never) };
             },
         }) as never;
     }
