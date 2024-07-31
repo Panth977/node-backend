@@ -59,7 +59,7 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         let code = '';
         for (const propName in schema.properties) {
             const propSchemaCode = createSchemaCode(schema.properties[propName]);
-            if (schema.required?.includes(propName)) {
+            if (schema.required?.includes(propName) && Object.keys(schema.properties[propName])) {
                 code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code},`;
             } else {
                 code += `${propSchemaCode.decorator}${JSON.stringify(propName)}?: ${propSchemaCode.code},`;
@@ -187,7 +187,13 @@ export function createRouteCode(method: Method, path: string, route: OperationOb
     })();
     const requestSchemaCode = createSchemaCode({
         type: 'object',
-        required: ['params', 'query', 'headers', 'body'],
+        required: [
+            //
+            parameters.filter((x) => x.required && x.in === 'path').length ? 'params' : '',
+            parameters.filter((x) => x.required && x.in === 'query').length ? 'query' : '',
+            parameters.filter((x) => x.required && x.in === 'header').length ? 'headers' : '',
+            Object.keys(reqBody).length ? 'body' : '',
+        ].filter((x) => x),
         properties: {
             params: {
                 type: 'object',
@@ -213,7 +219,11 @@ export function createRouteCode(method: Method, path: string, route: OperationOb
     }).code;
     const responseSchemaCode = createSchemaCode({
         type: 'object',
-        required: ['headers', 'body'],
+        required: [
+            //
+            resHeaders.filter((x) => x.required).length ? 'headers' : '',
+            Object.keys(resBody).length ? 'body' : '',
+        ].filter((x) => x),
         properties: {
             headers: {
                 type: 'object',
