@@ -7,12 +7,12 @@ export const defaultOptionsSchema = z.object({
     routesCreated: z
         .record(z.string())
         .optional()
-        .transform((x) => x ?? {}),
+        .default(() => ({})),
     dependencyCreated: z
         .record(z.string())
         .optional()
-        .transform((x) => x ?? {}),
-    code: z.undefined().transform(() => ''),
+        .default(() => ({})),
+    code: z.string().default(() => ''),
     //
     createSchemaFor: z.union([z.literal('*'), z.string().array()]).optional(),
     createRoutesFor: z
