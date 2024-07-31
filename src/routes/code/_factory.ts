@@ -34,7 +34,9 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
             reqQuery: undefined,
             resHeaders: undefined,
             resMediaTypes: undefined,
-            reqBody: gen.optionsSchema,
+            reqBody: (gen.optionsSchema as typeof defaultOptionsSchema).omit({
+                code: true,
+            }),
             resBody: defaultOptionsSchema.omit({ createSchemaFor: true, createRoutesFor: true }),
             async func(context, { body }) {
                 return gen.exe(json, body as never) as never;
