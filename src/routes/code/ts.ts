@@ -170,8 +170,8 @@ export function createRouteCode(method: Method, path: string, route: OperationOb
     const resHeaders = (function () {
         const schemas = [];
         for (const key in route.responses.default?.headers) {
-            const x = route.responses.default.headers[key];
-            if ('$ref' in x) throw new Error('Unimplemented!');
+            const x = route.responses.default?.headers?.[key];
+            if (!x || '$ref' in x) throw new Error('Unimplemented!');
             schemas.push({
                 name: key,
                 ...x,
