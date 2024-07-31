@@ -3,7 +3,7 @@ import { Endpoint } from '../endpoint';
 import * as code from '.';
 import { HttpEndpoint } from '../http';
 import { Middleware } from '../middleware';
-import { z } from 'zod';
+import { defaultOptionsSchema } from './_helper';
 type code = typeof code;
 
 export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: OpenAPIObject) {
@@ -35,10 +35,7 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
             resHeaders: undefined,
             resMediaTypes: undefined,
             reqBody: gen.optionsSchema,
-            resBody: (gen.optionsSchema as z.ZodObject<Record<never, never>>).omit({
-                createSchemaFor: true,
-                createRoutesFor: true,
-            }),
+            resBody: defaultOptionsSchema.omit({ createSchemaFor: true, createRoutesFor: true }),
             async func(context, { body }) {
                 return gen.exe(json, body as never) as never;
             },
