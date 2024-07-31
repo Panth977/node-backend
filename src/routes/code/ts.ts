@@ -30,7 +30,8 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
             let code = '';
             for (const possibleSchema of schema.anyOf) {
                 const possibleSchemaCode = createSchemaCode(possibleSchema);
-                code += `${possibleSchemaCode.decorator} ${possibleSchemaCode.code} |`;
+                if (code) code += '|';
+                code += `${possibleSchemaCode.decorator} ${possibleSchemaCode.code}`;
             }
             outputCode = `${code}`;
         }
@@ -42,7 +43,8 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         let code = '';
         for (const caseName in schema.discriminator.mapping) {
             const caseSchemaCode = createSchemaCode({ $ref: schema.discriminator.mapping[caseName] });
-            code += `${caseSchemaCode.code} ${caseSchemaCode.decorator}|`;
+            if (code) code += '|';
+            code += `${caseSchemaCode.code} ${caseSchemaCode.decorator}`;
         }
         if (!code.length) {
             outputCode = `any`;
@@ -76,7 +78,8 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         } else {
             let code = ``;
             for (const element of schema.enum) {
-                code += `${JSON.stringify(element)}|`;
+                if (code) code += '|';
+                code += `${JSON.stringify(element)}`;
             }
             outputCode = `${code}`;
         }
