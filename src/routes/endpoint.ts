@@ -3,6 +3,19 @@ import { Middleware } from './middleware';
 import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, createHttp } from './http';
+import { createDocument, ZodOpenApiObject, ZodOpenApiPathsObject } from 'zod-openapi';
+
+export function getRouteDocJson(
+    docEndpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
+    params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>
+) {
+    const paths: ZodOpenApiPathsObject = {};
+    for (const build of Object.values(docEndpoints)) {
+        const { method, path } = build;
+        (paths[path] ??= {})[method] = build.documentation;
+    }
+    return createDocument({ ...params, paths: paths });
+}
 
 export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B, options?: { includeTags?: string[]; excludeTags?: string[] }) {
     const allReady: Record<string, HttpEndpoint.Build | SseEndpoint.Build> = {};

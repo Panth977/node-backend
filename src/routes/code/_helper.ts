@@ -3,7 +3,7 @@ import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const;
 export type Method = (typeof methods)[number];
-export const optionSchema = z.object({
+export const defaultOptionsSchema = z.object({
     routesCreated: z
         .record(z.string())
         .optional()
@@ -26,7 +26,7 @@ export const optionSchema = z.object({
         ])
         .optional(),
 });
-type Options = z.infer<typeof optionSchema>;
+type Options = z.infer<typeof defaultOptionsSchema>;
 
 export function getAllSchemas(json: OpenAPIObject, options: Options) {
     const schemas = [];

@@ -1,2 +1,2 @@
-export * from './js';
-export * from './ts';
+export * as js from './js';
+export * as ts from './ts';

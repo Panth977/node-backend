@@ -1,17 +1,17 @@
 import { z } from 'zod';
 import { OpenAPIObject, OperationObject, ReferenceObject, SchemaObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
-import { optionSchema, getAllRoutes, getAllSchemas, Method } from './_helper';
+import { defaultOptionsSchema, getAllRoutes, getAllSchemas, Method } from './_helper';
 
-const contextSchema = optionSchema.extend({
+export const optionsSchema = defaultOptionsSchema.extend({
     lang: z.enum(['ts', 'js']),
     EndpointClassName: z.string().optional().default('Endpoint'),
     EndpointClassCode: z.boolean(),
 });
-type Options = z.infer<typeof contextSchema>;
+export type Options = z.infer<typeof optionsSchema>;
 let options: Options = null as never;
 let json: OpenAPIObject = null as never;
 
-function createSchemaCode(schema: SchemaObject | ReferenceObject | null | undefined): { decorator: string; code: string } {
+export function createSchemaCode(schema: SchemaObject | ReferenceObject | null | undefined) {
     if (!schema || !Object.keys(schema).length) {
         return { code: `z.any()`, decorator: '' };
     }
@@ -143,7 +143,7 @@ function createSchemaCode(schema: SchemaObject | ReferenceObject | null | undefi
     const decoratorCode = `/** ${decoratorCodeLines.join('\n * ')} */`;
     return { code: outputCode, decorator: decoratorCode };
 }
-function createRouteCode(method: Method, path: string, route: OperationObject | null | undefined) {
+export function createRouteCode(method: Method, path: string, route: OperationObject | null | undefined) {
     if (!route) throw new Error('Unimplemented!');
     const name = route.operationId;
     if (!name) throw new Error('OperationId was expected found non, set this using route.setName()');
@@ -240,7 +240,7 @@ function createRouteCode(method: Method, path: string, route: OperationObject | 
     options.routesCreated[name] = name;
     return name;
 }
-function dependency($ref: string): string {
+export function dependency($ref: string): string {
     if (!$ref.startsWith('#/components/schemas/')) throw new Error('Ref expected to be located at [#/components/schemas/]');
     const name = $ref.substring($ref.lastIndexOf('/') + 1);
     if (!/^[a-zA-Z_$][a-zA-Z_$0-9]*$/.test(name)) throw new Error('Ref name was expected to be valid variable name');
@@ -250,9 +250,9 @@ function dependency($ref: string): string {
     options.dependencyCreated[name] = name;
     return name;
 }
-export function javascript(_json: OpenAPIObject, _options: Options) {
+export function exe(_json: OpenAPIObject, _options: Options) {
     [json, options] = [_json, _options] as const;
-    options = contextSchema.parse(options);
+    options = optionsSchema.parse(options);
     if (options.EndpointClassCode) options.code += EndpointClassCode[options.lang];
     for (const schema of getAllSchemas(json, options)) {
         dependency(schema.name);
@@ -263,7 +263,7 @@ export function javascript(_json: OpenAPIObject, _options: Options) {
     return options;
 }
 
-const EndpointClassCode = {
+export const EndpointClassCode = {
     ts: `
 class Endpoint<Req extends z.ZodType, Res extends z.ZodType> {
     name: string;

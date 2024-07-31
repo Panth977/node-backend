@@ -5,9 +5,8 @@ import { SseEndpoint } from '../sse';
 import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
-import { ZodOpenApiObject, ZodOpenApiPathsObject, createDocument } from 'zod-openapi';
 import * as code from '../code';
-import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas31';
+import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -126,18 +125,7 @@ export function createErrorHandler(onError: typeof defaultOnError): ErrorRequest
     };
 }
 
-export function serve(
-    endpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
-    onError = defaultOnError,
-    documentationParams?: {
-        params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>;
-        serveJsonOn?: string;
-        serveCodesOn?: string;
-        serveUiOn: string;
-        middlewares?: RequestHandler[];
-        hideWithTags?: string[];
-    }
-) {
+export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>, onError = defaultOnError) {
     const router = Router();
     router.use(setupContext());
     for (const build of Object.values(endpoints)) {
@@ -146,53 +134,40 @@ export function serve(
         console.log('Route build success:  ', method.toUpperCase(), '\t', path);
     }
     router.use(createErrorHandler(onError));
-    if (documentationParams) {
-        const docEndpoints = { ...endpoints };
-        if (documentationParams.hideWithTags) {
-            const tags = new Set(documentationParams.hideWithTags);
-            loop: for (const loc in docEndpoints) {
-                for (const tag of docEndpoints[loc].documentation.tags ?? []) {
-                    if (tags.has(tag)) {
-                        delete docEndpoints[loc];
-                        continue loop;
-                    }
-                }
-            }
-        }
-        try {
-            const paths: ZodOpenApiPathsObject = {};
-            for (const build of Object.values(docEndpoints)) {
-                const { method, path } = build;
-                (paths[path] ??= {})[method] = build.documentation;
-            }
-            const jsonDoc = createDocument({ ...documentationParams.params, paths: paths });
-            if (documentationParams.serveJsonOn) {
-                router.get(documentationParams.serveJsonOn, ...(documentationParams.middlewares ?? []), (_, res) => res.send(jsonDoc));
-            }
-            if (documentationParams.serveCodesOn) {
-                router.post(documentationParams.serveCodesOn, ...(documentationParams.middlewares ?? []), function (req, res) {
-                    const type = req.query.type;
-                    if (!type) {
-                        res.json(Object.keys(code));
-                    } else {
-                        try {
-                            const genFn = (code as Record<string, (json: OpenAPIObject, context: unknown) => unknown>)[type as string];
-                            if (!genFn) {
-                                res.status(404).send('No Such code parser found');
-                                return;
-                            }
-                            const genCode = genFn(jsonDoc, req.body);
-                            res.status(200).json(genCode);
-                        } catch (err) {
-                            res.status(500).send(err);
-                        }
-                    }
-                });
-            }
-            router.use(documentationParams.serveUiOn, ...(documentationParams.middlewares ?? []), swaggerUi.serve, swaggerUi.setup(jsonDoc));
-        } catch (err) {
-            console.error(err);
-        }
-    }
     return router;
+}
+
+export function addSwagger(router: Router, path: string, middlewares: Middleware.Build[], json: OpenAPIObject) {
+    if (path.endsWith('/')) path = path.substring(0, path.length - 1);
+    const JsonPath = path + '.json';
+    const UiPath = path + '/';
+    const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
+    router.get(JsonPath, ...middlewareHandlers, (_, res) => res.send(json));
+    router.use(UiPath, ...middlewareHandlers, swaggerUi.serve, swaggerUi.setup(json));
+    return { JsonPath, UiPath };
+}
+
+export function addCodeGen(router: Router, path: string, middlewares: Middleware.Build[], json: OpenAPIObject) {
+    if (path.endsWith('/')) path = path.substring(0, path.length - 1);
+    const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
+    const codeBundle = code as Record<string, { exe(_json: OpenAPIObject, _options: unknown): unknown }>;
+    router.post(path + '/{type}', ...middlewareHandlers, function (req, res) {
+        try {
+            const type = req.params.type;
+            const genFn = codeBundle[type];
+            if (!genFn) {
+                res.status(404).send('No Such code parser found');
+                return;
+            }
+            const genCode = genFn.exe(json, req.body);
+            res.status(200).json(genCode);
+        } catch (err) {
+            res.status(500).send(err);
+        }
+    });
+    const paths: Record<string, string> = {};
+    for (const type in codeBundle) {
+        paths[type] = path + '/' + type;
+    }
+    return paths as Record<keyof typeof code, string>;
 }
