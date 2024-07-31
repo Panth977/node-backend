@@ -63,11 +63,11 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
             code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code},`;
         }
         if (schema.additionalProperties === false) {
-            code += `{${code}}`;
+            code = `{${code}}`;
         } else if (schema.additionalProperties === true) {
-            code += `{${code}} & {[k: string]: unknown}`;
+            code = `{${code}} & {[k: string]: unknown}`;
         } else {
-            code += `{${code}}`;
+            code = `{${code}}`;
         }
         outputCode = code;
     } else if (schema.type === 'string' && schema.enum) {
