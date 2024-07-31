@@ -170,7 +170,7 @@ export function serve(
                 router.get(documentationParams.serveJsonOn, ...(documentationParams.middlewares ?? []), (_, res) => res.send(jsonDoc));
             }
             if (documentationParams.serveCodesOn) {
-                router.get(documentationParams.serveCodesOn, ...(documentationParams.middlewares ?? []), function (req, res) {
+                router.post(documentationParams.serveCodesOn, ...(documentationParams.middlewares ?? []), function (req, res) {
                     const type = req.query.type;
                     if (!type) {
                         res.json(Object.keys(code));
@@ -181,7 +181,7 @@ export function serve(
                                 res.status(404).send('No Such code parser found');
                                 return;
                             }
-                            const genCode = genFn(jsonDoc, req.query);
+                            const genCode = genFn(jsonDoc, req.body);
                             res.status(200).json(genCode);
                         } catch (err) {
                             res.status(500).send(err);

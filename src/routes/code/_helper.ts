@@ -4,8 +4,14 @@ import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const;
 export type Method = (typeof methods)[number];
 export const optionSchema = z.object({
-    routesCreated: z.record(z.string()),
-    dependencyCreated: z.record(z.string()),
+    routesCreated: z
+        .record(z.string())
+        .optional()
+        .transform((x) => x ?? {}),
+    dependencyCreated: z
+        .record(z.string())
+        .optional()
+        .transform((x) => x ?? {}),
     code: z.undefined().transform(() => ''),
     //
     createSchemaFor: z.union([z.literal('*'), z.string().array()]).optional(),
