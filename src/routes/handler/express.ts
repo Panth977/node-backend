@@ -151,23 +151,19 @@ export function addCodeGen(router: Router, path: string, middlewares: Middleware
     if (path.endsWith('/')) path = path.substring(0, path.length - 1);
     const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
     const codeBundle = code as Record<string, { exe(_json: OpenAPIObject, _options: unknown): unknown }>;
-    router.post(path + '/{type}', ...middlewareHandlers, function (req, res) {
-        try {
-            const type = req.params.type;
-            const genFn = codeBundle[type];
-            if (!genFn) {
-                res.status(404).send('No Such code parser found');
-                return;
-            }
-            const genCode = genFn.exe(json, req.body);
-            res.status(200).json(genCode);
-        } catch (err) {
-            res.status(500).send(err);
-        }
-    });
     const paths: Record<string, string> = {};
     for (const type in codeBundle) {
-        paths[type] = path + '/' + type;
+        const typePath = path + '/' + type;
+        router.post(typePath, ...middlewareHandlers, function (req, res) {
+            try {
+                const genFn = codeBundle[type];
+                const genCode = genFn.exe(json, req.body);
+                res.status(200).json(genCode);
+            } catch (err) {
+                res.status(500).send(err);
+            }
+        });
+        paths[type] = typePath;
     }
     return paths as Record<keyof typeof code, string>;
 }
