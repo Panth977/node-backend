@@ -176,12 +176,12 @@ export function serve(
                         res.json(Object.keys(code));
                     } else {
                         try {
-                            const genFn = (code as Record<string, (context: unknown, json: OpenAPIObject) => string>)[type as string];
+                            const genFn = (code as Record<string, (json: OpenAPIObject, context: unknown) => unknown>)[type as string];
                             if (!genFn) {
                                 res.status(404).send('No Such code parser found');
                                 return;
                             }
-                            const genCode = genFn(req.query, jsonDoc);
+                            const genCode = genFn(jsonDoc, req.query);
                             res.status(200).json(genCode);
                         } catch (err) {
                             res.status(500).send(err);

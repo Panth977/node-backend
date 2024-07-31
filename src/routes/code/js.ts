@@ -1,45 +1,48 @@
 import { z } from 'zod';
 import { OpenAPIObject, OperationObject, ReferenceObject, SchemaObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { optionSchema, getAllRoutes, getAllSchemas, Method } from './_helper';
 
-const contextSchema = z.object({
+const contextSchema = optionSchema.extend({
     lang: z.enum(['ts', 'js']),
-    schemaName: z.string(),
-    baseUrlName: z.string(),
-    routesName: z.string(),
+    EndpointClassName: z.string().optional().default('Endpoint'),
+    EndpointClassCode: z.boolean(),
 });
-type Context = z.infer<typeof contextSchema>;
-type Method = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace';
-function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObject | null | undefined): { decorator: string; code: string } {
+type Options = z.infer<typeof contextSchema>;
+let options: Options = null as never;
+let json: OpenAPIObject = null as never;
+
+function createSchemaCode(schema: SchemaObject | ReferenceObject | null | undefined): { decorator: string; code: string } {
     if (!schema || !Object.keys(schema).length) {
         return { code: `z.any()`, decorator: '' };
     }
     if ('$ref' in schema) {
-        return { code: `${context.schemaName}.${schema.$ref.substring(schema.$ref.lastIndexOf('/') + 1)}`, decorator: '' };
+        const refName = dependency(schema.$ref);
+        return { code: `${refName}`, decorator: '' };
     }
     if (Array.isArray(schema.type)) throw new Error('unimplemented!');
     let outputCode: string;
     if (schema.anyOf) {
         if (schema.anyOf.length === 1) {
-            return createSchemaCode(context, schema.anyOf[0]);
+            return createSchemaCode(schema.anyOf[0]);
         }
         if (!schema.anyOf.length) {
             outputCode = `z.any()`;
         } else {
             let code = '';
             for (const possibleSchema of schema.anyOf) {
-                const possibleSchemaCode = createSchemaCode(context, possibleSchema);
+                const possibleSchemaCode = createSchemaCode(possibleSchema);
                 code += `${possibleSchemaCode.decorator} ${possibleSchemaCode.code},`;
             }
             outputCode = `z.union([${code}])`;
         }
     } else if (schema.type === 'array') {
-        const itemSchemaCode = createSchemaCode(context, schema.items);
+        const itemSchemaCode = createSchemaCode(schema.items);
         const code = `${itemSchemaCode.decorator} ${itemSchemaCode.code}`;
         outputCode = `z.array(${code})`;
     } else if (schema.discriminator) {
         let code = '';
         for (const caseName in schema.discriminator.mapping) {
-            const caseSchemaCode = createSchemaCode(context, { $ref: schema.discriminator.mapping[caseName] });
+            const caseSchemaCode = createSchemaCode({ $ref: schema.discriminator.mapping[caseName] });
             code += `${caseSchemaCode.code} ${caseSchemaCode.decorator},`;
         }
         if (!code.length) {
@@ -48,13 +51,13 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
             outputCode = `z.discriminatedUnion(${schema.discriminator.propertyName}, [${code}])`;
         }
     } else if (schema.type === 'object' && typeof schema.additionalProperties === 'object') {
-        const valueSchemaCode = createSchemaCode(context, schema.additionalProperties);
+        const valueSchemaCode = createSchemaCode(schema.additionalProperties);
         const code = `${valueSchemaCode.decorator} ${valueSchemaCode.code}`;
         outputCode = `z.record(${code})`;
     } else if (schema.type === 'object') {
         let code = '';
         for (const propName in schema.properties) {
-            const propSchemaCode = createSchemaCode(context, schema.properties[propName]);
+            const propSchemaCode = createSchemaCode(schema.properties[propName]);
             if (!schema.required?.includes(propName)) propSchemaCode.code = `${propSchemaCode.code}.optional()`;
             code += `${propSchemaCode.decorator}${JSON.stringify(propName)}: ${propSchemaCode.code},`;
         }
@@ -137,17 +140,15 @@ function createSchemaCode(context: Context, schema: SchemaObject | ReferenceObje
             decoratorCodeLines.push(`@${key} ${JSON.stringify(decoratorObj[key])}`);
         }
     }
-    const decoratorCode = !decoratorCodeLines.length ? '' : `/** ${decoratorCodeLines.join(' ')} */`;
+    const decoratorCode = `/** ${decoratorCodeLines.join('\n * ')} */`;
     return { code: outputCode, decorator: decoratorCode };
 }
-
-function createRouteCode(
-    context: Context,
-    path: string,
-    method: Method,
-    route?: OperationObject
-): { tags: string[]; decorator: string; code: string; name: string } {
+function createRouteCode(method: Method, path: string, route: OperationObject | null | undefined) {
     if (!route) throw new Error('Unimplemented!');
+    const name = route.operationId;
+    if (!name) throw new Error('OperationId was expected found non, set this using route.setName()');
+    if (!/^[a-zA-Z_$][a-zA-Z_$0-9]*$/.test(name)) throw new Error('Route name was expected to be valid variable name');
+    if (name in options.routesCreated) return options.routesCreated[name];
     const parameters =
         route.parameters?.map(function (x) {
             if ('$ref' in x) throw new Error('Unimplemented!');
@@ -167,7 +168,7 @@ function createRouteCode(
         if (schemas.length > 1) return { oneOf: schemas.map((x) => x.schema ?? {}) };
         return schemas[0]?.schema ?? {};
     })();
-    const requestSchemaCode = createSchemaCode(context, {
+    const requestSchemaCode = createSchemaCode({
         type: 'object',
         required: ['params', 'query', 'headers', 'body'],
         properties: {
@@ -193,7 +194,7 @@ function createRouteCode(
         },
         additionalProperties: false,
     }).code;
-    const responseSchemaCode = createSchemaCode(context, {
+    const responseSchemaCode = createSchemaCode({
         type: 'object',
         required: ['headers', 'body'],
         properties: {
@@ -208,12 +209,16 @@ function createRouteCode(
         additionalProperties: false,
     }).code;
     let props = '';
-    props += `name: ${JSON.stringify(route.operationId)},`;
+    props += `name: ${JSON.stringify(name)},`;
     props += `path: ${JSON.stringify(path)},`;
     props += `method: ${JSON.stringify(method)},`;
-    props += `request: ${requestSchemaCode},`;
-    props += `response: ${responseSchemaCode},`;
-    const code = `Object.freeze({${props}})`;
+    props += `request: Req,`;
+    props += `response: Res,`;
+    const code = `(function () {
+        const Req = ${requestSchemaCode};
+        const Res = ${responseSchemaCode};
+        return new ${options.EndpointClassName}({${props}});
+    })()`;
     const decoratorObj: Record<string, unknown> = {
         tags: route.tags,
         summary: route.summary,
@@ -230,98 +235,91 @@ function createRouteCode(
             decoratorCodeLines.push(`@${key} ${JSON.stringify(decoratorObj[key])}`);
         }
     }
-    const decoratorCode = !decoratorCodeLines.length ? '' : `/** ${decoratorCodeLines.join(' ')} */`;
-    if (!route.operationId) throw new Error('No bundling name or endpoint name could be resolved!');
-    return { tags: route.tags ?? [], name: route.operationId, decorator: decoratorCode, code };
+    const decoratorCode = `/** ${decoratorCodeLines.join('\n * ')} */`;
+    options.code += `${decoratorCode} const ${name} = ${code};`;
+    options.routesCreated[name] = name;
+    return name;
+}
+function dependency($ref: string): string {
+    if (!$ref.startsWith('#/components/schemas/')) throw new Error('Ref expected to be located at [#/components/schemas/]');
+    const name = $ref.substring($ref.lastIndexOf('/') + 1);
+    if (!/^[a-zA-Z_$][a-zA-Z_$0-9]*$/.test(name)) throw new Error('Ref name was expected to be valid variable name');
+    if (name in options.dependencyCreated) return options.dependencyCreated[name];
+    const schema = createSchemaCode(json.components?.schemas?.[name]);
+    options.code += `${schema.decorator} const ${name} = ${schema.code};`;
+    options.dependencyCreated[name] = name;
+    return name;
+}
+export function javascript(_json: OpenAPIObject, _options: Options) {
+    [json, options] = [_json, _options] as const;
+    options = contextSchema.parse(options);
+    if (options.EndpointClassCode) options.code += EndpointClassCode[options.lang];
+    for (const schema of getAllSchemas(json, options)) {
+        dependency(schema.name);
+    }
+    for (const route of getAllRoutes(json, options)) {
+        createRouteCode(route.method, route.path, route.schema);
+    }
+    return options;
 }
 
-const genVarName = (function () {
-    let count = 1;
-    return () => `var${count++}`;
-})();
-
-export function javascript(context: Context, json: OpenAPIObject) {
-    context = contextSchema.parse(context);
-    let code = context.lang === 'ts' ? tsDefaultCode : jsDefaultCode;
-    if (json.servers?.length !== 1) throw new Error('Unimplemented!');
-    code += (function () {
-        return `const ${context.baseUrlName} = ${JSON.stringify(json.servers[0].url)};`;
-    })();
-    code += (function () {
-        let code = '';
-        for (const schemaName in json.components?.schemas) {
-            const schema = createSchemaCode(context, json.components?.schemas[schemaName]);
-            code += `${schema.decorator} get ${JSON.stringify(schemaName)}() {return ${schema.code}},`;
-        }
-        return `const ${context.schemaName} = {${code}};`;
-    })();
-    code += (function () {
-        let routesCode = '';
-        const bundleCodes: Record<string, string> = { default: '' };
-        for (const path in json.paths) {
-            for (const method in json.paths[path]) {
-                if (
-                    method == 'get' ||
-                    method == 'put' ||
-                    method == 'post' ||
-                    method == 'delete' ||
-                    method == 'options' ||
-                    method == 'head' ||
-                    method == 'patch' ||
-                    method == 'trace'
-                ) {
-                    const route = createRouteCode(context, path, method, json.paths[path][method]);
-                    const routeName = genVarName();
-                    routesCode += `${route.decorator} const ${routeName} = ${route.code};`;
-                    bundleCodes.default += `${JSON.stringify(route.name)}: ${routeName},`;
-                    for (const tag of route.tags) {
-                        bundleCodes[tag] ??= '';
-                        bundleCodes[tag] += `${JSON.stringify(route.name)}: ${routeName},`;
-                    }
-                }
-            }
-        }
-        let code = '';
-        for (const tag in bundleCodes) {
-            code += `${JSON.stringify(tag)}: {${bundleCodes[tag]}},`;
-        }
-        return `${routesCode}; const ${context.routesName} = {${code}}`;
-    })();
-    return code;
-}
-
-const tsDefaultCode = `
-type Endpoint = {
-    path: string;
+const EndpointClassCode = {
+    ts: `
+class Endpoint<Req extends z.ZodType, Res extends z.ZodType> {
+    name: string;
     method: string;
-    request: z.ZodType;
-    response: z.ZodType;
-};
-function buildApiCallHandler(server: string, func: <E extends Endpoint>(server: string, endpoint: E, payload: E['request']['_input']) => Promise<E['response']['_output']>): <E extends Endpoint>(endpoint: E, payload: E['request']['_input']) => Promise<E['response']['_output']> {
-    return (endpoint, payload) => func(server, endpoint, payload);
+    path: string;
+    request: Req;
+    response: Res;
+    constructor(options: { name: string; method: string; path: string; request: Req; response: Res }) {
+        this.name = options.name;
+        this.method = options.method;
+        this.path = options.path;
+        this.request = options.request;
+        this.response = options.response;
+    }
+    trigger(payload: Req['_input']): Promise<Res['_output']> {
+        console.log(this.name + '(', payload, ')');
+        /**
+            // You have to implement this using prototype
+            Endpoint.prototype.trigger = async function (this, payload) {
+                // YOUR CODE
+            };
+        **/
+        throw new Error('Unimplemented!');
+    }
 }
-`;
-const jsDefaultCode = `
-/** @typedef {{
- * path: string; 
- * method: string; 
- * request: z.ZodType; 
- * response: z.ZodType;
- * } Endpoint} */
-/** 
- * @template {Endpoint} E
- * @typedef {(server: string, endpoint: E, payload: E['request']['_input']) => Promise<E['response']['_output']> Handler}
- * */
-/** 
- * @template {Endpoint} E
- * @typedef {(endpoint: E, payload: E['request']['_input']) => Promise<E['response']['_output']> Invoke}
- * */
+    `,
+    js: `
 /**
- * @params {string} server
- * @params {Handler} func
- * @returns {Invoke}
- * */
-function buildApiCallHandler(server, func) {
-    return (endpoint, payload) => func(server, endpoint, payload);
+ * @template {z.ZodType} Req
+ * @template {z.ZodType} Res
+ */
+class Endpoint {
+    /**
+     * @param {{ name: string; method: string; path: string; request: Req; response: Res }} options 
+     */
+    constructor(options) {
+        this.name = options.name;
+        this.method = options.method;
+        this.path = options.path;
+        this.request = options.request;
+        this.response = options.response;
+    }
+    /**
+     * @param {Req['_input']} payload 
+     * @returns {Promise<Res['_output']>}
+     */
+    trigger(payload) {
+        console.log(this.name + '(', payload, ')');
+        /**
+            // You have to implement this using prototype
+            Endpoint.prototype.trigger = async function (this, payload) {
+                // YOUR CODE
+            };
+        **/
+        throw new Error('Unimplemented!');
+    }
 }
-`;
+    `,
+};
