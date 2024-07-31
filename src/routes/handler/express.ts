@@ -23,7 +23,6 @@ export function setupContext(): RequestHandler<never, never, never, never, Local
         res.locals.context = DefaultBuildContext(null);
         Object.assign(res.locals.context, { [expressSymbol]: { req, res } });
         res.locals.options = {};
-        res.setHeader('x-request-id', res.locals.context.id);
         res.on('finish', () => res.locals.context.dispose());
         nxt();
     };

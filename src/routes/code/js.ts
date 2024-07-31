@@ -168,6 +168,18 @@ export function createRouteCode(method: Method, path: string, route: OperationOb
         if (schemas.length > 1) return { oneOf: schemas.map((x) => x.schema ?? {}) };
         return schemas[0]?.schema ?? {};
     })();
+    const resHeaders = (function () {
+        const schemas = [];
+        for (const key in route.responses.default?.headers) {
+            const x = route.responses.default.headers[key];
+            if ('$ref' in x) throw new Error('Unimplemented!');
+            schemas.push({
+                name: key,
+                ...x,
+            });
+        }
+        return schemas;
+    })();
     const requestSchemaCode = createSchemaCode({
         type: 'object',
         required: ['params', 'query', 'headers', 'body'],
@@ -200,8 +212,8 @@ export function createRouteCode(method: Method, path: string, route: OperationOb
         properties: {
             headers: {
                 type: 'object',
-                required: parameters.filter((x) => x.required && x.in === 'header').map((x) => x.name),
-                properties: Object.fromEntries(parameters.filter((x) => x.in === 'header').map((x) => [x.name, x.schema ?? {}] as const)),
+                required: resHeaders.filter((x) => x.required).map((x) => x.name),
+                properties: Object.fromEntries(resHeaders.map((x) => [x.name, x.schema ?? {}] as const)),
                 additionalProperties: true,
             },
             body: resBody,

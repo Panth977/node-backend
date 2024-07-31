@@ -34,7 +34,7 @@ export function getAllSchemas(json: OpenAPIObject, options: Options) {
     const selection = createSchemaFor === undefined ? [] : createSchemaFor === '*' ? Object.keys(json.components?.schemas ?? {}) : createSchemaFor;
     for (const name of selection) {
         schemas.push({
-            name,
+            name: `#/components/schemas/${name}`,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             schema: json.components!.schemas![name]!,
         });
