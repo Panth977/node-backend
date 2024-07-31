@@ -11,7 +11,7 @@ export type Options = z.infer<typeof optionsSchema>;
 let options: Options = null as never;
 let json: OpenAPIObject = null as never;
 
-export function createSchemaCode(schema: SchemaObject | ReferenceObject | null | undefined) {
+export function createSchemaCode(schema: SchemaObject | ReferenceObject | null | undefined): { code: string; decorator: string } {
     if (!schema || !Object.keys(schema).length) {
         return { code: `z.any()`, decorator: '' };
     }
