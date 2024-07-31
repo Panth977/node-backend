@@ -4,17 +4,18 @@ import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, createHttp } from './http';
 import { createDocument, ZodOpenApiObject, ZodOpenApiPathsObject } from 'zod-openapi';
+import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 export function getRouteDocJson(
     docEndpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
-    params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'openapi' | 'externalDocs'>
-) {
+    params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'externalDocs'>
+): OpenAPIObject {
     const paths: ZodOpenApiPathsObject = {};
     for (const build of Object.values(docEndpoints)) {
         const { method, path } = build;
         (paths[path] ??= {})[method] = build.documentation;
     }
-    return createDocument({ ...params, paths: paths });
+    return createDocument({ ...params, paths: paths, openapi: '3.0.1' }) as never;
 }
 
 export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B, options?: { includeTags?: string[]; excludeTags?: string[] }) {

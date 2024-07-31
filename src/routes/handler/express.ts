@@ -5,8 +5,9 @@ import { SseEndpoint } from '../sse';
 import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
-import * as code from '../code';
 import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { generateCodeHttpFactory } from '../code/_factory';
+import { getEndpointsFromBundle, getRouteDocJson } from '../endpoint';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -133,7 +134,7 @@ export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint
         console.log('Route build success:  ', method.toUpperCase(), '\t', path);
     }
     router.use(createErrorHandler(onError));
-    return router;
+    return { router };
 }
 
 export function addSwagger(router: Router, path: string, middlewares: Middleware.Build[], json: OpenAPIObject) {
@@ -146,23 +147,23 @@ export function addSwagger(router: Router, path: string, middlewares: Middleware
     return { JsonPath, UiPath };
 }
 
-export function addCodeGen(router: Router, path: string, middlewares: Middleware.Build[], json: OpenAPIObject) {
-    if (path.endsWith('/')) path = path.substring(0, path.length - 1);
-    const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
-    const codeBundle = code as Record<string, { exe(_json: OpenAPIObject, _options: unknown): unknown }>;
-    const paths: Record<string, string> = {};
-    for (const type in codeBundle) {
-        const typePath = path + '/' + type;
-        router.post(typePath, ...middlewareHandlers, function (req, res) {
-            try {
-                const genFn = codeBundle[type];
-                const genCode = genFn.exe(json, req.body);
-                res.status(200).json(genCode);
-            } catch (err) {
-                res.status(500).send(err);
-            }
-        });
-        paths[type] = typePath;
-    }
-    return paths as Record<keyof typeof code, string>;
+export function serveCodeGen(middlewares: Middleware.Build[], json: OpenAPIObject) {
+    const endpoints = generateCodeHttpFactory(middlewares, json);
+    const BundledEndpoints = getEndpointsFromBundle(endpoints);
+    const { router } = serve(BundledEndpoints);
+    const codeGenDoc = getRouteDocJson(BundledEndpoints, {
+        info: {
+            title: 'Code Auto Gen',
+            version: '1.0.0',
+            description: 'use any of the api, to auto gen api-call code, this is type safe!',
+        },
+        servers: json.servers,
+        security: json.security,
+    });
+    const { UiPath } = addSwagger(router, '/docs', middlewares, codeGenDoc);
+    return {
+        UiPath,
+        endpoints,
+        router: router,
+    };
 }
