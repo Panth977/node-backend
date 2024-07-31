@@ -27,6 +27,8 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
         const gen = code[type as keyof typeof code];
         const typePath = '/' + type;
         endpoints[type as keyof typeof endpoints] = endpoint.http('post', typePath, {
+            name: type,
+            namespace: 'CodeGen',
             _local: gen.exe,
             reqHeader: undefined,
             reqMediaTypes: undefined,
