@@ -163,5 +163,5 @@ export function serveCodeGen(middlewares: Middleware.Build[], json: OpenAPIObjec
         security: json.security,
     });
     const docs = addSwagger(middlewares, codeGenDoc);
-    return { docs, endpoints, src };
+    return { docs, endpoints, ...src };
 }
