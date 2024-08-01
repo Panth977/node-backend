@@ -8,7 +8,7 @@ import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 export function getRouteDocJson(
     docEndpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
-    params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'externalDocs'>
+    params: Pick<ZodOpenApiObject, 'info' | 'tags' | 'servers' | 'security' | 'externalDocs' | 'components'>
 ): OpenAPIObject {
     const paths: ZodOpenApiPathsObject = {};
     for (const build of Object.values(docEndpoints)) {

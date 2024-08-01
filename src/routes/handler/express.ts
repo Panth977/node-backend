@@ -138,8 +138,8 @@ export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint
 }
 
 export function createSwagger(middlewares: Middleware.Build[], json: OpenAPIObject) {
-    const JsonPath = 'swagger.json';
-    const UiPath = '/swagger/';
+    const JsonPath = '/.json';
+    const UiPath = '/';
     const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
     const router = Router();
     router.get(JsonPath, ...middlewareHandlers, (_, res) => res.send(json));
