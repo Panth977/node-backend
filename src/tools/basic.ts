@@ -9,7 +9,7 @@ type Join<A, S extends string> = _Join<A, S> extends `${infer E}${S}` ? E : neve
 type _Split<A, S extends string> = A extends `${infer E1}${S}${infer Es}` ? [E1, ..._Split<Es, S>] : [];
 type Split<A, S extends string> = A extends string ? _Split<`${A}${S}`, S> : never;
 
-export type KeyPath<T, S extends string> = Join<KeyTree<T>, S>;
+export type KeyPath<T, S extends string> = Join<KeyTree<T>, S> | (string & Record<never, never>);
 export type PropType<T, S extends string, K> = Prop<T, Split<K, S>>;
 export type DefaultSplitChar = '.';
 export const DefaultSplitChar: DefaultSplitChar = '.';

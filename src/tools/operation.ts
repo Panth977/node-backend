@@ -5,7 +5,7 @@ export function SortList<
     T,
     K extends KeyPath<T, S>,
     S extends string = DefaultSplitChar,
->(rows: T[], keyPath: K, mode: 'ASC' | 'DESC', split: S = '.' as never): T[] {
+>(rows: T[], mode: 'ASC' | 'DESC', keyPath: K, split: S = '.' as never): T[] {
     if (rows.length < 2) return rows;
     if (mode === 'ASC') {
         return rows
