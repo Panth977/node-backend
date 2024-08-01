@@ -143,7 +143,9 @@ export function addSwagger(middlewares: Middleware.Build[], json: OpenAPIObject)
     const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
     const router = Router();
     router.get(JsonPath, ...middlewareHandlers, (_, res) => res.send(json));
-    router.use(UiPath, ...middlewareHandlers, swaggerUi.serve, swaggerUi.setup(json));
+    router.use(UiPath, ...middlewareHandlers, swaggerUi.serve, function (...args: Parameters<ReturnType<typeof swaggerUi.setup>>) {
+        swaggerUi.setup(json)(...args);
+    });
     return { JsonPath, UiPath, router };
 }
 
