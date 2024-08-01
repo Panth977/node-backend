@@ -6,7 +6,7 @@ import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
-import { getEndpointsFromBundle, getRouteDocJson } from '../endpoint';
+import { getEndpointsFromBundle } from '../endpoint';
 import { generateCodeHttpFactory } from '../code-gen-endpoints';
 
 export function pathParser(path: string) {
@@ -153,15 +153,5 @@ export function serveCodeGen(middlewares: Middleware.Build[], json: OpenAPIObjec
     const endpoints = generateCodeHttpFactory(middlewares, json);
     const BundledEndpoints = getEndpointsFromBundle(endpoints);
     const src = serve(BundledEndpoints);
-    const codeGenDoc = getRouteDocJson(BundledEndpoints, {
-        info: {
-            title: 'Code Auto Gen',
-            version: '1.0.0',
-            description: 'use any of the api, to auto gen api-call code, this is type safe!',
-        },
-        servers: json.servers,
-        security: json.security,
-    });
-    const docs = addSwagger(middlewares, codeGenDoc);
-    return { docs, endpoints, ...src };
+    return { endpoints, BundledEndpoints, ...src };
 }
