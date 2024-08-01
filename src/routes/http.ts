@@ -130,6 +130,9 @@ export function createHttp<
         path: path,
     };
     const build = asyncFunction({
+        name: _params.name,
+        namespace: _params.namespace,
+        buildContext: _params.buildContext,
         _input: takeIfDefined({ headers: _params.reqHeader, path: _params.reqPath, query: _params.reqQuery, body: _params.reqBody }) as never,
         _output: takeIfDefined({ headers: _params.resHeaders, body: _params.resBody }) as never,
         _local: _params._local,

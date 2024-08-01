@@ -6,8 +6,8 @@ import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
 import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
-import { generateCodeHttpFactory } from '../code/_factory';
 import { getEndpointsFromBundle, getRouteDocJson } from '../endpoint';
+import { generateCodeHttpFactory } from '../code-gen-endpoints';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');
@@ -137,20 +137,20 @@ export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint
     return { router };
 }
 
-export function addSwagger(router: Router, path: string, middlewares: Middleware.Build[], json: OpenAPIObject) {
-    if (path.endsWith('/')) path = path.substring(0, path.length - 1);
-    const JsonPath = path + '.json';
-    const UiPath = path + '/';
+export function addSwagger(middlewares: Middleware.Build[], json: OpenAPIObject) {
+    const JsonPath = 'swagger.json';
+    const UiPath = '/swagger/';
     const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
+    const router = Router();
     router.get(JsonPath, ...middlewareHandlers, (_, res) => res.send(json));
     router.use(UiPath, ...middlewareHandlers, swaggerUi.serve, swaggerUi.setup(json));
-    return { JsonPath, UiPath };
+    return { JsonPath, UiPath, router };
 }
 
 export function serveCodeGen(middlewares: Middleware.Build[], json: OpenAPIObject) {
     const endpoints = generateCodeHttpFactory(middlewares, json);
     const BundledEndpoints = getEndpointsFromBundle(endpoints);
-    const { router } = serve(BundledEndpoints);
+    const src = serve(BundledEndpoints);
     const codeGenDoc = getRouteDocJson(BundledEndpoints, {
         info: {
             title: 'Code Auto Gen',
@@ -160,10 +160,6 @@ export function serveCodeGen(middlewares: Middleware.Build[], json: OpenAPIObjec
         servers: json.servers,
         security: json.security,
     });
-    const { UiPath } = addSwagger(router, '/docs', middlewares, codeGenDoc);
-    return {
-        UiPath,
-        endpoints,
-        router: router,
-    };
+    const docs = addSwagger(middlewares, codeGenDoc);
+    return { docs, endpoints, src };
 }

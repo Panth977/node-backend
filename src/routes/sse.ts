@@ -113,6 +113,9 @@ export function createSse<
         method: method,
     };
     const build = asyncGenerator({
+        name: _params.name,
+        namespace: _params.namespace,
+        buildContext: _params.buildContext,
         _input: takeIfDefined({ headers: _params.reqHeader, query: _params.reqQuery, path: _params.reqPath }) as never,
         _output: z.void(),
         _yield: _params.resWrite ?? z.string(),

@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { Context } from './functions';
+import { Context } from '../functions';
 
-export function createEventNode<C extends Context, E extends z.ZodType>(eventSchema: E) {
+export function pubsub<C extends Context, E extends z.ZodType>(eventSchema: E) {
     type CB = (context: C, event: E['_output']) => void;
     const cbs = new Set<CB>();
     return {
