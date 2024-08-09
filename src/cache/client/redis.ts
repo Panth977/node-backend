@@ -1,6 +1,6 @@
 import { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from 'redis';
 import { AbstractCacheClient, CacheController } from '../controller';
-import { FUNCTIONS } from '../..';
+import { Context } from '../../functions';
 
 function bundleCached<I extends string | number, V>(ids: I[], values: V[]): Record<I, V> {
     const res: Record<I, V> = {} as never;
@@ -38,14 +38,11 @@ export class RedisCacheClient<
         super();
         this.client = client;
     }
-    async readM<T extends Record<never, never>>(context: FUNCTIONS.Context, params: { keys: string[] }): Promise<Partial<T>> {
+    async readM<T extends Record<never, never>>(context: Context, params: { keys: string[] }): Promise<Partial<T>> {
         const result = await this.client.mGet(params.keys);
         return map(bundleCached(params.keys, result), decode) as never;
     }
-    async readMHashField<T extends Record<never, never>>(
-        context: FUNCTIONS.Context,
-        params: { key: string; fields: string[] | '*' }
-    ): Promise<Partial<T>> {
+    async readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: string[] | '*' }): Promise<Partial<T>> {
         if (params.fields === '*') {
             const result = await this.client.hGetAll(params.key);
             return map(result, decode) as never;
@@ -53,7 +50,7 @@ export class RedisCacheClient<
         const result = await this.client.hmGet(params.key, params.fields);
         return map(bundleCached(params.fields, result), decode) as never;
     }
-    async writeM<T extends Record<never, never>>(context: FUNCTIONS.Context, params: { keyValues: T; expire: number }): Promise<void> {
+    async writeM<T extends Record<never, never>>(context: Context, params: { keyValues: T; expire: number }): Promise<void> {
         if (!params.expire) {
             await this.client.mSet(map(params.keyValues, encode));
             return;
@@ -65,10 +62,7 @@ export class RedisCacheClient<
         }
         await multi.exec();
     }
-    async writeMHashField<T extends Record<never, never>>(
-        context: FUNCTIONS.Context,
-        params: { key: string; fieldValues: T; expire: number }
-    ): Promise<void> {
+    async writeMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fieldValues: T; expire: number }): Promise<void> {
         if (!params.expire) {
             await this.client.hSet(params.key, map(params.fieldValues, encode));
             return;
@@ -77,10 +71,10 @@ export class RedisCacheClient<
         await this.client.hSet(params.key, map(params.fieldValues, encode));
         if (!exists) this.client.expire(params.key, params.expire);
     }
-    async removeM(context: FUNCTIONS.Context, params: { keys: string[] }): Promise<void> {
+    async removeM(context: Context, params: { keys: string[] }): Promise<void> {
         await this.client.del(params.keys);
     }
-    async removeMHashField(context: FUNCTIONS.Context, params: { key: string; fields: string[] }): Promise<void> {
+    async removeMHashField(context: Context, params: { key: string; fields: string[] }): Promise<void> {
         const exists = await this.client.exists(params.key);
         if (!exists) {
             return;
@@ -88,7 +82,7 @@ export class RedisCacheClient<
         await this.client.hDel(params.key, params.fields);
     }
     async increment(
-        context: FUNCTIONS.Context,
+        context: Context,
         controller: CacheController | null,
         params: { key: string; incrBy: number; maxLimit?: number; expiry?: number }
     ): Promise<boolean> {

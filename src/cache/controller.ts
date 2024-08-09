@@ -1,25 +1,23 @@
-import { FUNCTIONS } from '..';
+import { Context } from '../functions';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 type Actions = { read: boolean; write: boolean; remove: boolean };
-type ExtendedFunc<P, R> = (context: FUNCTIONS.Context, controller: CacheController, params: P) => R;
+type ExtendedFunc<P, R> = (context: Context, controller: CacheController, params: P) => R;
 export abstract class AbstractCacheClient {
     abstract readonly name: string;
 
-    abstract readM<T extends Record<never, never>>(context: FUNCTIONS.Context, params: { keys: string[] }): Promise<Partial<T>>;
-    abstract readMHashField<T extends Record<never, never>>(
-        context: FUNCTIONS.Context,
-        params: { key: string; fields: '*' | string[] }
-    ): Promise<Partial<T>>;
+    abstract readM<T extends Record<never, never>>(context: Context, params: { keys: string[] }): Promise<Partial<T>>;
+    abstract readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: '*' | string[] }): Promise<Partial<T>>;
 
-    abstract writeM<T extends Record<never, never>>(context: FUNCTIONS.Context, params: { keyValues: T; expire: number }): Promise<void>;
+    abstract writeM<T extends Record<never, never>>(context: Context, params: { keyValues: T; expire: number }): Promise<void>;
     abstract writeMHashField<T extends Record<never, never>>(
-        context: FUNCTIONS.Context,
+        context: Context,
         params: { key: string; fieldValues: T; expire: number }
     ): Promise<void>;
 
-    abstract removeM(context: FUNCTIONS.Context, params: { keys: string[] }): Promise<void>;
-    abstract removeMHashField(context: FUNCTIONS.Context, params: { key: string; fields: string[] }): Promise<void>;
+    abstract removeM(context: Context, params: { keys: string[] }): Promise<void>;
+    abstract removeMHashField(context: Context, params: { key: string; fields: string[] }): Promise<void>;
 }
 
 export class CacheController<T extends AbstractCacheClient = AbstractCacheClient> {
@@ -83,7 +81,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
 
     /* Controllers */
     async readM<T extends Record<never, never>>(
-        context: FUNCTIONS.Context,
+        context: Context,
         _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] | '*' }
     ): Promise<Partial<T>> {
         const params = { ..._params };
@@ -140,7 +138,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
         return result;
     }
     async writeM<T extends Record<never, never>>(
-        context: FUNCTIONS.Context,
+        context: Context,
         _params: { keyValues: T; key?: undefined; expire?: number } | { key: string; fieldValues: T; expire?: number }
     ): Promise<void> {
         const params = { ..._params, expire: _params.expire ?? this.defaultExpiry };
@@ -192,7 +190,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
             }
         }
     }
-    async removeM(context: FUNCTIONS.Context, _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] }): Promise<void> {
+    async removeM(context: Context, _params: { keys: string[]; key?: undefined } | { key: string; fields: string[] }): Promise<void> {
         const params = { ..._params };
         if (params.key !== undefined) {
             params.key = this.getKey(params.key);
@@ -234,7 +232,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
     }
     /* Extensions */
     run<K extends { [K in keyof T]: T[K] extends ExtendedFunc<Any, Any> ? K : never }[keyof T]>(
-        context: FUNCTIONS.Context,
+        context: Context,
         method: K,
         params: T[K] extends ExtendedFunc<infer P, Any> ? P : never
     ): T[K] extends ExtendedFunc<Any, infer R> ? R : never {
