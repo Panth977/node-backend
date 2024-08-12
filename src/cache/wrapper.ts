@@ -24,9 +24,15 @@ export function CacheObject<
         const cache = behavior.getCache(input);
         let result = await cache.readM<{ '': O['_output'] }>(context, { keys: [''] }).then((x) => x['']);
         if (!result) {
-            const value = await func(context, input);
-            cache.writeM(context, { keyValues: { '': value } });
-            result = value;
+            if (cache.client.needToAwait) {
+                const value = await func(context, input);
+                cache.writeM(context, { keyValues: { '': value } });
+                result = value;
+            } else {
+                const value_ = func(context, input);
+                cache.writeM(context, { keyValues: { '': value_ } });
+                result = await value_;
+            }
         }
         return result;
     };
@@ -60,9 +66,15 @@ export function CacheMap<
         const result = await cache.readM<Record<K, unknown>>(context, { keys: keys as string[] });
         const uncachedKeys = keys.filter((id) => result[id] === undefined);
         if (uncachedKeys.length) {
-            const bulk = await func(context, behavior.updateKeys(input, uncachedKeys));
-            cache.writeM(context, { keyValues: bulk });
-            Object.assign(result, bulk);
+            if (cache.client.needToAwait) {
+                const bulk = await func(context, behavior.updateKeys(input, uncachedKeys));
+                cache.writeM(context, { keyValues: bulk });
+                Object.assign(result, bulk);
+            } else {
+                const bulk_ = func(context, behavior.updateKeys(input, uncachedKeys));
+                cache.writeM(context, { keyValues: Object.fromEntries(uncachedKeys.map((x) => [x, bulk_.then((r) => r[x])])) });
+                Object.assign(result, await bulk_);
+            }
         }
         return result;
     };
@@ -111,9 +123,15 @@ export function CacheCollection<
         const result = await cache.readM<Record<K, unknown>>(context, { key: '', fields: fields as string[] });
         const uncachedFields = fields.filter((id) => result[id] === undefined);
         if (uncachedFields.length) {
-            const bulk = await func(context, behavior.updateFields(input, uncachedFields, []));
-            cache.writeM(context, { key: '', fieldValues: bulk });
-            Object.assign(result, bulk);
+            if (cache.client.needToAwait) {
+                const bulk = await func(context, behavior.updateFields(input, uncachedFields, []));
+                cache.writeM(context, { key: '', fieldValues: bulk });
+                Object.assign(result, bulk);
+            } else {
+                const bulk_ = func(context, behavior.updateFields(input, uncachedFields, []));
+                cache.writeM(context, { key: '', fieldValues: Object.fromEntries(uncachedFields.map((x) => [x, bulk_.then((r) => r[x])])) });
+                Object.assign(result, await bulk_);
+            }
         }
         return result;
     };

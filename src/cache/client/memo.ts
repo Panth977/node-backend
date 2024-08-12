@@ -19,17 +19,36 @@ export class MemoCacheClient extends AbstractCacheClient {
     }
     async readM<T extends Record<never, never>>(context: Context, params: { keys: string[] }): Promise<Partial<T>> {
         const result = this.memo;
-        return Object.fromEntries(params.keys.map((key) => [key, result[key] ?? null]).filter((x) => x[1] != null));
+        const ret: Record<string, unknown> = {};
+        for (const key of params.keys) {
+            if ((result[key] ?? null) !== null) {
+                try {
+                    ret[key] = await result[key];
+                } catch {
+                    delete result[key];
+                    delete this.exp[key];
+                }
+            }
+        }
+        return ret as never;
     }
     async readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: string[] | '*' }): Promise<Partial<T>> {
         const result = this.memo;
         const hash = result[params.key];
         if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
         const hashResult = hash.fields;
-        if (params.fields === '*') {
-            return { ...hashResult } as never;
+        if (params.fields === '*') params.fields = Object.keys(hashResult);
+        const ret: Record<string, unknown> = {};
+        for (const field of params.fields) {
+            if ((hashResult[field] ?? null) !== null) {
+                try {
+                    ret[field] = await hashResult[field];
+                } catch {
+                    delete hashResult[field];
+                }
+            }
         }
-        return Object.fromEntries(params.fields.map((field) => [field, hashResult[field] ?? null]).filter((x) => x[1] != null));
+        return ret as never;
     }
     async writeM<T extends Record<never, never>>(context: Context, params: { keyValues: T; expire: number }): Promise<void> {
         const result = this.memo;
