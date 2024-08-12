@@ -47,7 +47,9 @@ export function decodeConnectionString<P extends Record<string, string | string[
     };
 }
 
-export function encodeConnectionString<P extends Record<string, string | string[]>>(options: ConnectionOptions<P>): string {
+export function encodeConnectionString<P extends Record<string, string | string[]>>(
+    options: Omit<ConnectionOptions<P>, 'params'> & { params?: P }
+): string {
     const { user, pass, host, port, db, params, protocol } = options;
     const encodedUser = encodeURIComponent(user);
     const encodedPass = encodeURIComponent(pass);
