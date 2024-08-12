@@ -76,7 +76,7 @@ export const Parsers = {
 } satisfies Record<string, (_params: never) => Parser<z.ZodType>>;
 
 export const Helpers = {
-    compile<Z extends z.ZodType>(arg: Z, parser: Parser<Z>) {
+    compile<Z extends z.ZodType>(arg: z.infer<Z>, parser: Parser<Z>) {
         return parser.compile(arg);
     },
     jsonProp(target: string, prop: string[]) {
