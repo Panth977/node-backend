@@ -13,6 +13,9 @@ export function decodeConnectionString<P extends Record<string, string | string[
     const match = connectionString.match(regex);
     if (!match || !match.groups) throw new Error('Unparsable connection string!');
     const { protocol, user, pass, host, port, db, paramsStr } = match.groups;
+    const decodedUser = decodeURIComponent(user);
+    const decodedPass = decodeURIComponent(pass);
+    const decodedHost = decodeURIComponent(host);
 
     const params: Record<string, string | string[]> = {};
     if (paramsStr) {
@@ -33,12 +36,24 @@ export function decodeConnectionString<P extends Record<string, string | string[
             }
         }
     }
-    return { protocol, user, pass, host, port: parseInt(port), db: db as string | undefined, params: params as P };
+    return {
+        protocol,
+        user: decodedUser,
+        pass: decodedPass,
+        host: decodedHost,
+        port: parseInt(port),
+        db: db as string | undefined,
+        params: params as P,
+    };
 }
 
 export function encodeConnectionString<P extends Record<string, string | string[]>>(options: ConnectionOptions<P>): string {
     const { user, pass, host, port, db, params, protocol } = options;
-    let connectionString = `${protocol}://${user}:${pass}@${host}`;
+    const encodedUser = encodeURIComponent(user);
+    const encodedPass = encodeURIComponent(pass);
+    const encodedHost = encodeURIComponent(host);
+
+    let connectionString = `${protocol}://${encodedUser}:${encodedPass}@${encodedHost}`;
     if (port) connectionString += `:${port}`;
     if (db) connectionString += `/${db}`;
     const queryParams = new URLSearchParams();
