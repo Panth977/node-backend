@@ -20,10 +20,10 @@ function ParserBuilder<D extends z.ZodType>(defaultSchema: () => D, type: string
             encode,
             orNull: function () {
                 if (params instanceof z.ZodNullable === true) return params;
-                return ParserBuilder(params.nullable() as never, params.sqlType, encode)({});
+                return ParserBuilder(() => params.nullable(), params.sqlType, encode)({});
             } as never,
             notNull: function () {
-                if (params instanceof z.ZodNullable === true) return ParserBuilder(params.unwrap(), params.sqlType, encode)({});
+                if (params instanceof z.ZodNullable === true) return ParserBuilder(() => params.unwrap(), params.sqlType, encode)({});
                 return params;
             } as never,
             compile(arg: unknown) {
