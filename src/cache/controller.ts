@@ -6,6 +6,7 @@ type Actions = { read: boolean; write: boolean; remove: boolean };
 type ExtendedFunc<P, R> = (context: Context, controller: CacheController, params: P) => R;
 export abstract class AbstractCacheClient {
     abstract readonly name: string;
+    abstract readonly needToAwait: boolean;
 
     abstract readM<T extends Record<never, never>>(context: Context, params: { keys: string[] }): Promise<Partial<T>>;
     abstract readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: '*' | string[] }): Promise<Partial<T>>;

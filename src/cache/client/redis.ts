@@ -34,6 +34,7 @@ export class RedisCacheClient<
 > extends AbstractCacheClient {
     readonly client: RedisClientType<M, F, S>;
     readonly name = 'Redis';
+    readonly needToAwait = true;
     constructor(client: RedisClientType<M, F, S>) {
         super();
         this.client = client;
