@@ -15,17 +15,19 @@ const List = z.union([z.array(z.unknown()), z.set(z.unknown()).transform((x) => 
 
 function ParserBuilder<D extends z.ZodType>(defaultSchema: () => D, type: string, encode: Parser<D>['encode']) {
     return function <Z extends z.ZodType<z.infer<D>> = D>(_params: { _schema?: Z }) {
-        const schema = _params._schema ?? (defaultSchema() as never);
+        const schema: Z = _params._schema ?? (defaultSchema() as never);
         const params: Parser<Z> = Object.assign(schema, {
             sqlType: type,
             encode,
             orNull: function () {
                 if (schema instanceof z.ZodNullable === true) return params;
-                return ParserBuilder(() => schema.nullable(), params.sqlType, encode)({});
+                const nullableSchema = schema.nullable();
+                return ParserBuilder(() => nullableSchema, params.sqlType, encode)({});
             } as never,
             notNull: function () {
-                if (schema instanceof z.ZodNullable === true) return ParserBuilder(() => schema.unwrap(), params.sqlType, encode)({});
-                return params;
+                if (schema instanceof z.ZodNullable === false) return params;
+                const notNullSchema = (schema as never as z.ZodNullable<z.ZodType>).unwrap();
+                return ParserBuilder(() => notNullSchema, params.sqlType, encode)({});
             } as never,
             compile(arg: unknown) {
                 const val = schema.parse(arg);
