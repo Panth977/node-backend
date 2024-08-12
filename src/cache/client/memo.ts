@@ -3,6 +3,9 @@ import { Context } from '../../functions';
 
 class HASH {
     readonly fields: Record<string, unknown> = {};
+    static isHASH(val: unknown): val is HASH {
+        return val instanceof HASH;
+    }
 }
 
 export class MemoCacheClient extends AbstractCacheClient {
@@ -21,7 +24,7 @@ export class MemoCacheClient extends AbstractCacheClient {
     async readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: string[] | '*' }): Promise<Partial<T>> {
         const result = this.memo;
         const hash = result[params.key];
-        if (hash instanceof HASH === false) throw new Error('Value not of Hash type');
+        if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
         const hashResult = hash.fields;
         if (params.fields === '*') {
             return { ...hashResult } as never;
@@ -43,7 +46,7 @@ export class MemoCacheClient extends AbstractCacheClient {
     async writeMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fieldValues: T; expire: number }): Promise<void> {
         const result = this.memo;
         const hash = (result[params.key] ??= new HASH());
-        if (hash instanceof HASH === false) throw new Error('Value not of Hash type');
+        if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
         const hashResult = hash.fields;
         if (params.expire) {
             this.exp[params.key] ??= setTimeout(() => {
@@ -63,7 +66,7 @@ export class MemoCacheClient extends AbstractCacheClient {
     async removeMHashField(context: Context, params: { key: string; fields: string[] }): Promise<void> {
         const result = this.memo;
         const hash = result[params.key] ?? new HASH();
-        if (hash instanceof HASH === false) throw new Error('Value not of Hash type');
+        if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
         const hashResult = hash.fields;
         for (const key of params.fields) {
             delete hashResult[key];
