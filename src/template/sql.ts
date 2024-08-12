@@ -5,6 +5,7 @@ type Builder<A extends unknown[] = any[]> = (...args: A) => string;
 
 type Parser<Z extends z.ZodType> = Omit<Z, 'sqlType' | 'encode' | 'compile' | 'orNull' | 'notNull'> & {
     sqlType: string;
+    update<N extends z.ZodType<z.infer<Z>>>(update: (old: Z) => N, type?: string, encode?: Parser<N>['encode']): Parser<N>;
     encode(val: z.infer<Z> & (Record<never, never> | undefined)): string;
     compile(arg: z.infer<Z>): string;
     orNull(): Parser<Z extends z.ZodNullable<infer T> ? z.ZodNullable<T> : z.ZodNullable<Z>>;
@@ -19,6 +20,10 @@ function ParserBuilder<D extends z.ZodType>(defaultSchema: () => D, type: string
         const params: Parser<Z> = Object.assign(schema, {
             sqlType: type,
             encode,
+            update: function <N extends z.ZodType<z.infer<Z>>>(update: (old: Z) => N, newType?: string, newEncode?: Parser<N>['encode']) {
+                const newSchema = update(schema);
+                return ParserBuilder<N>(() => newSchema, newType ?? type, newEncode ?? (encode as never));
+            } as never,
             orNull: function () {
                 if (schema instanceof z.ZodNullable === true) return params;
                 const nullableSchema = schema.nullable();
@@ -39,7 +44,7 @@ function ParserBuilder<D extends z.ZodType>(defaultSchema: () => D, type: string
     };
 }
 
-const Encode = {
+export const Encode = {
     text: (val: string) => `'${val.replace(/'/g, "''")}'`,
     numeric: (val: number) => `${val}`,
     boolean: (val: boolean) => (val ? 'TRUE' : 'FALSE'),
