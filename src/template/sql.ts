@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Builder<A extends unknown[] = any[]> = (...args: A) => string;
+export type Builder<A extends unknown[] = any[]> = (...args: A) => string;
 
-type Parser<Z extends z.ZodType> = Omit<Z, 'sqlType' | 'encode' | 'compile' | 'orNull' | 'notNull'> & {
+export type Parser<Z extends z.ZodType> = Omit<Z, 'sqlType' | 'encode' | 'compile' | 'orNull' | 'notNull'> & {
     sqlType: string;
     update<N extends z.ZodType<z.infer<Z>>>(update: (old: Z) => N, type?: string, encode?: Parser<N>['encode']): Parser<N>;
     encode(val: z.infer<Z> & (Record<never, never> | undefined)): string;
