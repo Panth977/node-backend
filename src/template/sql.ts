@@ -54,8 +54,8 @@ export const Encode = {
 
 export const Parsers = {
     text: ParserBuilder(() => z.coerce.string().nullable(), `TEXT`, Encode.text),
-    varchar<Z extends z.ZodType<string> = z.ZodString>(_params: { len: number; _schema?: Z }) {
-        return ParserBuilder<z.ZodNullable<Z>>(
+    varchar<Z extends z.ZodType<string> = z.ZodString>(_params: { len: number; _schema?: Z }): Parser<z.ZodNullable<Z>> {
+        return ParserBuilder(
             () => (_params._schema ?? (z.coerce.string().max(_params.len) as never)).nullable(),
             `VARCHAR(${_params.len})`,
             Encode.text
@@ -66,8 +66,8 @@ export const Parsers = {
     boolean: ParserBuilder(() => z.coerce.boolean().nullable(), `BOOLEAN`, Encode.boolean),
     timestamp: ParserBuilder(() => z.coerce.date().nullable(), `TIMESTAMP`, Encode.timestamp),
     jsonb: ParserBuilder(() => z.any(), `JSONB`, Encode.jsonb),
-    list<T extends z.ZodType, Z extends z.ZodArray<T> = z.ZodArray<T>>(_params: { _schema?: Z; parser: Parser<T> }) {
-        return ParserBuilder<z.ZodNullable<Z>>(
+    list<T extends z.ZodType, Z extends z.ZodArray<T> = z.ZodArray<T>>(_params: { _schema?: Z; parser: Parser<T> }): Parser<z.ZodNullable<Z>> {
+        return ParserBuilder(
             () => (_params._schema ?? (_params.parser.array() as never)).nullable(),
             `${_params.parser.sqlType}[]`,
             (val) => `{${val.map(_params.parser.encode).join(',')}}`
