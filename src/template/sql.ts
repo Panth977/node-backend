@@ -89,68 +89,28 @@ export const Helpers = {
         if (!val.length) return 'FALSE';
         return `IN (${val.map((e) => compile(e)).join(',')})`;
     },
-    notIn<T>(arr: T[], compile: Builder<[T]>) {
-        const val = List.parse(arr) as T[];
-        if (!val.length) return 'TRUE';
-        return `NOT IN (${val.map((e) => compile(e)).join(',')})`;
-    },
-    substring(txt: string) {
+    contains(txt: string) {
         const val = z.string().parse(txt);
-        return `'%${val
+        return `LIKE '%${val
             .split('')
             .map((x) => `\\${x === "'" ? "''" : x}`)
             .join('')}%'`;
     },
-    if<T>(
-        conditionIsTruly: T,
-        onTrue: Builder<[Exclude<T, null | undefined | 0 | false | ''>]>,
-        onFalse?: Builder<[Extract<T, null | undefined | 0 | false | ''>]>
-    ) {
-        if (conditionIsTruly) {
-            return onTrue(conditionIsTruly as never);
-        } else if (onFalse) {
-            return onFalse(conditionIsTruly as never);
-        } else {
-            return '';
-        }
-    },
-    for<T extends Record<never, never>>(obj: T, builder: Builder<[T[keyof T], T extends unknown[] ? number : string]>, separator = '') {
-        if (Array.isArray(obj)) return obj.map((v, i) => builder(v, i as never)).join(separator);
-        return (Object.keys(obj) as Extract<keyof T, string>[]).map((key) => builder(obj[key], key as never)).join(separator);
-    },
-    table<C extends Record<string, Parser<z.ZodType>>>(rows: { [k in keyof C]: z.infer<C[k]> }[], columns: C) {
+    select<C extends Record<string, Parser<z.ZodType>>>(columns: C, row?: { [k in keyof C]: z.infer<C[k]> }) {
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         if (!names.length) throw new Error('No columns found!');
-        return [
-            `SELECT ${[`CAST(NULL AS INT) AS i`, ...names.map((col) => `CAST(NULL AS ${columns[col].sqlType}) AS "${col}"`)].join(',')} WHERE FALSE`,
-            ...rows.map((row, i) => `SELECT ${[`${i} AS i`, ...names.map((col) => `${columns[col].compile(row[col])} AS "${col}"`)].join(',')}`),
-        ].join('UNION ALL');
+        if (!row) return `SELECT ${names.map((col) => `CAST(NULL AS ${columns[col].sqlType}) AS "${col}"`).join(',')} WHERE FALSE`;
+        return `SELECT ${names.map((col) => `${columns[col].compile(row[col])} AS "${col}"`).join(',')}`;
+    },
+    table<C extends Record<string, Parser<z.ZodType>>>(columns: C, rows: { [k in keyof C]: z.infer<C[k]> }[]): string {
+        const names = Object.keys(columns) as Extract<keyof C, string>[];
+        if (!names.length) throw new Error('No columns found!');
+        return [Helpers.select(columns), ...rows.map((row) => Helpers.select(columns, row))].join('UNION ALL');
+    },
+    set<C extends Record<string, Parser<z.ZodType>>>(columns: C, row: { [k in keyof C]?: z.infer<C[k]> }) {
+        const names = Object.keys(columns) as Extract<keyof C, string>[];
+        const rowNames = Object.keys(row).filter((name) => names.includes(name as never)) as Extract<keyof C, string>[];
+        if (!rowNames.length) throw new Error('No columns found!');
+        return `SET ${rowNames.map((col) => `"${col}" = ${columns[col].compile(row[col])}`).join(',')}`;
     },
 } satisfies Record<string, Builder>;
-
-// export function compile(customSql: string) {
-//     const withClauses = [];
-//     const returnClauses = [];
-//     for (let part of (customSql + ';').split(';')) {
-//         part = part.trim();
-//         if (/^([a-zA-Z_][a-zA-Z_0-9]*|"[a-zA-Z_][a-zA-Z_0-9]*")::/.test(part)) {
-//             const splitChar = '::';
-//             const splitIndex = part.indexOf(splitChar);
-//             const variableName = part.substring(0, splitIndex);
-//             const query = part.substring(splitIndex + splitChar.length);
-//             withClauses.push(`${variableName} AS (${query.trim()})`);
-//         } else if (/^([a-zA-Z_][a-zA-Z_0-9]*|"[a-zA-Z_][a-zA-Z_0-9]*")>>/.test(part)) {
-//             const splitChar = '>>';
-//             const splitIndex = part.indexOf(splitChar);
-//             const variableName = part.substring(0, splitIndex);
-//             const query = part.substring(splitIndex + splitChar.length);
-//             returnClauses.push(`(${query.trim()}) AS ${variableName}`);
-//         } else if (part) {
-//             throw new Error('Unimplemented!');
-//         }
-//     }
-//     let query = '';
-//     if (withClauses.length) query += `WITH ${withClauses.join(',\n')} `;
-//     query += `SELECT ${returnClauses.join(',')};`;
-//     return query;
-// }
