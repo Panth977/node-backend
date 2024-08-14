@@ -1,6 +1,6 @@
 {
   "name": "@panth977/node-backend",
-  "version": "10.0.30",
+  "version": "10.0.31",
   "description": "",
   "main": "lib/index.js",
   "private": false,
