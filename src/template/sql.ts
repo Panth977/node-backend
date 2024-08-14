@@ -110,8 +110,20 @@ export const Helpers = {
         if (!names.length) throw new Error('No columns found!');
         return [Helpers.select(columns), ...rows.map((row) => Helpers.select(columns as C, row))].join('UNION ALL');
     },
-    set<C extends Record<string, Parser<z.ZodType>>>(columns: C | z.ZodObject<C>, row: { [k in keyof C]?: z.infer<C[k]> }) {
-        if (columns instanceof z.ZodObject) columns = columns.shape;
+    set<C extends Record<string, Parser<z.ZodType>>>(
+        columns: C | z.ZodObject<{ [k in keyof C]: z.ZodOptional<C[k]> | C[k] }>,
+        row: { [k in keyof C]?: z.infer<C[k]> }
+    ) {
+        if (columns instanceof z.ZodObject) {
+            const shape = columns.shape;
+            columns = Object.fromEntries(
+                Object.keys(shape).map((key) => {
+                    const val = shape[key];
+                    if (val instanceof z.ZodOptional) return [key, val.unwrap()];
+                    return [key, val];
+                })
+            ) as never;
+        }
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         const rowNames = Object.keys(row).filter((name) => names.includes(name as never)) as Extract<keyof C, string>[];
         if (!rowNames.length) throw new Error('No columns found!');
