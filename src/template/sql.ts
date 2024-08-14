@@ -107,13 +107,13 @@ export const Helpers = {
         if (columns instanceof z.ZodObject) columns = columns.shape;
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         if (!names.length) throw new Error('No columns found!');
-        return [Helpers.select(columns), ...rows.map((row) => Helpers.select(columns, row))].join('UNION ALL');
+        return [Helpers.select(columns), ...rows.map((row) => Helpers.select(columns as C, row))].join('UNION ALL');
     },
     set<C extends Record<string, Parser<z.ZodType>>>(columns: C | z.ZodObject<C>, row: { [k in keyof C]?: z.infer<C[k]> }) {
         if (columns instanceof z.ZodObject) columns = columns.shape;
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         const rowNames = Object.keys(row).filter((name) => names.includes(name as never)) as Extract<keyof C, string>[];
         if (!rowNames.length) throw new Error('No columns found!');
-        return `SET ${rowNames.map((col) => `"${col}" = ${columns[col].compile(row[col])}`).join(',')}`;
+        return `SET ${rowNames.map((col) => `"${col}" = ${(columns as C)[col].compile(row[col])}`).join(',')}`;
     },
 } satisfies Record<string, Builder>;
