@@ -3,7 +3,7 @@ import { z } from 'zod';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Builder<A extends unknown[] = any[]> = (...args: A) => string;
 
-export type Parser<Z extends z.ZodType> = Omit<Z, 'sqlType' | 'encode' | 'compile' | 'orNull' | 'notNull'> & {
+export type Parser<Z extends z.ZodType> = Z & {
     sqlType: string;
     update<N extends z.ZodType<z.infer<Z>>>(update: (old: Z) => N, type?: string, encode?: Parser<N>['encode']): Parser<N>;
     encode(val: z.infer<Z> & (Record<never, never> | undefined)): string;
