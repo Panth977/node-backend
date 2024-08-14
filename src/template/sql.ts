@@ -14,7 +14,7 @@ export type Parser<Z extends z.ZodType> = Omit<Z, 'sqlType' | 'encode' | 'compil
 
 const List = z.union([z.array(z.unknown()), z.set(z.unknown()).transform((x) => [...x])]);
 
-function ParserBuilder<D extends z.ZodType>(defaultSchema: () => D, type: string, encode: Parser<D>['encode']) {
+export function ParserBuilder<D extends z.ZodType>(defaultSchema: () => D, type: string, encode: Parser<D>['encode']) {
     return function <Z extends z.ZodType<z.infer<D>> = D>(_params: { _schema?: Z }) {
         const schema: Z = _params._schema ?? (defaultSchema() as never);
         const params: Parser<Z> = Object.assign(schema, {
@@ -67,10 +67,11 @@ export const Parsers = {
     timestamp: ParserBuilder(() => z.coerce.date().nullable(), `TIMESTAMP`, Encode.timestamp),
     jsonb: ParserBuilder(() => z.any(), `JSONB`, Encode.jsonb),
     list<T extends z.ZodType, Z extends z.ZodArray<T> = z.ZodArray<T>>(_params: { _schema?: Z; parser: Parser<T> }): Parser<z.ZodNullable<Z>> {
+        const sqlType = `${_params.parser.sqlType}[]`;
         return ParserBuilder(
             () => (_params._schema ?? (_params.parser.array() as never)).nullable(),
-            `${_params.parser.sqlType}[]`,
-            (val) => `{${val.map(_params.parser.encode).join(',')}}`
+            sqlType,
+            (val) => `ARRAY[${val.map(_params.parser.encode).join(',')}]::${sqlType}`
         )({});
     },
 } satisfies Record<string, (_params: never) => Parser<z.ZodType>>;
@@ -102,12 +103,14 @@ export const Helpers = {
         if (!row) return `SELECT ${names.map((col) => `CAST(NULL AS ${columns[col].sqlType}) AS "${col}"`).join(',')} WHERE FALSE`;
         return `SELECT ${names.map((col) => `${columns[col].compile(row[col])} AS "${col}"`).join(',')}`;
     },
-    table<C extends Record<string, Parser<z.ZodType>>>(columns: C, rows: { [k in keyof C]: z.infer<C[k]> }[]): string {
+    table<C extends Record<string, Parser<z.ZodType>>>(columns: C | z.ZodObject<C>, rows: { [k in keyof C]: z.infer<C[k]> }[]): string {
+        if (columns instanceof z.ZodObject) columns = columns.shape;
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         if (!names.length) throw new Error('No columns found!');
         return [Helpers.select(columns), ...rows.map((row) => Helpers.select(columns, row))].join('UNION ALL');
     },
-    set<C extends Record<string, Parser<z.ZodType>>>(columns: C, row: { [k in keyof C]?: z.infer<C[k]> }) {
+    set<C extends Record<string, Parser<z.ZodType>>>(columns: C | z.ZodObject<C>, row: { [k in keyof C]?: z.infer<C[k]> }) {
+        if (columns instanceof z.ZodObject) columns = columns.shape;
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         const rowNames = Object.keys(row).filter((name) => names.includes(name as never)) as Extract<keyof C, string>[];
         if (!rowNames.length) throw new Error('No columns found!');
