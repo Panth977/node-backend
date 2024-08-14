@@ -97,11 +97,12 @@ export const Helpers = {
             .map((x) => `\\${x === "'" ? "''" : x}`)
             .join('')}%'`;
     },
-    select<C extends Record<string, Parser<z.ZodType>>>(columns: C, row?: { [k in keyof C]: z.infer<C[k]> }) {
+    select<C extends Record<string, Parser<z.ZodType>>>(columns: C | z.ZodObject<C>, row?: { [k in keyof C]: z.infer<C[k]> }) {
+        if (columns instanceof z.ZodObject) columns = columns.shape;
         const names = Object.keys(columns) as Extract<keyof C, string>[];
         if (!names.length) throw new Error('No columns found!');
-        if (!row) return `SELECT ${names.map((col) => `CAST(NULL AS ${columns[col].sqlType}) AS "${col}"`).join(',')} WHERE FALSE`;
-        return `SELECT ${names.map((col) => `${columns[col].compile(row[col])} AS "${col}"`).join(',')}`;
+        if (!row) return `SELECT ${names.map((col) => `CAST(NULL AS ${(columns as C)[col].sqlType}) AS "${col}"`).join(',')} WHERE FALSE`;
+        return `SELECT ${names.map((col) => `${(columns as C)[col].compile(row[col])} AS "${col}"`).join(',')}`;
     },
     table<C extends Record<string, Parser<z.ZodType>>>(columns: C | z.ZodObject<C>, rows: { [k in keyof C]: z.infer<C[k]> }[]): string {
         if (columns instanceof z.ZodObject) columns = columns.shape;
