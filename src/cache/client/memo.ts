@@ -34,7 +34,7 @@ export class MemoCacheClient extends AbstractCacheClient {
     }
     async readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: string[] | '*' }): Promise<Partial<T>> {
         const result = this.memo;
-        const hash = result[params.key];
+        const hash = result[params.key] ?? new HASH();
         if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
         const hashResult = hash.fields;
         if (params.fields === '*') params.fields = Object.keys(hashResult);
