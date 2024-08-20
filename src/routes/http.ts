@@ -1,8 +1,9 @@
 import { AsyncFunction, Context, asyncFunction } from '../functions';
 import { z } from 'zod';
 import { Middleware } from './middleware';
-import { ZodOpenApiOperationObject, ZodOpenApiResponseObject } from 'zod-openapi';
+import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { TakeIfDefined, takeIfDefined } from './_helper';
+import { SecuritySchemeObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 export namespace HttpEndpoint {
     export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';
@@ -17,7 +18,7 @@ export namespace HttpEndpoint {
         L,
         C extends Context,
         Opt extends Record<never, never>,
-    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
+    > = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & { security?: Record<string, SecuritySchemeObject> } & {
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         reqPath?: ReqP;
@@ -36,12 +37,27 @@ export namespace HttpEndpoint {
             '_name' | '_input' | '_output'
         >;
 
-    export type Params = {
+    export type Params<
+        //
+        ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqB extends undefined | z.ZodType = z.ZodType,
+        ResH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ResB extends undefined | z.ZodType = z.ZodType,
+    > = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & { security?: Record<string, SecuritySchemeObject> } & {
         method: Method;
         path: string;
         middlewares: Middleware.Build[];
-        documentation: ZodOpenApiOperationObject;
         endpoint: 'http';
+        reqHeader?: ReqH;
+        reqQuery?: ReqQ;
+        reqPath?: ReqP;
+        reqBody?: ReqB;
+        resHeaders?: ResH;
+        resBody?: ResB;
+        resMediaTypes?: string;
+        reqMediaTypes?: string;
     };
     export type Build<
         //
@@ -54,7 +70,7 @@ export namespace HttpEndpoint {
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Params &
+    > = Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB> &
         AsyncFunction.Build<
             TakeIfDefined<{ headers: ReqH; query: ReqQ; body: ReqB; path: ReqP }>,
             TakeIfDefined<{ headers: ResH; body: ResB }>,
@@ -80,54 +96,23 @@ export function createHttp<
     path: string,
     _params: HttpEndpoint._Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
 ): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
-    const params: HttpEndpoint.Params = {
-        documentation: {
-            get operationId() {
-                return build.getName();
-            },
-            tags: middlewares.reduce((tags, m) => [...tags, ...(m.tags ?? [])], [...(_params.tags ?? [])]),
-            security: middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(_params.security ?? [])]),
-            description: _params.description,
-            summary: _params.summary,
-            requestParams: {
-                header: z.object(
-                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqHeader?.shape ?? {}), {
-                        ...(_params.reqHeader?.shape ?? {}),
-                    })
-                ),
-                query: z.object(
-                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqQuery?.shape ?? {}), {
-                        ...(_params.reqQuery?.shape ?? {}),
-                    })
-                ),
-                path: z.object({ ...(_params.reqPath?.shape ?? {}) }),
-            },
-            requestBody: {
-                content: {
-                    [_params.reqMediaTypes ?? 'application/json']: {
-                        schema: _params.reqBody,
-                    },
-                },
-            },
-            responses: {
-                default: {
-                    content: {
-                        [_params.resMediaTypes ?? 'application/json']: {
-                            schema: _params.resBody,
-                        },
-                    },
-                    headers: z.object(
-                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.resHeaders?.shape ?? {}), {
-                            ...(_params.resHeaders?.shape ?? {}),
-                        })
-                    ),
-                } as ZodOpenApiResponseObject,
-            },
-        },
+    const params: HttpEndpoint.Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB> = {
         endpoint: 'http',
         middlewares,
         method: method,
         path: path,
+        description: _params.description,
+        reqBody: _params.reqBody,
+        reqHeader: _params.reqHeader,
+        reqMediaTypes: _params.reqMediaTypes,
+        reqPath: _params.reqPath,
+        reqQuery: _params.reqQuery,
+        resBody: _params.resBody,
+        resHeaders: _params.resHeaders,
+        resMediaTypes: _params.resMediaTypes,
+        security: _params.security,
+        summary: _params.summary,
+        tags: _params.tags,
     };
     const build = asyncFunction({
         name: _params.name,

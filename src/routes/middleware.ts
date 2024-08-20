@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AsyncFunction, Context, asyncFunction } from '../functions';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { TakeIfDefined, takeIfDefined } from './_helper';
+import { SecuritySchemeObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 export namespace Middleware {
     export type _Params<
@@ -12,7 +13,7 @@ export namespace Middleware {
         Opt extends z.AnyZodObject,
         L = unknown,
         C extends Context = Context,
-    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags'> & {
+    > = Pick<ZodOpenApiOperationObject, 'tags'> & { security?: Record<string, SecuritySchemeObject> } & {
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         resHeaders?: ResH;
@@ -28,7 +29,7 @@ export namespace Middleware {
         ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
         ResH extends undefined | z.AnyZodObject = z.AnyZodObject,
         Opt extends z.AnyZodObject = z.AnyZodObject,
-    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags'> & {
+    > = Pick<ZodOpenApiOperationObject, 'tags'> & { security?: Record<string, SecuritySchemeObject> } & {
         reqHeader: ReqH;
         reqQuery: ReqQ;
         resHeaders: ResH;

@@ -1,8 +1,9 @@
 import { AsyncGenerator, Context, asyncGenerator } from '../functions';
 import { z } from 'zod';
-import { ZodOpenApiOperationObject, ZodOpenApiResponseObject } from 'zod-openapi';
+import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { Middleware } from './middleware';
 import { TakeIfDefined, takeIfDefined } from './_helper';
+import { SecuritySchemeObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 
 export namespace SseEndpoint {
     export type Method = 'get';
@@ -14,7 +15,7 @@ export namespace SseEndpoint {
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Pick<ZodOpenApiOperationObject, 'security' | 'tags' | 'summary' | 'description'> & {
+    > = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & { security?: Record<string, SecuritySchemeObject> } & {
         reqHeader?: ReqH;
         reqQuery?: ReqQ;
         reqPath?: ReqP;
@@ -30,10 +31,18 @@ export namespace SseEndpoint {
             >,
             '_name' | '_input' | '_output' | '_yield' | '_next'
         >;
-    export type Params = {
+    export type Params<
+        //
+        ReqH extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqQ extends undefined | z.AnyZodObject = z.AnyZodObject,
+        ReqP extends undefined | z.AnyZodObject = z.AnyZodObject,
+    > = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & { security?: Record<string, SecuritySchemeObject> } & {
+        reqHeader?: ReqH;
+        reqQuery?: ReqQ;
+        reqPath?: ReqP;
+        resWrite?: z.ZodType<string>;
         path: string;
         method: Method;
-        documentation: ZodOpenApiOperationObject;
         endpoint: 'sse';
         middlewares: Middleware.Build[];
     };
@@ -46,7 +55,7 @@ export namespace SseEndpoint {
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Params &
+    > = Params<ReqH, ReqQ, ReqP> &
         AsyncGenerator.Build<
             TakeIfDefined<{ headers: ReqH; query: ReqQ; path: ReqP }>,
             z.ZodType<string>,
@@ -72,45 +81,18 @@ export function createSse<
     _params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>
 ): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
     const params: SseEndpoint.Params = {
-        documentation: {
-            get operationId() {
-                return build.getName();
-            },
-            tags: middlewares.reduce((tags, m) => tags.concat(m.tags ?? []), [...(_params.tags ?? [])]),
-            security: middlewares.reduce((security, m) => security.concat(m.security ?? []), [...(_params.security ?? [])]),
-            description: _params.description,
-            summary: _params.summary,
-            requestParams: {
-                header: z.object(
-                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqHeader?.shape ?? {}), {
-                        ...(_params.reqHeader?.shape ?? {}),
-                    })
-                ),
-                query: z.object(
-                    middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqQuery?.shape ?? {}), {
-                        ...(_params.reqQuery?.shape ?? {}),
-                    })
-                ),
-                path: z.object({ ...(_params.reqPath?.shape ?? {}) }),
-            },
-            responses: {
-                default: {
-                    description: 'Server side event!',
-                    content: {
-                        'text/event-stream': {
-                            schema: z.string(),
-                        },
-                    },
-                    headers: z.object({
-                        'Content-Type': z.literal('text/event-stream'),
-                    }),
-                } as ZodOpenApiResponseObject,
-            },
-        },
         endpoint: 'sse',
         middlewares,
         path: path,
         method: method,
+        description: _params.description,
+        reqHeader: _params.reqHeader,
+        reqPath: _params.reqPath,
+        reqQuery: _params.reqQuery,
+        resWrite: _params.resWrite,
+        security: _params.security,
+        summary: _params.summary,
+        tags: _params.tags,
     };
     const build = asyncGenerator({
         name: _params.name,
