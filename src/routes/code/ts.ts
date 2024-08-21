@@ -18,7 +18,19 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         const refName = dependency(schema.$ref);
         return { code: `${refName}`, decorator: '' };
     }
-    if (Array.isArray(schema.type)) throw new Error('unimplemented!');
+    let nullable = false;
+    if (Array.isArray(schema.type)) {
+        if (schema.type.length === 1) {
+            schema.type = schema.type[0];
+        } else if (schema.type.length === 2) {
+            const index = schema.type.indexOf('null');
+            if (index === -1) throw new Error('Unimplemented!');
+            nullable = true;
+            schema.type = schema.type[1 - index];
+        } else {
+            throw new Error('Unimplemented!');
+        }
+    }
     let outputCode: string;
     if (schema.anyOf) {
         if (schema.anyOf.length === 1) {
@@ -99,7 +111,7 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
             }[schema.type || 'any'] || 'any';
     }
     outputCode = `(${outputCode})`;
-    // TODO: if (schema.nullable) outputCode += `|null`;
+    if (nullable) outputCode += `|null`;
     const decoratorObj: Record<string, unknown> = {};
     if (!schema) {
         Object.assign(decoratorObj, {
@@ -111,7 +123,7 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         });
     } else {
         Object.assign(decoratorObj, {
-            // TODO: nullable: schema.nullable,
+            nullable: nullable,
             readOnly: schema.readOnly,
             writeOnly: schema.writeOnly,
             xml: schema.xml,
