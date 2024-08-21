@@ -4,7 +4,7 @@ import { SseEndpoint, createSse } from './sse';
 import { Context } from '../functions';
 import { HttpEndpoint, createHttp } from './http';
 import { createDocument, ZodOpenApiObject, ZodOpenApiPathsObject, ZodOpenApiResponsesObject } from 'zod-openapi';
-import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { OpenAPIObject } from '../type/zod-openapi';
 
 export function getRouteDocJson(
     docEndpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>,
@@ -97,7 +97,7 @@ export function getRouteDocJson(
         }
     }
     (params.components ??= {}).securitySchemes = securityData;
-    return createDocument({ ...params, paths: paths, openapi: '3.0.1' }) as never;
+    return createDocument({ ...params, paths: paths, openapi: '3.1.0' });
 }
 
 export function getEndpointsFromBundle<B extends Record<never, never>>(bundle: B, options?: { includeTags?: string[]; excludeTags?: string[] }) {

@@ -5,9 +5,9 @@ import { SseEndpoint } from '../sse';
 import { Context, DefaultBuildContext } from '../../functions';
 import { Middleware } from '../middleware';
 import * as swaggerUi from 'swagger-ui-express';
-import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 import { getEndpointsFromBundle } from '../endpoint';
 import { generateCodeHttpFactory } from '../code-gen-endpoints';
+import { OpenAPIObject } from '../../type/zod-openapi';
 
 export function pathParser(path: string) {
     return path.replace(/{([^}]+)}/g, ':$1');

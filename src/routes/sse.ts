@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { Middleware } from './middleware';
 import { TakeIfDefined, takeIfDefined } from './_helper';
-import { SecuritySchemeObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { SecuritySchemeObject } from '../type/zod-openapi';
 
 export namespace SseEndpoint {
     export type Method = 'get';

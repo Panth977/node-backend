@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { OpenAPIObject } from '../../type/zod-openapi';
 
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const;
 export type Method = (typeof methods)[number];
@@ -45,19 +45,20 @@ export function getAllSchemas(json: OpenAPIObject, options: Options) {
 export function getAllRoutes(json: OpenAPIObject, options: Options) {
     const routes = [];
     const createRoutesFor = options.createRoutesFor;
+    const paths = json.paths ?? {};
     const selection =
         createRoutesFor === undefined
             ? []
             : createRoutesFor === '*'
-              ? Object.keys(json.paths ?? {})
+              ? Object.keys(paths)
                     .map((path) => methods.map((method) => ({ path, method })))
                     .flat()
-                    .filter(({ path, method }) => json.paths[path][method]?.operationId)
+                    .filter(({ path, method }) => paths[path][method]?.operationId)
               : createRoutesFor instanceof Set
-                ? Object.keys(json.paths ?? {})
+                ? Object.keys(paths)
                       .map((path) => methods.map((method) => ({ path, method })))
                       .flat()
-                      .filter(({ path, method }) => createRoutesFor.has(json.paths[path][method]?.operationId as never))
+                      .filter(({ path, method }) => createRoutesFor.has(paths[path][method]?.operationId as never))
                 : createRoutesFor;
     for (const { method, path } of selection) {
         routes.push({

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Middleware } from './middleware';
 import { ZodOpenApiOperationObject } from 'zod-openapi';
 import { TakeIfDefined, takeIfDefined } from './_helper';
-import { SecuritySchemeObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { SecuritySchemeObject } from '../type/zod-openapi';
 
 export namespace HttpEndpoint {
     export type Method = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'options' | 'trace';

@@ -1,9 +1,9 @@
-import { OpenAPIObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
 import { Endpoint } from './endpoint';
 import * as code from './code';
 import { HttpEndpoint } from './http';
 import { Middleware } from './middleware';
 import { defaultOptionsSchema } from './code/_helper';
+import { OpenAPIObject } from '../type/zod-openapi';
 type code = typeof code;
 
 export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: OpenAPIObject) {

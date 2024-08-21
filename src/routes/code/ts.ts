@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OpenAPIObject, OperationObject, ReferenceObject, SchemaObject } from 'zod-openapi/lib-types/openapi3-ts/dist/oas30';
+import { OpenAPIObject, OperationObject, ReferenceObject, SchemaObject } from '../../type/zod-openapi';
 import { defaultOptionsSchema, getAllRoutes, getAllSchemas, Method } from './_helper';
 
 export const optionsSchema = defaultOptionsSchema.extend({
@@ -99,7 +99,7 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
             }[schema.type || 'any'] || 'any';
     }
     outputCode = `(${outputCode})`;
-    if (schema.nullable) outputCode += `|null`;
+    // TODO: if (schema.nullable) outputCode += `|null`;
     const decoratorObj: Record<string, unknown> = {};
     if (!schema) {
         Object.assign(decoratorObj, {
@@ -111,7 +111,7 @@ export function createSchemaCode(schema: SchemaObject | ReferenceObject | null |
         });
     } else {
         Object.assign(decoratorObj, {
-            nullable: schema.nullable,
+            // TODO: nullable: schema.nullable,
             readOnly: schema.readOnly,
             writeOnly: schema.writeOnly,
             xml: schema.xml,
@@ -167,13 +167,14 @@ export function createRouteCode(method: Method, path: string, route: OperationOb
         return schemas[0]?.schema ?? {};
     })();
     const resBody = (function (): SchemaObject | ReferenceObject {
-        if (!route.responses.default) return {};
+        if (!route.responses?.default) return {};
         if ('$ref' in route.responses.default || !route.responses.default.content) throw new Error('Unimplemented!');
         const schemas = Object.values(route.responses.default.content);
         if (schemas.length > 1) return { oneOf: schemas.map((x) => x.schema ?? {}) };
         return schemas[0]?.schema ?? {};
     })();
     const resHeaders = (function () {
+        if (!route.responses?.default || '$ref' in route.responses.default) return [];
         const schemas = [];
         for (const key in route.responses.default?.headers) {
             const x = route.responses.default?.headers?.[key];
