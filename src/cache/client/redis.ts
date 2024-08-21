@@ -86,42 +86,41 @@ export class RedisCacheClient<
         context: Context,
         controller: CacheController | null,
         params: { key: string; incrBy: number; maxLimit?: number; expiry?: number }
-    ): Promise<boolean> {
+    ): Promise<{ allowed: boolean; value: number }> {
         if (controller) params.key = controller.getKey(params.key);
         if (controller && params.expiry === undefined) params.expiry = controller.defaultExpiry;
         if (params.maxLimit === undefined) {
-            await this.client.incrBy(params.key, params.incrBy);
-            return true;
+            const value = await this.client.incrBy(params.key, params.incrBy);
+            return { allowed: true, value };
         }
         const luaScript = `
-local key = KEYS[1]
-local incrBy = tonumber(ARGV[1])
-local maxLimit = tonumber(ARGV[2])
-local expirySec = tonumber(ARGV[3])
-local currentValue = tonumber(redis.call('GET', key) or '0')
-
-if currentValue == 0 then
-    if incrBy <= maxLimit then
-        redis.call('SET', key, incrBy)
-        if expirySec > 0 then
-            redis.call('EXPIRE', key, expirySec)
+local key = KEYS[1];
+local incrBy = tonumber(ARGV[1]);
+local maxLimit = tonumber(ARGV[2]);
+local expirySec = tonumber(ARGV[3]);
+local currentValue = tonumber(redis.call('GET', key) or '0');
+local couldInc = 0;
+if (currentValue == 0) then
+    if (incrBy <= maxLimit) then
+        redis.call('SET', key, incrBy);
+        if (expirySec > 0) then
+            redis.call('EXPIRE', key, expirySec);
         end
-        return true
-    else
-        return false
+        couldInc = 1;
     end
-elseif currentValue + incrBy <= maxLimit then
-    redis.call('INCRBY', key, incrBy)
-    return true
-else
-    return false
+elseif (currentValue + incrBy <= maxLimit) then
+    redis.call('INCRBY', key, incrBy);
+    couldInc = 1;
 end
+local finalValue = tonumber(redis.call('GET', key));
+return {couldInc, finalValue};
         `;
         // Execute the Lua script
         const isAllowed = await this.client.eval(luaScript, {
             keys: [params.key],
             arguments: [`${params.incrBy}`, `${params.maxLimit}`, `${params.expiry || 0}`],
         });
-        return !!isAllowed;
+        if (!Array.isArray(isAllowed) || isAllowed.length !== 2) throw new Error('Unimplemented!');
+        return { allowed: !!isAllowed[0], value: +(isAllowed[1] as string | number) };
     }
 }
