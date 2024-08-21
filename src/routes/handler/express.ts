@@ -137,14 +137,23 @@ export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint
     return { router };
 }
 
-export function createSwagger(middlewares: Middleware.Build[], json: OpenAPIObject) {
+export function createSwagger(
+    middlewares: Middleware.Build[],
+    json: OpenAPIObject,
+    opts?: swaggerUi.SwaggerUiOptions,
+    options?: swaggerUi.SwaggerOptions,
+    customCss?: string,
+    customfavIcon?: string,
+    swaggerUrl?: string,
+    customSiteTitle?: string
+) {
     const JsonPath = '/.json';
     const UiPath = '/';
     const middlewareHandlers: RequestHandler[] = (middlewares ?? []).map(createHandler) as never;
     const router = Router();
     router.get(JsonPath, ...middlewareHandlers, (_, res) => res.send(json));
     router.use(UiPath, ...middlewareHandlers, swaggerUi.serve, function (...args: Parameters<ReturnType<typeof swaggerUi.setup>>) {
-        swaggerUi.setup(json)(...args);
+        swaggerUi.setup(json, opts, options, customCss, customfavIcon, swaggerUrl, customSiteTitle)(...args);
     });
     return { JsonPath, UiPath, router };
 }
