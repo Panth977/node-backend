@@ -27,15 +27,14 @@ export class RedisCacheClient<
     async read(context: Context, params: { key: string; fields?: string[] }[]): Promise<unknown[]> {
         const luaScript = `
         local result = {}
-        for i, param in ipairs(ARGV) do
-            local key = param
-            local fields = cjson.decode(ARGV[i + #KEYS])
+        for i, key in ipairs(KEYS) do
+            local fields = cjson.decode(ARGV[i])
             local keyType = redis.call('type', key).ok
             if keyType == 'string' and not fields then
                 table.insert(result, redis.call('get', key))
             elseif keyType == 'hash' and fields == "*" then
                 table.insert(result, redis.call('hgetall', key))
-            elseif fields and keyType == 'hash' and not fields == "*" then
+            elseif keyType == 'hash' and fields and fields ~= "*" then
                 local hashResult = {}
                 for _, field in ipairs(fields) do
                     table.insert(hashResult, field)
@@ -48,11 +47,11 @@ export class RedisCacheClient<
         end
         return result
         `;
-        const result = await this.client.eval(luaScript as string, {
+        const result = await this.client.eval(luaScript, {
             keys: params.map((p) => p.key),
             arguments: params.map((p) => JSON.stringify(p.fields || null)),
         });
-        const values = [];
+        const values: unknown[] = [];
         for (const item of result as (string | string[])[]) {
             if (typeof item === 'string') {
                 values.push(decode(item));
@@ -62,6 +61,8 @@ export class RedisCacheClient<
                     obj[item[i]] = decode(item[i + 1]);
                 }
                 values.push(obj);
+            } else {
+                values.push(null);
             }
         }
         return values;
