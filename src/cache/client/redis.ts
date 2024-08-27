@@ -126,18 +126,18 @@ export class RedisCacheClient<
         for i, key in ipairs(KEYS) do
             local fields = cjson.decode(ARGV[i])
             local keyType = redis.call('type', key).ok
-            if not fields and keyType == 'string'
+            if not fields and keyType == 'string' then
                 redis.call('del', key)
             elseif fields == "*" and keyType == 'hash' then
                 redis.call('del', key)
-            elseif fields and keyType == 'hash' and not fields == "*"
+            elseif fields and keyType == 'hash' and fields ~= "*" then
                 for _, field in ipairs(fields) do
                     redis.call('hdel', key, field)
                 end
             end
         end
         `;
-        this.client.eval(luaScript, {
+        await this.client.eval(luaScript, {
             keys: params.map((p) => p.key),
             arguments: params.map((p) => JSON.stringify(p.fields || null)),
         });
@@ -156,29 +156,26 @@ export class RedisCacheClient<
         const luaScript = `
         local key = KEYS[1]
         local incrBy = tonumber(ARGV[1])
-        local maxLimit = tonumber(ARGV[2] or '0')
-        local expirySec = tonumber(ARGV[3] or '0')
+        local maxLimit = tonumber(ARGV[2])
+        local expirySec = tonumber(ARGV[3])
         local currentValue = tonumber(redis.call('GET', key) or '0')
-        local couldInc = 0
-        if maxLimit and currentValue + incrBy <= maxLimit then
-            couldInc = 1
-        else not maxLimit
-            couldInc = 1
+        local allowed = 1
+        if maxLimit and maxLimit > 0 and currentValue + incrBy > maxLimit then
+            allowed = 0
         end
-        if couldInc == 1 then
-            redis.call('INCRBY', key, incrBy)
-            if expirySec then
+        if allowed == 1 then
+            currentValue = redis.call('INCRBY', key, incrBy)
+            if expirySec and expirySec > 0 then
                 redis.call('EXPIRE', key, expirySec)
             end
         end
-        local finalValue = tonumber(redis.call('GET', key))
-        return {couldInc, finalValue}
+        return {allowed, currentValue}
         `;
         const result = await this.client.eval(luaScript, {
             keys: [params.key],
-            arguments: [`${params.incrBy}`, `${params.maxLimit}`, `${params.expiry || 0}`],
+            arguments: [`${params.incrBy}`, `${params.maxLimit || 0}`, `${params.expiry || 0}`],
         });
-        if (!Array.isArray(result) || result.length !== 2) throw new Error('Unimplemented!');
+        if (!Array.isArray(result) || result.length !== 2) throw new Error('Unexpected response from Redis script!');
         return { allowed: !!result[0], value: +(result[1] as string | number) };
     }
 }
