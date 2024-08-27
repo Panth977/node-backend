@@ -8,9 +8,9 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "first-publish": "rm -rf lib/ && npm run build && npm publish --access public",
-    "publish-patch": "rm -rf lib/ && npm version patch && npm run build && npm publish",
-    "publish-minor": "rm -rf lib/ && npm version minor && npm run build && npm publish",
-    "publish-major": "rm -rf lib/ && npm version major && npm run build && npm publish",
+    "publish-patch": "rm -rf lib/ && npm run build && npm version patch && npm publish",
+    "publish-minor": "rm -rf lib/ && npm run build && npm version minor && npm publish",
+    "publish-major": "rm -rf lib/ && npm run build && npm version major && npm publish",
     "build-types": "tsc --declaration --outDir ./typings",
     "test": "npm run build && node lib/test/index.js"
   },
