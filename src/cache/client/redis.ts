@@ -144,11 +144,11 @@ export class RedisCacheClient<
     }
     async increment(
         context: Context,
-        controller: CacheController<RedisCacheClient> | null,
+        controller: CacheController | null,
         params: { key: string; incrBy: number; maxLimit?: number; expiry?: number }
     ): Promise<{ allowed: boolean; value: number }> {
         if (controller) {
-            if ((controller.client as never) !== this) throw new Error('Invalid usage of Controller!');
+            if (controller.client !== this) throw new Error('Invalid usage of Controller!');
             params.key = controller.getKey(params.key);
             if (!controller.can('increment')) return { allowed: false, value: 0 };
         }
