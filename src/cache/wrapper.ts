@@ -20,11 +20,12 @@ export function CacheObject<
     O extends z.ZodType,
     L,
     C extends Context,
+    A extends AbstractCacheClient,
 >(
     params: AsyncFunction.Params<I, O, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
-        getCache(input: I['_output']): CacheController<AbstractCacheClient>;
+        getCache(input: I['_output']): CacheController<A>;
     }
 ): AsyncFunction.WrapperBuild<I, O, L, C> {
     behavior.invalidation?.(async function invalidate(context, input) {
@@ -49,11 +50,12 @@ export function CacheMObject<
     O extends z.ZodType,
     L,
     C extends Context,
+    A extends AbstractCacheClient,
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
-        getCache(input: I['_output']): CacheController<AbstractCacheClient>;
+        getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[];
         updateIds(input: I['_output'], info: { reqIds: string[]; ignoreIds: string[] }): I['_output'];
     }
@@ -99,11 +101,12 @@ export function CacheCollection<
     O extends z.ZodType,
     L,
     C extends Context,
+    A extends AbstractCacheClient,
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
-        getCache(input: I['_output']): CacheController<AbstractCacheClient>;
+        getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[] | '*';
         updateIds(input: I['_output'], info: { reqIds: string[] | '*'; ignoreIds: string[] }): I['_output'];
     }
@@ -158,11 +161,12 @@ export function CacheMCollection<
     O extends z.ZodType,
     L,
     C extends Context,
+    A extends AbstractCacheClient,
 >(
     params: AsyncFunction.Params<I, zRecord<zRecord<O>>, L, C>,
     behavior: {
         invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
-        getCache(input: I['_output']): CacheController<AbstractCacheClient>;
+        getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): { id: string; subIds: string[] | '*' }[];
         updateIds(input: I['_output'], info: { id: string; reqSubIds: string[] | '*'; ignoreSubIds: string[] }[]): I['_output'];
     }
