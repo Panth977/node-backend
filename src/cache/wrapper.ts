@@ -234,7 +234,7 @@ export function CacheMCollection<
             cache.write(context, {
                 data: info
                     .filter((x) => x.reqSubIds !== '*')
-                    .map((x) => ({ key: x.id, hash: Object.fromEntries(x.reqSubIds.map((id) => [x, res_.then((r) => r[x.id][id])])) })),
+                    .map((x) => ({ key: x.id, hash: Object.fromEntries((x.reqSubIds as string[]).map((id) => [x, res_.then((r) => r[x.id][id])])) })),
             });
             res_.then((res) =>
                 cache.write(context, { data: info.filter((x) => x.reqSubIds === '*').map((x) => ({ key: x.id, hash: { ...res[x.id], $: '*' } })) })
