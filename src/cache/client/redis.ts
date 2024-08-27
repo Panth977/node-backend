@@ -76,22 +76,24 @@ export class RedisCacheClient<
             local value = cjson.decode(ARGV[i])
             local expire = tonumber(ARGV[#KEYS + 1])
             local keyType = redis.call('type', key).ok
+
             if type(value) == "string" then
-                if not keyType == 'string' then 
+                if keyType ~= 'string' and keyType ~= 'none' then 
                     redis.call('del', key)
                 end
                 redis.call('set', key, value)
-                if expire then
+                if expire > 0 then
                     redis.call('expire', key, expire)
                 end
-            else
-                if not keyType == 'hash' then 
+
+            elseif type(value) == "table" then
+                if keyType ~= 'hash' and keyType ~= 'none' then 
                     redis.call('del', key)
                 end
                 for field, fieldValue in pairs(value) do
                     redis.call('hset', key, field, fieldValue)
                 end
-                if expire and not keyType == 'hash' then 
+                if expire > 0 then 
                     redis.call('expire', key, expire)
                 end
             end
@@ -99,27 +101,26 @@ export class RedisCacheClient<
         `;
         await this.client.eval(luaScript, {
             keys: params.data.map((p) => p.key),
-            arguments: await Promise.all(
-                params.data
-                    .map(async ({ hash, value }) => {
+            arguments: (
+                await Promise.all(
+                    params.data.map(async ({ hash, value }) => {
                         if ((hash !== undefined && value !== undefined) || (value === undefined && hash === undefined)) {
                             throw new Error('exactly one of [value, hash] must be provided');
                         }
                         if (value !== undefined) {
-                            return encode(await (value as unknown | Promise<unknown>));
+                            return encode(await value);
                         }
                         if (hash !== undefined) {
-                            const fields: Record<string, unknown> = {};
-                            for (const field in fields) {
-                                fields[field] = await hash[field];
+                            const fields: Record<string, string> = {};
+                            for (const field in hash) {
+                                fields[field] = encode(await hash[field]);
                             }
-                            return fields;
+                            return JSON.stringify(fields);
                         }
                         throw new Error('Unimplemented!');
                     })
-                    .map((x) => JSON.stringify(x))
-                    .concat(params.expire.toString())
-            ),
+                )
+            ).concat(params.expire.toString()),
         });
     }
     async remove(context: Context, params: { key: string; fields?: '*' | string[] }[]): Promise<void> {

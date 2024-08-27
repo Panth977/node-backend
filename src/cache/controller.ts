@@ -84,7 +84,7 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
                     query += `\n\t.at(${x.key}, '*'): ${isErr ? '❌' : result[i] === null ? '∅' : '✅'}`;
                 } else {
                     for (const field of x.fields) {
-                        query += `\n\t.at(${x.key}, ${field}): ${isErr ? '❌' : result[i]?.[field] === null ? '∅' : '✅'}`;
+                        query += `\n\t.at(${x.key}, ${field}): ${isErr ? '❌' : (result[i]?.[field] ?? null) === null ? '∅' : '✅'}`;
                     }
                 }
             }
