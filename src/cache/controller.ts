@@ -3,7 +3,7 @@ import { Context } from '../functions';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 type ExtendedFunc<P, R> = (context: Context, controller: CacheController, params: P) => R;
-type Actions<T extends AbstractCacheClient> = Record<keyof T, boolean> | boolean;
+type Actions<T extends AbstractCacheClient> = { '*': boolean } & Partial<Record<keyof T, boolean>>;
 export abstract class AbstractCacheClient {
     readonly name: string;
     constructor(name: string) {
@@ -35,10 +35,8 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
     getKey(key: string) {
         return `${this.prefix}${this.separator}${key}`;
     }
-    can(key: keyof T) {
-        const allowed = this.allowed;
-        if (typeof allowed === 'boolean') return allowed;
-        return (allowed as never)[key];
+    can(key: keyof T): boolean {
+        return (this.allowed as never)[key] ?? this.allowed['*'];
     }
 
     /*******************************************/
@@ -53,8 +51,8 @@ export class CacheController<T extends AbstractCacheClient = AbstractCacheClient
     setLogging(opt: boolean) {
         return new CacheController(this.client, this.separator, this.defaultExpiry, this.prefix, this.allowed, opt);
     }
-    setAllowance(opt: Actions<T>) {
-        return new CacheController(this.client, this.separator, this.defaultExpiry, this.prefix, opt, this.log);
+    setAllowance(opt: Omit<Actions<T>, '*'>) {
+        return new CacheController(this.client, this.separator, this.defaultExpiry, this.prefix, Object.assign({}, this.allowed, opt), this.log);
     }
 
     /* Controllers */
