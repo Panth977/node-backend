@@ -82,7 +82,8 @@ export function CacheMObject<
             )
             .then((res) => bundleCached(ids, res));
         const info = (function () {
-            const ret = { reqIds: ids.filter((id) => result[id] === null), ignoreIds: Object.keys(result) };
+            const found = new Set(Object.keys(result).filter((x) => (result[x] ?? null) !== null));
+            const ret = { reqIds: ids.filter((id) => !found.has(id)), ignoreIds: [...found] };
             if (!ret.reqIds.length) return null;
             return ret;
         })();
@@ -131,14 +132,15 @@ export function CacheCollection<
         if (Array.isArray(fields) && fields.includes('$')) throw new Error('id = [$] is reserved, use some other key!');
         const result = await cache.read(context, [{ fields: fields }]).then((x) => (x[0] ?? {}) as Record<string, unknown>);
         const info = (function () {
+            const found = new Set(Object.keys(result).filter((id) => (result[id] ?? null) !== null));
             if (fields === '*') {
                 if (result.$ === '*') {
                     delete result.$;
                     return null;
                 }
-                return { reqIds: '*', ignoreIds: Object.keys(result) } as const;
+                return { reqIds: '*' as const, ignoreIds: [...found] };
             }
-            const ret = { reqIds: fields.filter((id) => result[id] === undefined), ignoreIds: Object.keys(result) } as const;
+            const ret = { reqIds: fields.filter((id) => !found.has(id)), ignoreIds: [...found] };
             if (!ret.reqIds.length) return null;
             return ret;
         })();
@@ -200,7 +202,7 @@ export function CacheMCollection<
             ...locs.filter((x) => x.subIds !== '*').map((x) => ({ key: x.id, fields: x.subIds }) as const),
         ]);
     });
-    return async function CacheCollection(context, input, func) {
+    return async function CacheMCollection(context, input, func) {
         const cache = behavior.getCache(input);
         const locs = getIds(input);
         const result = await cache
@@ -218,16 +220,17 @@ export function CacheMCollection<
             const info = [];
             for (const x of locs) {
                 const res = result[x.id];
+                const found = new Set(Object.keys(res).filter((id) => (result[id] ?? null) !== null));
                 const fields = x.subIds;
                 if (fields === '*') {
                     if (res.$ === '*') {
                         delete res.$;
                         continue;
                     }
-                    info.push({ id: x.id, reqSubIds: '*', ignoreSubIds: Object.keys(res) } as const);
+                    info.push({ id: x.id, reqSubIds: '*' as const, ignoreSubIds: [...found] });
                     continue;
                 }
-                const ret = { id: x.id, reqSubIds: fields.filter((id) => res[id] === undefined), ignoreSubIds: Object.keys(res) } as const;
+                const ret = { id: x.id, reqSubIds: fields.filter((id) => !found.has(id)), ignoreSubIds: [...found] };
                 if (!ret.reqSubIds.length) continue;
                 info.push(ret);
             }
