@@ -1,6 +1,6 @@
 import { DefaultSplitChar, getInnerProps, KeyPath } from './basic';
 
-export function SortList<
+export function sort<
     //
     T,
     K extends KeyPath<T, S>,
@@ -22,7 +22,7 @@ export function SortList<
     throw new Error('unimplemented mode found!');
 }
 
-export function DestructureObject(rows: Record<string, unknown>[], split = DefaultSplitChar): Record<string, unknown>[] {
+export function destructure(rows: Record<string, unknown>[], split = DefaultSplitChar): Record<string, unknown>[] {
     const newRows = [];
     for (const row of rows) {
         const newRow = {};

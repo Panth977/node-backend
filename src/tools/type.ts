@@ -1,11 +1,11 @@
 type Primitive = string | number | symbol | boolean | null | undefined;
+type Subtype<T> = (Primitive & Record<never, never>) | Extract<T, Primitive>;
 
-export function Exclude<T, U extends Primitive>(t: T, u_: U[]): Exclude<T, U> {
+export function Exclude<T, U extends [Subtype<T>, ...Subtype<T>[]]>(t: T, u_: U): Exclude<T, U[number]> {
     if (u_.includes(t as never)) throw new Error('Expected not to be!');
     return t as never;
 }
-
-export function Extract<T, U>(t: T, u_: U[]): Extract<T, U> {
+export function Extract<T, U extends [Subtype<T>, ...Subtype<T>[]]>(t: T, u_: U): Extract<T, U[number]> {
     if (!u_.includes(t as never)) throw new Error('Expected to be!');
     return t as never;
 }

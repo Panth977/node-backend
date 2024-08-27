@@ -11,84 +11,95 @@ class HASH {
 export class MemoCacheClient extends AbstractCacheClient {
     readonly memo: Record<string, unknown> = {};
     readonly exp: Record<string, ReturnType<typeof setTimeout>> = {};
-    readonly name = 'Memo';
-    readonly needToAwait = false;
     constructor(memo: Record<string, unknown>) {
-        super();
+        super('Memo');
         this.memo = { ...memo };
     }
-    async readM<T extends Record<never, never>>(context: Context, params: { keys: string[] }): Promise<Partial<T>> {
+    async read(context: Context, params: { key: string; fields?: '*' | string[] }[]): Promise<unknown[]> {
         const result = this.memo;
-        const ret: Record<string, unknown> = {};
-        for (const key of params.keys) {
-            if ((result[key] ?? null) !== null) {
+        const ret = [];
+        const errParams: typeof params = [];
+        for (const x of params) {
+            const val = result[x.key];
+            if (x.fields === undefined && val instanceof HASH === false) {
                 try {
-                    ret[key] = await result[key];
+                    ret.push(await val);
                 } catch {
-                    delete result[key];
-                    delete this.exp[key];
+                    ret.push(null);
+                    errParams.push(x);
+                }
+            } else if (x.fields && val instanceof HASH) {
+                const fields: Record<string, unknown> = {};
+                const errFields = [];
+                for (const field of x.fields === '*' ? Object.keys(x.fields) : x.fields) {
+                    try {
+                        fields[field] = await val.fields[field];
+                    } catch {
+                        errFields.push(field);
+                    }
+                }
+                if (errFields.length) errParams.push({ key: x.key, fields: errFields });
+                ret.push(fields);
+            } else {
+                ret.push(null);
+            }
+        }
+        if (errParams.length) this.remove(context, params);
+        return ret;
+    }
+    async write(
+        context: Context,
+        params: { data: { key: string; value?: unknown; hash?: Record<string, unknown> }[]; expire: number }
+    ): Promise<void> {
+        const result = this.memo;
+        for (const x of params.data) {
+            if ((x.hash !== undefined && x.value !== undefined) || (x.value === undefined && x.hash === undefined)) {
+                throw new Error('exactly one of [value, hash] must be provided');
+            }
+            if (x.value !== undefined) {
+                if (this.exp[x.key]) clearTimeout(this.exp[x.key]);
+                if (params.expire) {
+                    this.exp[x.key] = setTimeout(() => {
+                        delete result[x.key];
+                        delete this.exp[x.key];
+                    }, params.expire * 1000);
+                }
+                result[x.key] = x.value;
+            } else if (x.hash) {
+                if (result[x.key] instanceof HASH === false) {
+                    result[x.key] = new HASH();
+                    if (this.exp[x.key]) clearTimeout(this.exp[x.key]);
+                    if (params.expire) {
+                        this.exp[x.key] = setTimeout(() => {
+                            delete result[x.key];
+                            delete this.exp[x.key];
+                        }, params.expire * 1000);
+                    }
+                }
+                const val = result[x.key] as HASH;
+                for (const field in x.hash) {
+                    val.fields[field] = x.hash[field];
                 }
             }
         }
-        return ret as never;
     }
-    async readMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fields: string[] | '*' }): Promise<Partial<T>> {
+    async remove(context: Context, params: { key: string; fields?: '*' | string[] }[]): Promise<void> {
         const result = this.memo;
-        const hash = result[params.key] ?? new HASH();
-        if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
-        const hashResult = hash.fields;
-        if (params.fields === '*') params.fields = Object.keys(hashResult);
-        const ret: Record<string, unknown> = {};
-        for (const field of params.fields) {
-            if ((hashResult[field] ?? null) !== null) {
-                try {
-                    ret[field] = await hashResult[field];
-                } catch {
-                    delete hashResult[field];
+        for (const x of params) {
+            const val = result[x.key];
+            if (x.fields === undefined && val instanceof HASH === false) {
+                delete result[x.key];
+                if (this.exp[x.key]) clearTimeout(this.exp[x.key]);
+                delete this.exp[x.key];
+            } else if (x.fields === '*' && val instanceof HASH) {
+                delete result[x.key];
+                if (this.exp[x.key]) clearTimeout(this.exp[x.key]);
+                delete this.exp[x.key];
+            } else if (Array.isArray(x.fields) && val instanceof HASH) {
+                for (const field of x.fields) {
+                    delete val.fields[field];
                 }
             }
-        }
-        return ret as never;
-    }
-    async writeM<T extends Record<never, never>>(context: Context, params: { keyValues: T; expire: number }): Promise<void> {
-        const result = this.memo;
-        if (params.expire) {
-            for (const key in params.keyValues) {
-                this.exp[key] ??= setTimeout(() => {
-                    delete result[key];
-                    delete this.exp[key];
-                }, params.expire * 1000);
-            }
-        }
-        Object.assign(result, params.keyValues);
-    }
-    async writeMHashField<T extends Record<never, never>>(context: Context, params: { key: string; fieldValues: T; expire: number }): Promise<void> {
-        const result = this.memo;
-        const hash = (result[params.key] ??= new HASH());
-        if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
-        const hashResult = hash.fields;
-        if (params.expire) {
-            this.exp[params.key] ??= setTimeout(() => {
-                delete result[params.key];
-                delete this.exp[params.key];
-            }, params.expire * 1000);
-        }
-        Object.assign(hashResult, params.fieldValues);
-    }
-    async removeM(context: Context, params: { keys: string[] }): Promise<void> {
-        const result = this.memo;
-        for (const key of params.keys) {
-            delete result[key];
-            delete this.exp[key];
-        }
-    }
-    async removeMHashField(context: Context, params: { key: string; fields: string[] }): Promise<void> {
-        const result = this.memo;
-        const hash = result[params.key] ?? new HASH();
-        if (!HASH.isHASH(hash)) throw new Error('Value not of Hash type');
-        const hashResult = hash.fields;
-        for (const key of params.fields) {
-            delete hashResult[key];
         }
     }
 }

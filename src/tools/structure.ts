@@ -1,6 +1,6 @@
 import { DefaultSplitChar, getInnerProps, KeyPath } from './basic';
 
-export function OneToOneRecord<
+export function oneToOneRecord<
     //
     T,
     K extends KeyPath<T, S>,
@@ -18,7 +18,7 @@ export function OneToOneRecord<
     return result;
 }
 
-export function OneToManyRecord<
+export function oneToManyRecord<
     //
     T,
     K extends KeyPath<T, S>,
