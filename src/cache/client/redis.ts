@@ -150,7 +150,7 @@ export class RedisCacheClient<
         if (controller) {
             if (controller.client !== this) throw new Error('Invalid usage of Controller!');
             params.key = controller.getKey(params.key);
-            if (!controller.can('increment')) return { allowed: true, value: 0 };
+            if (!controller.can('increment')) return { allowed: false, value: 0 };
         }
         if (controller && params.expiry === undefined) params.expiry = controller.defaultExpiry;
         const luaScript = `
