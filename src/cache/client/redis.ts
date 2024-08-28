@@ -100,28 +100,25 @@ export class RedisCacheClient<
             end
         end
         `;
+        const args = [];
+        for (const x of params.data) {
+            if ((x.hash !== undefined && x.value !== undefined) || (x.value === undefined && x.hash === undefined)) {
+                throw new Error('exactly one of [value, hash] must be provided');
+            } else if (x.value !== undefined) {
+                args.push(encode(await x.value));
+            } else if (x.hash !== undefined) {
+                const fields: Record<string, string> = {};
+                for (const field in x.hash) {
+                    fields[field] = encode(await x.hash[field]);
+                }
+                args.push(fields);
+            } else {
+                throw new Error('Unimplemented!');
+            }
+        }
         await this.client.eval(luaScript, {
             keys: params.data.map((p) => p.key),
-            arguments: (
-                await Promise.all(
-                    params.data.map(async ({ hash, value }) => {
-                        if ((hash !== undefined && value !== undefined) || (value === undefined && hash === undefined)) {
-                            throw new Error('exactly one of [value, hash] must be provided');
-                        }
-                        if (value !== undefined) {
-                            return encode(await value);
-                        }
-                        if (hash !== undefined) {
-                            const fields: Record<string, string> = {};
-                            for (const field in hash) {
-                                fields[field] = encode(await hash[field]);
-                            }
-                            return JSON.stringify(fields);
-                        }
-                        throw new Error('Unimplemented!');
-                    })
-                )
-            ).concat(params.expire.toString()),
+            arguments: [...args.map((x) => JSON.stringify(x)), params.expire.toString()],
         });
     }
     async remove(context: Context, params: { key: string; fields?: '*' | string[] }[]): Promise<void> {
