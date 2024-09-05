@@ -11,7 +11,7 @@ function decode<T>(val: unknown): T {
     }
 }
 function encode<T>(val: T): string {
-    return JSON.stringify(val ?? null);
+    return JSON.stringify(val);
 }
 
 export class RedisCacheClient<
@@ -100,24 +100,35 @@ export class RedisCacheClient<
             end
         end
         `;
+        const keys = [];
         const args = [];
         for (const x of params.data) {
             if ((x.hash !== undefined && x.value !== undefined) || (x.value === undefined && x.hash === undefined)) {
                 throw new Error('exactly one of [value, hash] must be provided');
             } else if (x.value !== undefined) {
-                args.push(encode(await x.value));
+                const val = await x.value;
+                if (val !== undefined) {
+                    args.push(encode(val));
+                    keys.push(x.key);
+                }
             } else if (x.hash !== undefined) {
                 const fields: Record<string, string> = {};
                 for (const field in x.hash) {
-                    fields[field] = encode(await x.hash[field]);
+                    const val = await x.hash[field];
+                    if (val !== undefined) {
+                        fields[field] = encode(val);
+                    }
                 }
-                args.push(fields);
+                if (Object.keys(fields).length) {
+                    args.push(fields);
+                    keys.push(x.key);
+                }
             } else {
                 throw new Error('Unimplemented!');
             }
         }
         await this.client.eval(luaScript, {
-            keys: params.data.map((p) => p.key),
+            keys: keys,
             arguments: [...args.map((x) => JSON.stringify(x)), params.expire.toString()],
         });
     }
