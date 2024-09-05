@@ -85,6 +85,11 @@ export function CacheMObject<
             const found = new Set(Object.keys(result).filter((x) => (result[x] ?? null) !== null));
             const ret = { reqIds: ids.filter((id) => !found.has(id)), ignoreIds: [...found] };
             if (!ret.reqIds.length) return null;
+            for (const id of ids) {
+                if (!found.has(id)) {
+                    delete result[id];
+                }
+            }
             return ret;
         })();
         if (info) {
@@ -139,6 +144,11 @@ export function CacheCollection<
                     return null;
                 }
                 return { reqIds: '*' as const, ignoreIds: [...found] };
+            }
+            for (const id of fields) {
+                if (!found.has(id)) {
+                    delete result[id];
+                }
             }
             const ret = { reqIds: fields.filter((id) => !found.has(id)), ignoreIds: [...found] };
             if (!ret.reqIds.length) return null;
@@ -229,6 +239,11 @@ export function CacheMCollection<
                     }
                     info.push({ id: x.id, reqSubIds: '*' as const, ignoreSubIds: [...found] });
                     continue;
+                }
+                for (const subId of fields) {
+                    if (!found.has(subId)) {
+                        delete result[x.id][subId];
+                    }
                 }
                 const ret = { id: x.id, reqSubIds: fields.filter((id) => !found.has(id)), ignoreSubIds: [...found] };
                 if (!ret.reqSubIds.length) continue;
