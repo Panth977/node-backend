@@ -58,13 +58,13 @@ export function SafeParse(
             if (behavior.input ?? true) {
                 const start = Date.now();
                 input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start} ms`);
             }
             let output = func(context, input);
             if (behavior.output ?? true) {
                 const start = Date.now();
                 output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start} ms`);
             }
             return output;
         } satisfies SyncFunction.WrapperBuild;
@@ -73,13 +73,13 @@ export function SafeParse(
             if (behavior.input ?? true) {
                 const start = Date.now();
                 input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start} ms`);
             }
             let output = await func(context, input);
             if (behavior.output ?? true) {
                 const start = Date.now();
                 output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start} ms`);
             }
             return output;
         } satisfies AsyncFunction.WrapperBuild;
@@ -88,7 +88,7 @@ export function SafeParse(
             if (behavior.input ?? true) {
                 const start = Date.now();
                 input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start} ms`);
             }
             const g = func(context, input);
             let val = await g.next();
@@ -97,13 +97,13 @@ export function SafeParse(
                 if (behavior.yield ?? true) {
                     const start = Date.now();
                     y = params._yield.parse(y, { path: [context.params.getRef() + ':yield'] });
-                    if (behavior.debug) context.log(`${context.params.getRef()}:yield parsed in ${Date.now() - start}`);
+                    if (behavior.debug) context.log(`${context.params.getRef()}:yield parsed in ${Date.now() - start} ms`);
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
                     const start = Date.now();
                     next = params._next.parse(next, { path: [context.params.getRef() + ':next'] });
-                    if (behavior.debug) context.log(`${context.params.getRef()}:next parsed in ${Date.now() - start}`);
+                    if (behavior.debug) context.log(`${context.params.getRef()}:next parsed in ${Date.now() - start} ms`);
                 }
                 val = await g.next(next);
             }
@@ -111,7 +111,7 @@ export function SafeParse(
             if (behavior.output ?? true) {
                 const start = Date.now();
                 output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start} ms`);
             }
             return output;
         } satisfies AsyncGenerator.WrapperBuild;
@@ -120,7 +120,7 @@ export function SafeParse(
             if (behavior.input ?? true) {
                 const start = Date.now();
                 input = params._input.parse(input, { path: [context.params.getRef() + ':input'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:input parsed in ${Date.now() - start} ms`);
             }
             const g = func(context, input);
             let val = g.next();
@@ -129,13 +129,13 @@ export function SafeParse(
                 if (behavior.yield ?? true) {
                     const start = Date.now();
                     y = params._yield.parse(y, { path: [context.params.getRef() + ':yield'] });
-                    if (behavior.debug) context.log(`${context.params.getRef()}:yield parsed in ${Date.now() - start}`);
+                    if (behavior.debug) context.log(`${context.params.getRef()}:yield parsed in ${Date.now() - start} ms`);
                 }
                 let next = yield y;
                 if (behavior.next ?? true) {
                     const start = Date.now();
                     next = params._next.parse(next, { path: [context.params.getRef() + ':next'] });
-                    if (behavior.debug) context.log(`${context.params.getRef()}:next parsed in ${Date.now() - start}`);
+                    if (behavior.debug) context.log(`${context.params.getRef()}:next parsed in ${Date.now() - start} ms`);
                 }
                 val = g.next(next);
             }
@@ -143,7 +143,7 @@ export function SafeParse(
             if (behavior.output ?? true) {
                 const start = Date.now();
                 output = params._output.parse(output, { path: [context.params.getRef() + ':output'] });
-                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start}`);
+                if (behavior.debug) context.log(`${context.params.getRef()}:output parsed in ${Date.now() - start} ms`);
             }
             return output;
         } satisfies SyncGenerator.WrapperBuild;
