@@ -67,9 +67,8 @@ export function Debug(
             } finally {
                 const timeTaken = Date.now() - start;
                 context.log('⏳ Time', {
-                    throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
+                    throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed < timeTaken ? true : false,
                     time: timeTaken,
-                    stack: context.getStack(),
                 });
             }
         } satisfies SyncFunction.WrapperBuild;
@@ -85,9 +84,8 @@ export function Debug(
             } finally {
                 const timeTaken = Date.now() - start;
                 context.log('⏳ Time', {
-                    throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
+                    throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed < timeTaken ? true : false,
                     time: timeTaken,
-                    stack: context.getStack(),
                 });
             }
         } satisfies AsyncFunction.WrapperBuild;
@@ -104,9 +102,8 @@ export function Debug(
                     const timeTaken = Date.now() - start;
                     context.log('⏳ Time', {
                         yield: i,
-                        throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
+                        throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed < timeTaken ? true : false,
                         time: timeTaken,
-                        stack: context.getStack(),
                     });
                     i++;
                     if (behavior.yield) context.log('yield', val.value);
@@ -132,9 +129,8 @@ export function Debug(
                     const timeTaken = Date.now() - start;
                     context.log('⏳ Time', {
                         yield: i,
-                        throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed > timeTaken ? true : false,
+                        throttle: behavior.maxTimeAllowed && behavior.maxTimeAllowed < timeTaken ? true : false,
                         time: timeTaken,
-                        stack: context.getStack(),
                     });
                     i++;
                     if (behavior.yield) context.log('yield', val.value);
