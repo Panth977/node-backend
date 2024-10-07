@@ -125,13 +125,13 @@ export function createErrorHandler(onError: typeof defaultOnError): ErrorRequest
     };
 }
 
-export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>, onError = defaultOnError) {
+export function serve(endpoints: Record<string, HttpEndpoint.Build | SseEndpoint.Build>, onError = defaultOnError, logRoute = false) {
     const router = Router();
     router.use(setupContext());
     for (const build of Object.values(endpoints)) {
         const { method, path } = build;
         router[method](pathParser(path), ...build.middlewares.map(createHandler), createHandler(build));
-        console.log('Route build success:  ', method.toUpperCase(), '\t', path);
+        if (logRoute) console.log('Route build success:  ', method.toUpperCase(), '\t', path);
     }
     router.use(createErrorHandler(onError));
     return { router };
