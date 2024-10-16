@@ -26,21 +26,21 @@ export function getRouteDocJson(
                 summary: build.summary,
                 requestParams: {
                     header: z.object(
-                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqHeader?.shape ?? {}), {
-                            ...(build.reqHeader?.shape ?? {}),
+                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware._input.shape.headers?.shape ?? {}), {
+                            ...(build._input.shape.headers?.shape ?? {}),
                         })
                     ),
                     query: z.object(
-                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqQuery?.shape ?? {}), {
-                            ...(build.reqQuery?.shape ?? {}),
+                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware._input.shape.query?.shape ?? {}), {
+                            ...(build._input.shape.query?.shape ?? {}),
                         })
                     ),
-                    path: z.object({ ...(build.reqPath?.shape ?? {}) }),
+                    path: z.object({ ...(build._input.shape.path?.shape ?? {}) }),
                 },
                 requestBody: {
                     content: {
                         [build.reqMediaTypes ?? 'application/json']: {
-                            schema: build.reqBody,
+                            schema: build._input.shape.body,
                         },
                     },
                 },
@@ -48,12 +48,12 @@ export function getRouteDocJson(
                     default: {
                         content: {
                             [build.resMediaTypes ?? 'application/json']: {
-                                schema: build.resBody,
+                                schema: build._output.shape.body,
                             },
                         },
                         headers: z.object(
-                            middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.resHeaders?.shape ?? {}), {
-                                ...(build.resHeaders?.shape ?? {}),
+                            middlewares.reduce((shape, middleware) => Object.assign(shape, middleware._output.shape.headers?.shape ?? {}), {
+                                ...(build._output.shape.headers?.shape ?? {}),
                             })
                         ),
                     },
@@ -69,16 +69,14 @@ export function getRouteDocJson(
                 summary: build.summary,
                 requestParams: {
                     header: z.object(
-                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqHeader?.shape ?? {}), {
-                            ...(build.reqHeader?.shape ?? {}),
-                        })
+                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware._input.shape.headers?.shape ?? {}), {})
                     ),
                     query: z.object(
-                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware.reqQuery?.shape ?? {}), {
-                            ...(build.reqQuery?.shape ?? {}),
+                        middlewares.reduce((shape, middleware) => Object.assign(shape, middleware._input.shape.query?.shape ?? {}), {
+                            ...(build._input.shape.query?.shape ?? {}),
                         })
                     ),
-                    path: z.object({ ...(build.reqPath?.shape ?? {}) }),
+                    path: z.object({ ...(build._input.shape.path?.shape ?? {}) }),
                 },
                 responses: {
                     default: {
@@ -150,13 +148,11 @@ export class Endpoint<Opt extends Record<never, never>> {
     }
     addMiddleware<
         //
-        ReqH extends undefined | z.AnyZodObject,
-        ReqQ extends undefined | z.AnyZodObject,
-        ResH extends undefined | z.AnyZodObject,
-        Opt_ extends z.AnyZodObject,
+        I extends z.AnyZodObject,
+        O extends z.AnyZodObject,
         L,
         C extends Context,
-    >(middleware: Middleware.Build<ReqH, ReqQ, ResH, Opt_, L, C>): Endpoint<Opt & Opt_['_output']> {
+    >(middleware: Middleware.Build<I, O, L, C>): Endpoint<Opt & Middleware.inferOptions<O>['_output']> {
         return new Endpoint([...this.middlewares, middleware as never], this.tags);
     }
     addTags(...tags: string[]): Endpoint<Opt> {
@@ -164,34 +160,21 @@ export class Endpoint<Opt extends Record<never, never>> {
     }
     http<
         //
-        ReqH extends undefined | z.AnyZodObject,
-        ReqQ extends undefined | z.AnyZodObject,
-        ReqP extends undefined | z.AnyZodObject,
-        ReqB extends undefined | z.ZodType,
-        ResH extends undefined | z.AnyZodObject,
-        ResB extends undefined | z.ZodType,
+        I extends z.AnyZodObject,
+        O extends z.AnyZodObject,
         L,
         C extends Context,
-    >(
-        method: HttpEndpoint.Method,
-        path: string,
-        _params: HttpEndpoint._Params<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt>
-    ): HttpEndpoint.Build<ReqH, ReqQ, ReqP, ReqB, ResH, ResB, L, C, Opt> {
+    >(method: HttpEndpoint.Method, path: string, _params: HttpEndpoint._Params<I, O, L, C, Opt>): HttpEndpoint.Build<I, O, L, C, Opt> {
         _params.tags = (_params.tags ??= []).concat(this.tags);
         return createHttp(this.middlewares, method, path, _params);
     }
     sse<
         //
-        ReqH extends undefined | z.AnyZodObject,
-        ReqQ extends undefined | z.AnyZodObject,
-        ReqP extends undefined | z.AnyZodObject,
+        I extends z.AnyZodObject,
+        Y extends z.ZodString,
         L,
         C extends Context,
-    >(
-        method: SseEndpoint.Method,
-        path: string,
-        _params: SseEndpoint._Params<ReqH, ReqQ, ReqP, L, C, Opt>
-    ): SseEndpoint.Build<ReqH, ReqQ, ReqP, L, C, Opt> {
+    >(method: SseEndpoint.Method, path: string, _params: SseEndpoint._Params<I, Y, L, C, Opt>): SseEndpoint.Build<I, Y, L, C, Opt> {
         (_params.tags ??= []).concat(this.tags);
         return createSse(this.middlewares, method, path, _params);
     }

@@ -5,3 +5,4 @@ export * from './middleware';
 export * as HANDLER from './handler';
 export * from './endpoint';
 export * from './code-gen-endpoints';
+export * from './schema';

@@ -29,14 +29,16 @@ export function setupContext(): RequestHandler<never, never, never, never, Local
     };
 }
 
-export function createHandler(build: Middleware.Build | HttpEndpoint.Build | SseEndpoint.Build): RequestHandler<never, never, never, never, Locals> {
+export function createHandler(
+    build: Middleware.Build | HttpEndpoint.Build | SseEndpoint.Build
+): RequestHandler<unknown, unknown, unknown, unknown, Locals> {
     if (build.endpoint === 'middleware') {
         return async function (req, res, nxt) {
             try {
                 res.locals.context.log('🔄 ' + build.getRef());
                 const input = { headers: req.headers, query: req.query };
                 const output = await build(res.locals.context, input);
-                for (const key in output.headers) res.setHeader(key, output.headers[key]);
+                if (output.headers) for (const key in output.headers) res.setHeader(key, output.headers[key as keyof typeof output.headers]);
                 Object.assign(res.locals.options, output.options);
                 res.locals.context.log('✅ ' + build.getRef());
                 nxt();
@@ -53,13 +55,14 @@ export function createHandler(build: Middleware.Build | HttpEndpoint.Build | Sse
                 const input = { body: req.body, headers: req.headers, path: req.params, query: req.query };
                 const context = Object.assign({}, res.locals.context, { options: res.locals.options });
                 const output = await build(context, input);
-                for (const key in output.headers) res.setHeader(key, output.headers[key]);
+                if (output.headers) for (const key in output.headers) res.setHeader(key, output.headers[key as keyof typeof output.headers]);
                 const contentTypeKey = Object.keys(output.headers ?? {}).find((x) => x.toLowerCase() === 'content-type');
-                const contentTypeVal = output.headers?.[contentTypeKey ?? ''] ?? 'application/json';
+                const contentTypeVal = ((output.headers as Record<string, string> | undefined) ?? {})[contentTypeKey ?? ''] ?? 'application/json';
+                res = res.status(200);
                 if (contentTypeVal.toLowerCase() !== 'application/json') {
-                    res.status(200).send(output.body);
+                    res = res.send(output.body);
                 } else {
-                    res.status(200).json(output.body);
+                    res = res.json(output.body);
                 }
                 res.locals.context.log('✅ ' + build.getRef());
             } catch (error) {

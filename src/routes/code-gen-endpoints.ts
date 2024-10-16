@@ -4,6 +4,8 @@ import { HttpEndpoint } from './http';
 import { Middleware } from './middleware';
 import { defaultOptionsSchema } from './code/_helper';
 import { OpenAPIObject } from '../type/zod-openapi';
+import { z } from 'zod';
+import { zHttpInput, zHttpOutput } from './schema';
 type code = typeof code;
 
 export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: OpenAPIObject) {
@@ -13,12 +15,8 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
     }
     const endpoints: {
         [k in keyof code]: HttpEndpoint.Build<
-            undefined,
-            undefined,
-            undefined,
-            code[k]['optionsSchema'],
-            undefined,
-            code[k]['optionsSchema'],
+            z.ZodObject<{ body: code[k]['optionsSchema'] }>,
+            z.ZodObject<{ body: code[k]['optionsSchema'] }>,
             undefined
         >;
     } = {} as never;
@@ -30,16 +28,12 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
             name: type,
             namespace: 'CodeGen',
             _local: gen.exe,
-            reqHeader: undefined,
-            reqMediaTypes: undefined,
-            reqPath: undefined,
-            reqQuery: undefined,
-            resHeaders: undefined,
-            resMediaTypes: undefined,
-            reqBody: (gen.optionsSchema as typeof defaultOptionsSchema).omit({
-                code: true,
+            _input: zHttpInput({
+                body: (gen.optionsSchema as typeof defaultOptionsSchema).omit({ code: true }),
             }),
-            resBody: defaultOptionsSchema.omit({ createSchemaFor: true, createRoutesFor: true }),
+            _output: zHttpOutput({
+                body: defaultOptionsSchema.omit({ createSchemaFor: true, createRoutesFor: true }),
+            }),
             async func(context, { body }) {
                 return { body: gen.exe(json, body as never) };
             },
