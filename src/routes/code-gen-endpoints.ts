@@ -15,8 +15,12 @@ export function generateCodeHttpFactory(middlewares: Middleware.Build[], json: O
     }
     const endpoints: {
         [k in keyof code]: HttpEndpoint.Build<
-            z.ZodObject<{ body: code[k]['optionsSchema'] }>,
-            z.ZodObject<{ body: code[k]['optionsSchema'] }>,
+            z.ZodObject<{ body: z.ZodObject<Omit<code[k]['optionsSchema']['shape'], 'code'> extends infer T extends z.ZodRawShape ? T : never> }>,
+            z.ZodObject<{
+                body: z.ZodObject<
+                    Omit<code[k]['optionsSchema']['shape'], 'createRoutesFor' | 'createSchemaFor'> extends infer T extends z.ZodRawShape ? T : never
+                >;
+            }>,
             undefined
         >;
     } = {} as never;

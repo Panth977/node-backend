@@ -25,7 +25,9 @@ export function zMiddlewareInput<
     H extends undefined | z.AnyZodObject = undefined,
     Q extends undefined | z.AnyZodObject = undefined,
 >(shape: { headers?: H; query?: Q }) {
-    return Object.assign(takeIfDefined(shape as { headers: H; query: Q }), { [instance]: zMiddlewareInput });
+    const ret = takeIfDefined(shape as { headers: H; query: Q });
+    Object.assign(ret, { [instance]: zMiddlewareInput });
+    return ret;
 }
 export function isMiddlewareOutput(schema: z.ZodType): schema is z.ZodObject<{ headers?: z.AnyZodObject; options: z.ZodType }> {
     return instance in schema ? schema[instance] === zMiddlewareOutput : false;
@@ -35,7 +37,9 @@ export function zMiddlewareOutput<
     H extends undefined | z.AnyZodObject,
     O extends z.AnyZodObject,
 >(shape: { headers?: H; options: O }) {
-    return Object.assign(takeIfDefined(shape as { headers: H; options: O }), { [instance]: zMiddlewareOutput });
+    const ret = takeIfDefined(shape as { headers: H; options: O });
+    Object.assign(ret, { [instance]: zMiddlewareOutput });
+    return ret;
 }
 export function isHttpInput(
     schema: z.ZodType
@@ -49,7 +53,9 @@ export function zHttpInput<
     P extends undefined | z.AnyZodObject = undefined,
     B extends undefined | z.ZodType = undefined,
 >(shape: { headers?: H; path?: P; query?: Q; body?: B }) {
-    return Object.assign(takeIfDefined(shape as { headers: H; path: P; query: Q; body: B }), { [instance]: zHttpInput });
+    const ret = takeIfDefined(shape as { headers: H; path: P; query: Q; body: B });
+    Object.assign(ret, { [instance]: zHttpInput });
+    return ret;
 }
 export function isHttpOutput(schema: z.ZodType): schema is z.ZodObject<{ headers?: z.AnyZodObject; body?: z.ZodType }> {
     return instance in schema ? schema[instance] === zHttpOutput : false;
@@ -59,7 +65,9 @@ export function zHttpOutput<
     H extends undefined | z.AnyZodObject = undefined,
     B extends undefined | z.ZodType = undefined,
 >(shape: { headers?: H; body?: B }) {
-    return Object.assign(takeIfDefined(shape as { headers: H; body: B }), { [instance]: zHttpOutput });
+    const ret = takeIfDefined(shape as { headers: H; body: B });
+    Object.assign(ret, { [instance]: zHttpOutput });
+    return ret;
 }
 export function isSseInput(schema: z.ZodType): schema is z.ZodObject<{ path?: z.AnyZodObject; query?: z.AnyZodObject }> {
     return instance in schema ? schema[instance] === zSseInput : false;
@@ -69,7 +77,9 @@ export function zSseInput<
     P extends undefined | z.AnyZodObject = undefined,
     Q extends undefined | z.AnyZodObject = undefined,
 >(shape: { path?: P; query?: Q }) {
-    return Object.assign(takeIfDefined(shape as { path: P; query: Q }), { [instance]: zSseInput });
+    const ret = takeIfDefined(shape as { path: P; query: Q });
+    Object.assign(ret, { [instance]: zSseInput });
+    return ret;
 }
 export function isSseYield(schema: z.ZodType): schema is z.ZodString {
     return instance in schema ? schema[instance] === zSseYield : false;
@@ -78,5 +88,7 @@ export function zSseYield<
     //
     Y extends undefined | z.ZodString = undefined,
 >(_yield?: Y) {
-    return Object.assign(_yield ?? z.string(), { [instance]: zSseYield });
+    const ret = _yield ?? z.string();
+    Object.assign(ret, { [instance]: zSseYield });
+    return ret;
 }
