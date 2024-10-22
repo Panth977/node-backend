@@ -12,11 +12,12 @@ export namespace HttpEndpoint {
         L,
         C extends Context,
         Opt extends Record<never, never>,
+        W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>, ...AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>[]],
     > = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & {
         resMediaTypes?: string;
         reqMediaTypes?: string;
         security?: Record<string, SecuritySchemeObject>;
-    } & AsyncFunction._Params<I, O, L, C & { options: Opt }>;
+    } & AsyncFunction._Params<I, O, L, C & { options: Opt }, W>;
 
     export type Params = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & { security?: Record<string, SecuritySchemeObject> } & {
         method: Method;
@@ -33,7 +34,10 @@ export namespace HttpEndpoint {
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Params & AsyncFunction.Build<I, O, L, C & { options: Opt }>;
+        W extends
+            | [AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>, ...AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>[]]
+            | [] = [],
+    > = Params & AsyncFunction.Build<I, O, L, C & { options: Opt }, W>;
 }
 
 export function createHttp<
@@ -43,12 +47,13 @@ export function createHttp<
     L,
     C extends Context,
     Opt extends Record<never, never>,
+    W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>, ...AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>[]],
 >(
     middlewares: Middleware.Build[],
     method: HttpEndpoint.Method,
     path: string,
-    _params: HttpEndpoint._Params<I, O, L, C, Opt>
-): HttpEndpoint.Build<I, O, L, C, Opt> {
+    _params: HttpEndpoint._Params<I, O, L, C, Opt, W>
+): HttpEndpoint.Build<I, O, L, C, Opt, W> {
     const params: HttpEndpoint.Params = {
         endpoint: 'http',
         middlewares,

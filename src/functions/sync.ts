@@ -20,6 +20,7 @@ export namespace SyncFunction {
         O extends z.ZodType,
         L,
         C extends Context,
+        W extends [] | [WrapperBuild<I, O, L, C>, ...WrapperBuild<I, O, L, C>[]],
     > = {
         namespace?: string;
         name?: string;
@@ -27,7 +28,7 @@ export namespace SyncFunction {
         _output: O;
         _local?: L;
         buildContext?: BuildContext<C>;
-        wrappers?: (params: Params<I, O, L, C>) => WrapperBuild<I, O, L, C>[];
+        wrappers?: (params: Params<I, O, L, C>) => W;
         func?: Fn<C & { params: Params<I, O, L, C> }, I['_output'], O['_input']>;
     };
     export type Params<
@@ -45,7 +46,6 @@ export namespace SyncFunction {
         _input: I;
         _output: O;
         _local: undefined extends L ? undefined : L;
-        wrappers: WrapperBuild<I, O, L, C>[];
         type: 'function';
         buildContext: BuildContext<C extends unknown ? Context : C>;
     };
@@ -55,7 +55,8 @@ export namespace SyncFunction {
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = Params<I, O, L, C> & Fn<Context | null, I['_input'], O['_output']>;
+        W extends [] | [WrapperBuild<I, O, L, C>, ...WrapperBuild<I, O, L, C>[]] = [],
+    > = Params<I, O, L, C> & Fn<Context | null, I['_input'], O['_output']> & { wrappers: W };
 }
 
 export function syncFunction<
@@ -64,8 +65,9 @@ export function syncFunction<
     O extends z.ZodType,
     L,
     C extends Context,
->(_params: SyncFunction._Params<I, O, L, C>): SyncFunction.Build<I, O, L, C> {
-    const params: SyncFunction.Params<I, O, L, C> = {
+    W extends [] | [SyncFunction.WrapperBuild<I, O, L, C>, ...SyncFunction.WrapperBuild<I, O, L, C>[]],
+>(_params: SyncFunction._Params<I, O, L, C, W>): SyncFunction.Build<I, O, L, C, W> {
+    const params: Omit<SyncFunction.Params<I, O, L, C>, 'wrappers'> = {
         getNamespace() {
             return `${_params.namespace}`;
         },
@@ -85,12 +87,11 @@ export function syncFunction<
         _output: _params._output,
         type: 'function',
         _local: _params._local as never,
-        wrappers: null as never,
         buildContext: (_params.buildContext ?? DefaultBuildContext) as never,
     };
-    params.wrappers = _params.wrappers?.(params) ?? [];
+    const wrappers = _params.wrappers?.(params) ?? ([] as W);
     const buildContext = BuildContextWithParamsBuilder(params, params.buildContext as BuildContext<C>);
-    const func = [...params.wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
-    const f: SyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) => func(buildContext(context), input);
-    return Object.assign(f, params);
+    const func = [...wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
+    const build: SyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) => func(buildContext(context), input);
+    return Object.assign(build, params, { wrappers });
 }

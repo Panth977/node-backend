@@ -3,6 +3,7 @@ import { CacheController, AbstractCacheClient } from './controller';
 import { z } from 'zod';
 
 type zRecord<O extends z.ZodType> = z.ZodRecord<z.ZodString, O>;
+type TInvalidate<C extends Context, I extends z.ZodType> = (context: C, input: I['_output']) => Promise<void>;
 
 function bundleCached<I extends string | number, V>(ids: I[], values: V[]): Record<I, V> {
     const res: Record<I, V> = {} as never;
@@ -24,15 +25,16 @@ export function CacheObject<
 >(
     params: AsyncFunction.Params<I, O, L, C>,
     behavior: {
-        invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
+        invalidation?(invalidate: TInvalidate<C, I>): void;
         getCache(input: I['_output']): CacheController<A>;
     }
-): AsyncFunction.WrapperBuild<I, O, L, C> {
-    behavior.invalidation?.(async function invalidate(context, input) {
+) {
+    const Invalidate: TInvalidate<C, I> = async function (context: C, input: I['_input']) {
         const cache = behavior.getCache(input);
         await cache.remove(context, [{}]);
-    });
-    return async function CacheObject(context, input, func) {
+    };
+    behavior.invalidation?.(Invalidate);
+    const Wrapper: AsyncFunction.WrapperBuild<I, O, L, C> = async function (context, input, func) {
         const cache = behavior.getCache(input);
         let result = await cache.read(context, [{}]).then((x) => x[0]);
         if (!result) {
@@ -42,6 +44,7 @@ export function CacheObject<
         }
         return result;
     };
+    return Object.assign(Wrapper, { Invalidate });
 }
 
 export function CacheMObject<
@@ -54,25 +57,26 @@ export function CacheMObject<
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
-        invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
+        invalidation?(invalidate: TInvalidate<C, I>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[];
         updateIds(input: I['_output'], info: { reqIds: string[]; ignoreIds: string[] }): I['_output'];
     }
-): AsyncFunction.WrapperBuild<I, zRecord<O>, L, C> {
+) {
     function getIds(input: I['_output']) {
         const ids = behavior.getIds(input);
         return [...new Set(ids)];
     }
-    behavior.invalidation?.(async function invalidate(context, input) {
+    const Invalidate: TInvalidate<C, I> = async function (context, input) {
         const cache = behavior.getCache(input);
         const ids = getIds(input);
         await cache.remove(
             context,
             ids.map((x) => ({ key: x }))
         );
-    });
-    return async function CacheMap(context, input, func) {
+    };
+    behavior.invalidation?.(Invalidate);
+    const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<O>, L, C> = async function (context, input, func) {
         const cache = behavior.getCache(input);
         const ids = getIds(input);
         const result = await cache
@@ -99,6 +103,7 @@ export function CacheMObject<
         }
         return result;
     };
+    return Object.assign(Wrapper, { Invalidate });
 }
 
 export function CacheCollection<
@@ -111,18 +116,18 @@ export function CacheCollection<
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
-        invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
+        invalidation?(invalidate: TInvalidate<C, I>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[] | '*';
         updateIds(input: I['_output'], info: { reqIds: string[] | '*'; ignoreIds: string[] }): I['_output'];
     }
-): AsyncFunction.WrapperBuild<I, zRecord<O>, L, C> {
+) {
     function getIds(input: I['_output']) {
         const ids = behavior.getIds(input);
         if (ids === '*') return ids;
         return [...new Set(ids)];
     }
-    behavior.invalidation?.(async function invalidate(context, input) {
+    const Invalidate: TInvalidate<C, I> = async function (context, input) {
         const cache = behavior.getCache(input);
         const fields = getIds(input);
         if (fields === '*') {
@@ -130,8 +135,9 @@ export function CacheCollection<
         } else {
             await cache.remove(context, [{ fields: [...fields, '$'] }]);
         }
-    });
-    return async function CacheCollection(context, input, func) {
+    };
+    behavior.invalidation?.(Invalidate);
+    const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<O>, L, C> = async function (context, input, func) {
         const cache = behavior.getCache(input);
         const fields = getIds(input);
         if (Array.isArray(fields) && fields.includes('$')) throw new Error('id = [$] is reserved, use some other key!');
@@ -165,6 +171,7 @@ export function CacheCollection<
         }
         return result;
     };
+    return Object.assign(Wrapper, { Invalidate });
 }
 
 export function CacheMCollection<
@@ -177,12 +184,12 @@ export function CacheMCollection<
 >(
     params: AsyncFunction.Params<I, zRecord<zRecord<O>>, L, C>,
     behavior: {
-        invalidation?(invalidate: (context: C, input: I['_output']) => Promise<void>): void;
+        invalidation?(invalidate: TInvalidate<C, I>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): { id: string; subIds: string[] | '*' }[];
         updateIds(input: I['_output'], info: { id: string; reqSubIds: string[] | '*'; ignoreSubIds: string[] }[]): I['_output'];
     }
-): AsyncFunction.WrapperBuild<I, zRecord<zRecord<O>>, L, C> {
+) {
     function getIds(input: I['_output']) {
         const locs = behavior.getIds(input);
         const updatedLocs: Record<string, '*' | Set<string>> = {};
@@ -203,7 +210,7 @@ export function CacheMCollection<
             return { id, subIds: [...subIds] };
         });
     }
-    behavior.invalidation?.(async function invalidate(context, input) {
+    const Invalidate: TInvalidate<C, I> = async function (context, input) {
         const cache = behavior.getCache(input);
         const locs = getIds(input);
         cache.remove(context, [
@@ -211,8 +218,9 @@ export function CacheMCollection<
             ...locs.filter((x) => x.subIds === '*').map((x) => ({ key: x.id, fields: '*' }) as const),
             ...locs.filter((x) => x.subIds !== '*').map((x) => ({ key: x.id, fields: x.subIds }) as const),
         ]);
-    });
-    return async function CacheMCollection(context, input, func) {
+    };
+    behavior.invalidation?.(Invalidate);
+    const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<zRecord<O>>, L, C> = async function (context, input, func) {
         const cache = behavior.getCache(input);
         const locs = getIds(input);
         const result = await cache
@@ -267,4 +275,5 @@ export function CacheMCollection<
         }
         return result;
     };
+    return Object.assign(Wrapper, { Invalidate });
 }

@@ -20,13 +20,14 @@ export namespace AsyncFunction {
         O extends z.ZodType,
         L,
         C extends Context,
+        W extends [] | [WrapperBuild<I, O, L, C>, ...WrapperBuild<I, O, L, C>[]],
     > = {
         namespace?: string;
         name?: string;
         _input: I;
         _output: O;
         _local?: L;
-        wrappers?: (params: Params<I, O, L, C>) => WrapperBuild<I, O, L, C>[];
+        wrappers?: (params: Params<I, O, L, C>) => W;
         func?: Fn<C & { params: Params<I, O, L, C> }, I['_output'], O['_input']>;
         buildContext?: BuildContext<C>;
     };
@@ -45,7 +46,6 @@ export namespace AsyncFunction {
         _input: I;
         _output: O;
         _local: undefined extends L ? undefined : L;
-        wrappers: WrapperBuild<I, O, L, C>[];
         type: 'async function';
         buildContext: BuildContext<C extends unknown ? Context : C>;
     };
@@ -55,7 +55,8 @@ export namespace AsyncFunction {
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = Params<I, O, L, C> & Fn<Context | null, I['_input'], O['_output']>;
+        W extends [] | [WrapperBuild<I, O, L, C>, ...WrapperBuild<I, O, L, C>[]] = [],
+    > = Params<I, O, L, C> & Fn<Context | null, I['_input'], O['_output']> & { wrappers: W };
 }
 
 export function asyncFunction<
@@ -64,7 +65,8 @@ export function asyncFunction<
     O extends z.ZodType,
     L,
     C extends Context,
->(_params: AsyncFunction._Params<I, O, L, C>): AsyncFunction.Build<I, O, L, C> {
+    W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C>, ...AsyncFunction.WrapperBuild<I, O, L, C>[]],
+>(_params: AsyncFunction._Params<I, O, L, C, W>): AsyncFunction.Build<I, O, L, C, W> {
     const params: AsyncFunction.Params<I, O, L, C> = {
         getNamespace() {
             return `${_params.namespace}`;
@@ -84,13 +86,12 @@ export function asyncFunction<
         _input: _params._input,
         _output: _params._output,
         type: 'async function',
-        wrappers: null as never,
         _local: _params._local as never,
         buildContext: (_params.buildContext ?? DefaultBuildContext) as never,
     };
-    params.wrappers = _params.wrappers?.(params) ?? [];
-    const func = [...params.wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
+    const wrappers = _params.wrappers?.(params) ?? ([] as W);
+    const func = [...wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
     const buildContext = BuildContextWithParamsBuilder(params, params.buildContext as BuildContext<C>);
-    const f: AsyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) => func(buildContext(context), input);
-    return Object.assign(f, params);
+    const build: AsyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) => func(buildContext(context), input);
+    return Object.assign(build, params, { wrappers });
 }

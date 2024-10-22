@@ -8,9 +8,10 @@ export namespace Middleware {
         //
         I extends z.AnyZodObject,
         O extends z.AnyZodObject,
-        L = unknown,
-        C extends Context = Context,
-    > = Pick<ZodOpenApiOperationObject, 'tags'> & { security?: Record<string, SecuritySchemeObject> } & AsyncFunction._Params<I, O, L, C>;
+        L,
+        C extends Context,
+        W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C>, ...AsyncFunction.WrapperBuild<I, O, L, C>[]],
+    > = Pick<ZodOpenApiOperationObject, 'tags'> & { security?: Record<string, SecuritySchemeObject> } & AsyncFunction._Params<I, O, L, C, W>;
 
     export type Params = Pick<ZodOpenApiOperationObject, 'tags'> & {
         security?: Record<string, SecuritySchemeObject>;
@@ -22,7 +23,8 @@ export namespace Middleware {
         O extends z.AnyZodObject = z.ZodObject<{ headers?: z.AnyZodObject; options: z.ZodType }>,
         L = unknown,
         C extends Context = Context,
-    > = Params & AsyncFunction.Build<I, O, L, C>;
+        W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C>, ...AsyncFunction.WrapperBuild<I, O, L, C>[]] = [],
+    > = Params & AsyncFunction.Build<I, O, L, C, W>;
     export type inferOptions<O extends z.AnyZodObject> = O['shape'] extends { options: infer X extends z.ZodType } ? X : never;
 }
 
@@ -32,7 +34,8 @@ export function createMiddleware<
     O extends z.AnyZodObject,
     L,
     C extends Context,
->(_params: Middleware._Params<I, O, L, C>): Middleware.Build<I, O, L, C> {
+    W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C>, ...AsyncFunction.WrapperBuild<I, O, L, C>[]],
+>(_params: Middleware._Params<I, O, L, C, W>): Middleware.Build<I, O, L, C, W> {
     const params: Middleware.Params = {
         endpoint: 'middleware',
         security: _params.security,

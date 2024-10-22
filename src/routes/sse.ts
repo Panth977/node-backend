@@ -10,11 +10,17 @@ export namespace SseEndpoint {
         //
         I extends z.AnyZodObject,
         Y extends z.ZodString,
-        L = unknown,
-        C extends Context = Context,
-        Opt extends Record<never, never> = Record<never, never>,
+        L,
+        C extends Context,
+        Opt extends Record<never, never>,
+        W extends
+            | []
+            | [
+                  AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>,
+                  ...AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>[],
+              ],
     > = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & { security?: Record<string, SecuritySchemeObject> } & Omit<
-            AsyncGenerator._Params<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>,
+            AsyncGenerator._Params<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }, W>,
             '_output' | '_next'
         >;
     export type Params = Pick<ZodOpenApiOperationObject, 'tags' | 'summary' | 'description'> & {
@@ -33,7 +39,13 @@ export namespace SseEndpoint {
         L = unknown,
         C extends Context = Context,
         Opt extends Record<never, never> = Record<never, never>,
-    > = Params & AsyncGenerator.Build<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>;
+        W extends
+            | []
+            | [
+                  AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>,
+                  ...AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>[],
+              ] = [],
+    > = Params & AsyncGenerator.Build<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }, W>;
 }
 
 export function createSse<
@@ -43,12 +55,18 @@ export function createSse<
     L,
     C extends Context,
     Opt extends Record<never, never>,
+    W extends
+        | []
+        | [
+              AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>,
+              ...AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>[],
+          ],
 >(
     middlewares: Middleware.Build[],
     method: SseEndpoint.Method,
     path: string,
-    _params: SseEndpoint._Params<I, Y, L, C, Opt>
-): SseEndpoint.Build<I, Y, L, C, Opt> {
+    _params: SseEndpoint._Params<I, Y, L, C, Opt, W>
+): SseEndpoint.Build<I, Y, L, C, Opt, W> {
     const params: SseEndpoint.Params = {
         endpoint: 'sse',
         middlewares,

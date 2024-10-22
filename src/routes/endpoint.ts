@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Middleware } from './middleware';
 import { SseEndpoint, createSse } from './sse';
-import { Context } from '../functions';
+import { Context, AsyncFunction, AsyncGenerator } from '../functions';
 import { HttpEndpoint, createHttp } from './http';
 import { createDocument, ZodOpenApiObject, ZodOpenApiPathsObject, ZodOpenApiResponsesObject } from 'zod-openapi';
 import { OpenAPIObject } from '../type/zod-openapi';
@@ -164,7 +164,8 @@ export class Endpoint<Opt extends Record<never, never>> {
         O extends z.AnyZodObject,
         L,
         C extends Context,
-    >(method: HttpEndpoint.Method, path: string, _params: HttpEndpoint._Params<I, O, L, C, Opt>): HttpEndpoint.Build<I, O, L, C, Opt> {
+        W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>, ...AsyncFunction.WrapperBuild<I, O, L, C & { options: Opt }>[]],
+    >(method: HttpEndpoint.Method, path: string, _params: HttpEndpoint._Params<I, O, L, C, Opt, W>): HttpEndpoint.Build<I, O, L, C, Opt, W> {
         _params.tags = (_params.tags ??= []).concat(this.tags);
         return createHttp(this.middlewares, method, path, _params);
     }
@@ -174,7 +175,13 @@ export class Endpoint<Opt extends Record<never, never>> {
         Y extends z.ZodString,
         L,
         C extends Context,
-    >(method: SseEndpoint.Method, path: string, _params: SseEndpoint._Params<I, Y, L, C, Opt>): SseEndpoint.Build<I, Y, L, C, Opt> {
+        W extends
+            | []
+            | [
+                  AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>,
+                  ...AsyncGenerator.WrapperBuild<I, Y, z.ZodVoid, z.ZodVoid, L, C & { options: Opt }>[],
+              ],
+    >(method: SseEndpoint.Method, path: string, _params: SseEndpoint._Params<I, Y, L, C, Opt, W>): SseEndpoint.Build<I, Y, L, C, Opt, W> {
         (_params.tags ??= []).concat(this.tags);
         return createSse(this.middlewares, method, path, _params);
     }

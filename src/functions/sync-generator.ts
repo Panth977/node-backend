@@ -23,8 +23,9 @@ export namespace SyncGenerator {
         Y extends z.ZodType,
         N extends z.ZodType,
         O extends z.ZodType,
-        L = unknown,
-        C extends Context = Context,
+        L,
+        C extends Context,
+        W extends [] | [WrapperBuild<I, Y, N, O, L, C>, ...WrapperBuild<I, Y, N, O, L, C>[]],
     > = {
         namespace?: string;
         name?: string;
@@ -34,7 +35,7 @@ export namespace SyncGenerator {
         _output: O;
         _local?: L;
         buildContext?: BuildContext<C>;
-        wrappers?: (params: Params<I, Y, N, O, L, C>) => WrapperBuild<I, Y, N, O, L, C>[];
+        wrappers?: (params: Params<I, Y, N, O, L, C>) => W;
         func?: Fn<C & { params: Params<I, Y, N, O, L, C> }, I['_output'], Y['_input'], N['_output'], O['_input']>;
     };
 
@@ -57,7 +58,6 @@ export namespace SyncGenerator {
         _next: N;
         _output: O;
         _local: undefined extends L ? undefined : L;
-        wrappers: WrapperBuild<I, Y, N, O, L, C>[];
         type: 'function*';
         buildContext: BuildContext<C extends unknown ? Context : C>;
     };
@@ -69,7 +69,8 @@ export namespace SyncGenerator {
         O extends z.ZodType = z.ZodType,
         L = unknown,
         C extends Context = Context,
-    > = Params<I, Y, N, O, L, C> & Fn<Context | null, I['_input'], Y['_output'], N['_input'], O['_output']>;
+        W extends [] | [WrapperBuild<I, Y, N, O, L, C>, ...WrapperBuild<I, Y, N, O, L, C>[]] = [],
+    > = Params<I, Y, N, O, L, C> & Fn<Context | null, I['_input'], Y['_output'], N['_input'], O['_output']> & { wrappers: W };
 }
 
 export function syncGenerator<
@@ -80,7 +81,8 @@ export function syncGenerator<
     O extends z.ZodType,
     L,
     C extends Context,
->(_params: SyncGenerator._Params<I, Y, N, O, L, C>): SyncGenerator.Build<I, Y, N, O, L, C> {
+    W extends [] | [SyncGenerator.WrapperBuild<I, Y, N, O, L, C>, ...SyncGenerator.WrapperBuild<I, Y, N, O, L, C>[]],
+>(_params: SyncGenerator._Params<I, Y, N, O, L, C, W>): SyncGenerator.Build<I, Y, N, O, L, C, W> {
     const params: SyncGenerator.Params<I, Y, N, O, L, C> = {
         getNamespace() {
             return `${_params.namespace}`;
@@ -103,13 +105,12 @@ export function syncGenerator<
         _next: _params._next,
         _yield: _params._yield,
         _local: _params._local as never,
-        wrappers: null as never,
         buildContext: (_params.buildContext ?? DefaultBuildContext) as never,
     };
-    params.wrappers = _params.wrappers?.(params) ?? [];
-    const func = [...params.wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
+    const wrappers = _params.wrappers?.(params) ?? ([] as W);
+    const func = [...wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
     const buildContext = BuildContextWithParamsBuilder(params, params.buildContext as BuildContext<C>);
-    const f: SyncGenerator.Fn<Context | null, I['_input'], Y['_output'], N['_input'], O['_output']> = (context, input) =>
+    const build: SyncGenerator.Fn<Context | null, I['_input'], Y['_output'], N['_input'], O['_output']> = (context, input) =>
         func(buildContext(context), input);
-    return Object.assign(f, params);
+    return Object.assign(build, params, { wrappers });
 }
