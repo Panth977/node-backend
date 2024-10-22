@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { BuildContext, BuildContextWithParamsBuilder, Context, DefaultBuildContext } from './context';
-import { unimplemented, wrap } from './_helper';
+import { BuildContext, Context, DefaultBuildContext } from './context';
+import { wrap, unimplemented, BuildContextWithParamsBuilder } from './_helper';
 
 export namespace SyncFunction {
     export type Return<T> = T;
@@ -90,8 +90,10 @@ export function syncFunction<
         buildContext: (_params.buildContext ?? DefaultBuildContext) as never,
     };
     const wrappers = _params.wrappers?.(params) ?? ([] as W);
-    const buildContext = BuildContextWithParamsBuilder(params, params.buildContext as BuildContext<C>);
-    const func = [...wrappers, null].reduceRight(wrap, _params.func ?? unimplemented);
-    const build: SyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) => func(buildContext(context), input);
+    const build: SyncFunction.Fn<Context | null, I['_input'], O['_output']> = (context, input) =>
+        [...wrappers, null].reduceRight(wrap, _params.func ?? unimplemented)(
+            BuildContextWithParamsBuilder(params, params.buildContext as BuildContext<C>, context),
+            input
+        );
     return Object.assign(build, params, { wrappers });
 }

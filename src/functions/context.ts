@@ -66,8 +66,3 @@ export const DefaultBuildContext = (function () {
     };
     return Object.assign(DefaultBuildContext, { addLogger, addOnDisposeExe, onCreate });
 })();
-export function BuildContextWithParamsBuilder<P, C extends Context>(params: P, buildContext: BuildContext<C>): BuildContext<C & { params: P }> {
-    return function (context) {
-        return Object.assign(buildContext(context), { params: params });
-    };
-}

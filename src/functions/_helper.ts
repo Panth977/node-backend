@@ -1,8 +1,36 @@
-import { Context } from './context';
+import { BuildContext, Context, DefaultBuildContext } from './context';
 import { AsyncFunction } from './async';
 import { SyncFunction } from './sync';
 import { SyncGenerator } from './sync-generator';
 import { AsyncGenerator } from './async-generator';
+
+export function Builder<P, I, R>({
+    params,
+    wrappers,
+    buildContext,
+    func = function () {
+        throw new Error('Unimplemented');
+    },
+}: {
+    params: P;
+    wrappers?: ((context: Context, input: I, func: (context: Context, input: I) => R) => R)[];
+    func?: (context: Context, input: I) => R;
+    buildContext?: (context: Context | null) => Context;
+}) {
+    return (context: Context | null, input: I): R =>
+        [...(wrappers ?? []), null].reduceRight<(context: Context, input: I) => R>(function (func, wrapper) {
+            if (wrapper) return (context, input): R => wrapper(context, input, func);
+            return (context, input) => func(context, input);
+        }, func)(Object.assign((buildContext ?? DefaultBuildContext)(context), { params: params } as never), input);
+}
+
+export function BuildContextWithParamsBuilder<P, C extends Context>(
+    params: P,
+    buildContext: BuildContext<C>,
+    ...args: Parameters<BuildContext<C & { params: P }>>
+): ReturnType<BuildContext<C & { params: P }>> {
+    return Object.assign(buildContext(...args), { params: params });
+}
 
 export function wrap<C extends Context, I, R>(
     func: (context: C, input: I) => R,
@@ -13,6 +41,7 @@ export function wrap<C extends Context, I, R>(
     }
     return (context, input) => func(context, input);
 }
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function unimplemented<C extends Context, I, R>(context: C, input: I): R {
     throw new Error('Unimplemented');
