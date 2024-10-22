@@ -65,7 +65,7 @@ export function CacheMObject<
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, O>): void;
+        useUpdate?(update: TUpdate<C, I, zRecord<O>>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[];
         updateIds(input: I['_output'], info: { reqIds: string[]; ignoreIds: string[] }): I['_output'];
@@ -75,7 +75,7 @@ export function CacheMObject<
         const ids = behavior.getIds(input);
         return [...new Set(ids)];
     }
-    const Update: TUpdate<C, I, O> = async function (context, input, output = null) {
+    const Update: TUpdate<C, I, zRecord<O>> = async function (context, input, output = null) {
         const cache = behavior.getCache(input);
         const ids = getIds(input);
         if (output == null) {
@@ -128,7 +128,7 @@ export function CacheCollection<
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, O>): void;
+        useUpdate?(update: TUpdate<C, I, zRecord<O>>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[] | '*';
         updateIds(input: I['_output'], info: { reqIds: string[] | '*'; ignoreIds: string[] }): I['_output'];
@@ -139,7 +139,7 @@ export function CacheCollection<
         if (ids === '*') return ids;
         return [...new Set(ids)];
     }
-    const Update: TUpdate<C, I, O> = async function (context, input, output = null) {
+    const Update: TUpdate<C, I, zRecord<O>> = async function (context, input, output = null) {
         const cache = behavior.getCache(input);
         const fields = getIds(input);
         if (output == null) {
@@ -204,7 +204,7 @@ export function CacheMCollection<
 >(
     params: AsyncFunction.Params<I, zRecord<zRecord<O>>, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, O>): void;
+        useUpdate?(update: TUpdate<C, I, zRecord<zRecord<O>>>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): { id: string; subIds: string[] | '*' }[];
         updateIds(input: I['_output'], info: { id: string; reqSubIds: string[] | '*'; ignoreSubIds: string[] }[]): I['_output'];
@@ -230,7 +230,7 @@ export function CacheMCollection<
             return { id, subIds: [...subIds] };
         });
     }
-    const Update: TUpdate<C, I, O> = async function (context, input, output = null) {
+    const Update: TUpdate<C, I, zRecord<zRecord<O>>> = async function (context, input, output = null) {
         const cache = behavior.getCache(input);
         const locs = getIds(input);
         if (output == null) {
