@@ -152,7 +152,8 @@ export class Endpoint<Opt extends Record<never, never>> {
         O extends z.AnyZodObject,
         L,
         C extends Context,
-    >(middleware: Middleware.Build<I, O, L, C>): Endpoint<Opt & Middleware.inferOptions<O>['_output']> {
+        W extends [] | [AsyncFunction.WrapperBuild<I, O, L, C>, ...AsyncFunction.WrapperBuild<I, O, L, C>[]],
+    >(middleware: Middleware.Build<I, O, L, C, W>): Endpoint<Opt & Middleware.inferOptions<O>['_output']> {
         return new Endpoint([...this.middlewares, middleware as never], this.tags);
     }
     addTags(...tags: string[]): Endpoint<Opt> {
