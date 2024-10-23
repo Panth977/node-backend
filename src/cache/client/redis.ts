@@ -103,7 +103,7 @@ export class RedisCacheClient<
         const keys = [];
         const args = [];
         for (const x of params.data) {
-            if ((x.hash !== undefined && x.value !== undefined) || (x.value === undefined && x.hash === undefined)) {
+            if (x.hash !== undefined && x.value !== undefined) {
                 throw new Error('exactly one of [value, hash] must be provided');
             } else if (x.value !== undefined) {
                 const val = await x.value;
@@ -123,8 +123,6 @@ export class RedisCacheClient<
                     args.push(fields);
                     keys.push(x.key);
                 }
-            } else {
-                throw new Error('Unimplemented!');
             }
         }
         await this.client.eval(luaScript, {

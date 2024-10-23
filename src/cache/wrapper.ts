@@ -3,11 +3,15 @@ import { CacheController, AbstractCacheClient } from './controller';
 import { z } from 'zod';
 
 type zRecord<O extends z.ZodType> = z.ZodRecord<z.ZodString, O>;
-type TUpdate<C extends Context, I extends z.ZodType, O extends z.ZodType> = (
+type zSyncOrAsyncOutput<O extends z.ZodType> = Promise<O['_input']> | O['_input'];
+type Hooks<C extends Context, I extends z.ZodType, O extends z.ZodType> = (
     context: C,
-    input: I['_output'],
-    output?: O['_input'] | null
-) => Promise<void>;
+    input: I['_output']
+) => {
+    get(): Promise<O['_input']>;
+    set(output: O['_input'] | Promise<O['_input']>, ifExists?: boolean): Promise<void>;
+    del(): Promise<void>;
+};
 
 function bundleCached<I extends string | number, V>(ids: I[], values: V[]): Record<I, V> {
     const res: Record<I, V> = {} as never;
@@ -29,30 +33,40 @@ export function CacheObject<
 >(
     params: AsyncFunction.Params<I, O, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, O>): void;
+        useHooks?(hooks: Hooks<C, I, O>): void;
         getCache(input: I['_output']): CacheController<A>;
     }
 ) {
-    const Update: TUpdate<C, I, O> = async function (context, input, output = null) {
+    const Hooks: Hooks<C, I, O> = function (context, input) {
         const cache = behavior.getCache(input);
-        if (output == null) {
-            await cache.remove(context, [{}]);
-        } else {
-            await cache.write(context, { data: [{ value: output }] });
-        }
+        return {
+            async get() {
+                return await cache.read(context, [{}]).then((x) => x[0] as O['_input']);
+            },
+            async set(output, ifExists) {
+                if (ifExists) {
+                    const data = await this.get();
+                    if (data != null) return;
+                }
+                await cache.write(context, { data: [{ value: output }] });
+            },
+            async del() {
+                await cache.remove(context, [{}]);
+            },
+        };
     };
-    behavior.useUpdate?.(Update);
+    behavior.useHooks?.(Hooks);
     const Wrapper: AsyncFunction.WrapperBuild<I, O, L, C> = async function (context, input, func) {
-        const cache = behavior.getCache(input);
-        let result = await cache.read(context, [{}]).then((x) => x[0]);
+        const hooks = Hooks(context, input);
+        let result = await hooks.get();
         if (!result) {
             const res_ = func(context, input);
-            cache.write(context, { data: [{ value: res_ }] });
+            hooks.set(res_);
             result = await res_;
         }
         return result;
     };
-    return Object.assign(Wrapper, { Update });
+    return Object.assign(Wrapper, { Hooks });
 }
 
 export function CacheMObject<
@@ -65,7 +79,7 @@ export function CacheMObject<
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, zRecord<O>>): void;
+        useHooks?(hooks: Hooks<C, I, zRecord<O>>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[];
         updateIds(input: I['_output'], info: { reqIds: string[]; ignoreIds: string[] }): I['_output'];
@@ -75,29 +89,49 @@ export function CacheMObject<
         const ids = behavior.getIds(input);
         return [...new Set(ids)];
     }
-    const Update: TUpdate<C, I, zRecord<O>> = async function (context, input, output = null) {
+    const Hooks: Hooks<C, I, zRecord<O>> = function (context, input) {
         const cache = behavior.getCache(input);
         const ids = getIds(input);
-        if (output == null) {
-            await cache.remove(
-                context,
-                ids.map((x) => ({ key: x }))
-            );
-        } else {
-            await cache.write(context, { data: ids.map((x) => ({ key: x, value: output[x] })) });
-        }
+        return {
+            async get() {
+                const res = await cache.read(
+                    context,
+                    ids.map((x) => ({ key: x }))
+                );
+                return bundleCached(ids, res as O['_input']);
+            },
+            async set(output, ifExists) {
+                let recordedOutput: Record<string, zSyncOrAsyncOutput<O>>;
+                if (output instanceof Promise) {
+                    const promise = output;
+                    recordedOutput = Object.fromEntries(ids.map((x) => [x, promise.then((data) => data[x])]));
+                } else {
+                    recordedOutput = output;
+                }
+                if (ifExists) {
+                    const data = await this.get();
+                    for (const x of ids) {
+                        if (data[x] == null) {
+                            delete recordedOutput[x];
+                        }
+                    }
+                }
+                await cache.write(context, { data: Object.keys(recordedOutput).map((x) => ({ key: x, value: recordedOutput[x] })) });
+            },
+            async del() {
+                await cache.remove(
+                    context,
+                    ids.map((x) => ({ key: x }))
+                );
+            },
+        };
     };
-    behavior.useUpdate?.(Update);
+    behavior.useHooks?.(Hooks);
     const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<O>, L, C> = async function (context, input, func) {
-        const cache = behavior.getCache(input);
-        const ids = getIds(input);
-        const result = await cache
-            .read(
-                context,
-                ids.map((x) => ({ key: x }))
-            )
-            .then((res) => bundleCached(ids, res));
+        const hooks = Hooks(context, input);
+        const result = await hooks.get();
         const info = (function () {
+            const ids = getIds(input);
             const found = new Set(Object.keys(result).filter((x) => (result[x] ?? null) !== null));
             const ret = { reqIds: ids.filter((id) => !found.has(id)), ignoreIds: [...found] };
             if (!ret.reqIds.length) return null;
@@ -110,12 +144,12 @@ export function CacheMObject<
         })();
         if (info) {
             const res_ = func(context, behavior.updateIds(input, info));
-            cache.write(context, { data: info.reqIds.map((x) => ({ key: x, value: res_.then((r) => r[x]) })) });
+            hooks.set(res_);
             Object.assign(result, await res_);
         }
         return result;
     };
-    return Object.assign(Wrapper, { Update });
+    return Object.assign(Wrapper, { Hooks });
 }
 
 export function CacheCollection<
@@ -128,7 +162,7 @@ export function CacheCollection<
 >(
     params: AsyncFunction.Params<I, zRecord<O>, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, zRecord<O>>): void;
+        useHooks?(hooks: Hooks<C, I, zRecord<O>>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): string[] | '*';
         updateIds(input: I['_output'], info: { reqIds: string[] | '*'; ignoreIds: string[] }): I['_output'];
@@ -139,29 +173,60 @@ export function CacheCollection<
         if (ids === '*') return ids;
         return [...new Set(ids)];
     }
-    const Update: TUpdate<C, I, zRecord<O>> = async function (context, input, output = null) {
+    const Hooks: Hooks<C, I, zRecord<O>> = function (context, input) {
         const cache = behavior.getCache(input);
         const fields = getIds(input);
-        if (output == null) {
-            if (fields === '*') {
-                await cache.remove(context, [{}]);
-            } else {
-                await cache.remove(context, [{ fields: [...fields, '$'] }]);
-            }
-        } else {
-            if (fields === '*') {
-                await cache.write(context, { data: [{ hash: { ...output, $: '*' } }] });
-            } else {
-                await cache.write(context, { data: [{ hash: Object.fromEntries(fields.map((x) => [x, output[x]])) }] });
-            }
-        }
+        return {
+            async get() {
+                const x = await cache.read(context, [{ fields: fields }]);
+                return (x[0] ?? {}) as Record<string, unknown>;
+            },
+            async set(output, ifExists) {
+                if (fields === '*') {
+                    if (ifExists) {
+                        const data = await this.get();
+                        if (data.$ !== '*') {
+                            await cache.remove(context, [{}]);
+                            return;
+                        }
+                    }
+                    await cache.remove(context, [{}]);
+                    const awaitedOutput = await output;
+                    await cache.write(context, { data: [{ hash: { ...awaitedOutput, $: '*' } }] });
+                } else {
+                    let recordedOutput: Record<string, zSyncOrAsyncOutput<O>>;
+                    if (output instanceof Promise) {
+                        const promise = output;
+                        recordedOutput = Object.fromEntries(fields.map((x) => [x, promise.then((data) => data[x])]));
+                    } else {
+                        recordedOutput = { ...output };
+                    }
+                    if (ifExists) {
+                        const data = await this.get();
+                        for (const x of fields) {
+                            if (data[x] == null) {
+                                delete recordedOutput[x];
+                            }
+                        }
+                    }
+                    await cache.write(context, { data: [{ hash: recordedOutput }] });
+                }
+            },
+            async del() {
+                if (fields === '*') {
+                    await cache.remove(context, [{}]);
+                } else {
+                    await cache.remove(context, [{ fields: [...fields, '$'] }]);
+                }
+            },
+        };
     };
-    behavior.useUpdate?.(Update);
+    behavior.useHooks?.(Hooks);
     const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<O>, L, C> = async function (context, input, func) {
-        const cache = behavior.getCache(input);
+        const hooks = Hooks(context, input);
         const fields = getIds(input);
         if (Array.isArray(fields) && fields.includes('$')) throw new Error('id = [$] is reserved, use some other key!');
-        const result = await cache.read(context, [{ fields: fields }]).then((x) => (x[0] ?? {}) as Record<string, unknown>);
+        const result = await hooks.get();
         const info = (function () {
             const found = new Set(Object.keys(result).filter((id) => (result[id] ?? null) !== null));
             if (fields === '*') {
@@ -182,16 +247,12 @@ export function CacheCollection<
         })();
         if (info) {
             const res_ = func(context, behavior.updateIds(input, info));
-            if (info.reqIds === '*') {
-                res_.then((res) => cache.write(context, { data: [{ hash: { ...res, $: '*' } }] }));
-            } else {
-                cache.write(context, { data: [{ hash: Object.fromEntries(info.reqIds.map((x) => [x, res_.then((r) => r[x])])) }] });
-            }
+            hooks.set(res_);
             Object.assign(result, await res_);
         }
         return result;
     };
-    return Object.assign(Wrapper, { Update });
+    return Object.assign(Wrapper, { Hooks });
 }
 
 export function CacheMCollection<
@@ -204,7 +265,7 @@ export function CacheMCollection<
 >(
     params: AsyncFunction.Params<I, zRecord<zRecord<O>>, L, C>,
     behavior: {
-        useUpdate?(update: TUpdate<C, I, zRecord<zRecord<O>>>): void;
+        useHooks?(hooks: Hooks<C, I, zRecord<zRecord<O>>>): void;
         getCache(input: I['_output']): CacheController<A>;
         getIds(input: I['_output']): { id: string; subIds: string[] | '*' }[];
         updateIds(input: I['_output'], info: { id: string; reqSubIds: string[] | '*'; ignoreSubIds: string[] }[]): I['_output'];
@@ -230,41 +291,89 @@ export function CacheMCollection<
             return { id, subIds: [...subIds] };
         });
     }
-    const Update: TUpdate<C, I, zRecord<zRecord<O>>> = async function (context, input, output = null) {
+    const Hooks: Hooks<C, I, zRecord<zRecord<O>>> = function (context, input) {
         const cache = behavior.getCache(input);
         const locs = getIds(input);
-        if (output == null) {
-            cache.remove(context, [
-                //
-                ...locs.filter((x) => x.subIds === '*').map((x) => ({ key: x.id, fields: '*' }) as const),
-                ...locs.filter((x) => x.subIds !== '*').map((x) => ({ key: x.id, fields: x.subIds }) as const),
-            ]);
-        } else {
-            await cache.write(context, {
-                data: [
-                    ...locs
-                        .filter((x) => x.subIds !== '*')
-                        .map((x) => ({ key: x.id, hash: Object.fromEntries((x.subIds as string[]).map((id) => [x, output[x.id][id]])) })),
-                    ...locs.filter((x) => x.subIds === '*').map((x) => ({ key: x.id, hash: { ...output[x.id], $: '*' } })),
-                ],
-            });
-        }
-    };
-    behavior.useUpdate?.(Update);
-    const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<zRecord<O>>, L, C> = async function (context, input, func) {
-        const cache = behavior.getCache(input);
-        const locs = getIds(input);
-        const result = await cache
-            .read(
-                context,
-                locs.map((x) => ({ key: x.id, fields: x.subIds }))
-            )
-            .then((res) =>
-                bundleCached(
+        return {
+            async get() {
+                const res = await cache.read(
+                    context,
+                    locs.map((x) => ({ key: x.id, fields: x.subIds }))
+                );
+                return bundleCached(
                     locs.map((x) => x.id),
                     res.map((x) => x ?? {}) as Record<string, unknown>[]
-                )
-            );
+                );
+            },
+            async set(output, ifExists) {
+                const fullOutput: Record<string, zSyncOrAsyncOutput<zRecord<O>>> = {};
+                const partialOutput: Record<string, Record<string, zSyncOrAsyncOutput<O>>> = {};
+                if (output instanceof Promise) {
+                    for (const loc of locs) {
+                        if (loc.subIds === '*') {
+                            fullOutput[loc.id] = output.then((data) => data[loc.id]);
+                        } else {
+                            partialOutput[loc.id] = Object.fromEntries(loc.subIds.map((x) => [x, output.then((data) => data[loc.id][x])]));
+                        }
+                    }
+                } else {
+                    for (const loc of locs) {
+                        if (loc.subIds === '*') {
+                            fullOutput[loc.id] = output[loc.id];
+                        } else {
+                            partialOutput[loc.id] = Object.fromEntries(loc.subIds.map((x) => [x, output[loc.id][x]]));
+                        }
+                    }
+                }
+                if (ifExists) {
+                    const data = await this.get();
+                    const needToDel: string[] = [];
+                    for (const loc of locs) {
+                        if (loc.subIds === '*') {
+                            if (data[loc.id]?.$ !== '*') {
+                                needToDel.push(loc.id);
+                                delete fullOutput[loc.id];
+                            }
+                        } else {
+                            for (const x of loc.subIds) {
+                                if ((data[loc.id]?.[x] ?? null) == null) {
+                                    delete partialOutput[loc.id][x];
+                                }
+                            }
+                        }
+                    }
+                    await cache.remove(
+                        context,
+                        needToDel.map((x) => ({ key: x, fields: '*' }))
+                    );
+                }
+                await Promise.all([
+                    cache.write(context, {
+                        data: locs.filter((x) => x.subIds !== '*').map((x) => ({ key: x.id, hash: partialOutput[x.id] })),
+                    }),
+                    Promise.all(Object.keys(fullOutput).map(async (x) => [x, await fullOutput[x]] as const))
+                        .then((x) => Object.fromEntries(x))
+                        .then((res) =>
+                            cache.write(context, {
+                                data: Object.keys(res).map((x) => ({ key: x, hash: { ...res[x], $: '*' } })),
+                            })
+                        ),
+                ]);
+            },
+            async del() {
+                await cache.remove(context, [
+                    //
+                    ...locs.filter((x) => x.subIds === '*').map((x) => ({ key: x.id, fields: '*' }) as const),
+                    ...locs.filter((x) => x.subIds !== '*').map((x) => ({ key: x.id, fields: x.subIds }) as const),
+                ]);
+            },
+        };
+    };
+    behavior.useHooks?.(Hooks);
+    const Wrapper: AsyncFunction.WrapperBuild<I, zRecord<zRecord<O>>, L, C> = async function (context, input, func) {
+        const hooks = Hooks(context, input);
+        const locs = getIds(input);
+        const result = await hooks.get();
         const info = (function () {
             const info = [];
             for (const x of locs) {
@@ -292,19 +401,12 @@ export function CacheMCollection<
         })();
         if (info.length) {
             const res_ = func(context, behavior.updateIds(input, info));
-            cache.write(context, {
-                data: info
-                    .filter((x) => x.reqSubIds !== '*')
-                    .map((x) => ({ key: x.id, hash: Object.fromEntries((x.reqSubIds as string[]).map((id) => [x, res_.then((r) => r[x.id][id])])) })),
-            });
-            res_.then((res) =>
-                cache.write(context, { data: info.filter((x) => x.reqSubIds === '*').map((x) => ({ key: x.id, hash: { ...res[x.id], $: '*' } })) })
-            );
+            hooks.set(res_);
             for (const x of info) {
                 Object.assign(result[x.id], (await res_)[x.id]);
             }
         }
         return result;
     };
-    return Object.assign(Wrapper, { Update });
+    return Object.assign(Wrapper, { Hooks });
 }
