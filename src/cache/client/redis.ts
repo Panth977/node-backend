@@ -1,4 +1,4 @@
-import { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from 'redis';
+import type { RedisClientType, RedisDefaultModules, RedisFunctions, RedisModules, RedisScripts } from 'redis';
 import { AbstractCacheClient, CacheController } from '../controller';
 import { Context } from '../../functions';
 

@@ -186,11 +186,11 @@ export function CacheCollection<
                     if (ifExists) {
                         const data = await this.get();
                         if (data.$ !== '*') {
-                            await cache.remove(context, [{}]);
+                            await cache.remove(context, [{ fields: '*' }]);
                             return;
                         }
                     }
-                    await cache.remove(context, [{}]);
+                    await cache.remove(context, [{ fields: '*' }]);
                     const awaitedOutput = await output;
                     await cache.write(context, { data: [{ hash: { ...awaitedOutput, $: '*' } }] });
                 } else {
@@ -214,7 +214,7 @@ export function CacheCollection<
             },
             async del() {
                 if (fields === '*') {
-                    await cache.remove(context, [{}]);
+                    await cache.remove(context, [{ fields: '*' }]);
                 } else {
                     await cache.remove(context, [{ fields: [...fields, '$'] }]);
                 }
