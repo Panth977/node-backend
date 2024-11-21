@@ -182,11 +182,26 @@ export class RedisCacheClient<
         end
         return {allowed, currentValue}
         `;
-        const result = await this.client.eval(luaScript, {
-            keys: [params.key],
-            arguments: [`${params.incrBy}`, `${params.maxLimit || 0}`, `${params.expiry || 0}`],
-        });
+        let error: unknown;
+        const start = Date.now();
+        const result = await this.client
+            .eval(luaScript, {
+                keys: [params.key],
+                arguments: [`${params.incrBy}`, `${params.maxLimit || 0}`, `${params.expiry || 0}`],
+            })
+            .catch((err) => {
+                error = err;
+                return { allowed: false, value: 0 };
+            });
+        const timeTaken = Date.now() - start;
         if (!Array.isArray(result) || result.length !== 2) throw new Error('Unexpected response from Redis script!');
+        log: {
+            const isErr = error !== undefined;
+            if (!isErr && !controller?.log) break log;
+            let query = `(${timeTaken} ms) ++ ${controller?.client.name ?? 'Redis'}.incr(${params.incrBy}, max: ${params.maxLimit})`;
+            query += `\n\t.at(${params.key}): ${isErr ? '❌' : '✅'}`;
+            context.log(query, ...(isErr ? [error] : []));
+        }
         return { allowed: !!result[0], value: +(result[1] as string | number) };
     }
 }
